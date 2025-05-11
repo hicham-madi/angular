@@ -10,4 +10,13 @@ import { CommonModule } from '@angular/common';
 })
 export class SolicitationRowComponent {
   @Input() row: any;
+
+  getStatusColor(status: string): string {
+    switch (status.toLowerCase()) {
+      case 'en attente': return '#ec407a';
+      case 'à clôturer': return '#ff7043';
+      case 'en cours': return '#42a5f5';
+      default: return '#bdbdbd';
+    }
+  }
 }

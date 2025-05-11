@@ -1,3 +1,19 @@
-:host {
-  display: block;
+.top-bar {
+  a {
+    font-size: 0.875rem;
+    color: #1e87f0;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .custom-new-btn {
+    background-color: #005aa7;
+    color: white;
+    font-size: 0.85rem;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: none;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
 }

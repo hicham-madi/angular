@@ -11,9 +11,33 @@ import { CounterCardComponent } from '../counter-card/counter-card.component';
 })
 export class CounterCardsComponent {
   cards = [
-    { count: 4, label: 'Non lues', icon: 'mail', colorClass: 'uk-card-primary' },
-    { count: 4, label: 'En retard', icon: 'clock', colorClass: 'uk-card-danger' },
-    { count: 4, label: 'À affecter', icon: 'users', colorClass: 'uk-card-warning' },
-    { count: 28, label: 'Toutes', icon: 'list', colorClass: 'uk-card-muted' }
-  ];
+  {
+    count: 4,
+    label: 'Non lues',
+    icon: 'mail',
+    backgroundColor: '#1473e6',
+    textColor: '#fff'
+  },
+  {
+    count: 4,
+    label: 'En retard',
+    icon: 'clock',
+    backgroundColor: '#f24b56',
+    textColor: '#fff'
+  },
+  {
+    count: 4,
+    label: 'À affecter',
+    icon: 'users',
+    backgroundColor: '#ffb74d',
+    textColor: '#fff'
+  },
+  {
+    count: 28,
+    label: 'Toutes',
+    icon: 'list',
+    backgroundColor: '#e0e0e0',
+    textColor: '#000'
+  }
+];
 }

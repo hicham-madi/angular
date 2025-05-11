@@ -1,0 +1,19 @@
+.solicitation-table {
+  th {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+  }
+
+  td {
+    font-size: 0.85rem;
+    color: #333;
+    vertical-align: middle;
+  }
+
+  a[uk-icon] {
+    color: #1e87f0;
+    text-decoration: none;
+  }
+}

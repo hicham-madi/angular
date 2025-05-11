@@ -11,6 +11,7 @@ import { CommonModule } from '@angular/common';
 export class CounterCardComponent {
   @Input() count = 0;
   @Input() label = '';
-  @Input() icon = ''; // nom UIKit ou SVG inline
-  @Input() colorClass = ''; // pour couleur dynamique (bg ou texte)
+  @Input() icon = '';
+  @Input() backgroundColor = '#f2f2f2';
+  @Input() textColor = '#000';
 }
