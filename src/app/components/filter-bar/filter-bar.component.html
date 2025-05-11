@@ -1,0 +1,20 @@
+<div class="uk-flex uk-flex-between uk-flex-middle uk-grid-small" uk-grid>
+
+  <!-- Champ de recherche -->
+  <div class="uk-width-expand">
+    <input
+      class="uk-input"
+      type="text"
+      placeholder="Rechercher..."
+      [(ngModel)]="searchQuery"
+      (ngModelChange)="onSearchChange()" />
+  </div>
+
+  <!-- Sélecteur de statut -->
+  <div class="uk-width-auto">
+    <select class="uk-select" [(ngModel)]="selectedStatus" (change)="onStatusChange()">
+      <option *ngFor="let option of statusOptions" [value]="option">{{ option }}</option>
+    </select>
+  </div>
+
+</div>

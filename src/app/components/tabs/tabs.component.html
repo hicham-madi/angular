@@ -1,0 +1,7 @@
+<ul class="uk-tab" uk-tab>
+  <li *ngFor="let tab of tabs" [class.uk-active]="tab.label === activeTab">
+    <a href="#" (click)="selectTab(tab.label); $event.preventDefault()">
+      {{ tab.label }} ({{ tab.count }})
+    </a>
+  </li>
+</ul>

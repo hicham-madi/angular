@@ -1,0 +1,10 @@
+<div class="uk-grid-small uk-child-width-1-4@m uk-grid-match" uk-grid>
+  <div *ngFor="let card of cards">
+    <app-counter-card
+      [count]="card.count"
+      [label]="card.label"
+      [icon]="card.icon"
+      [colorClass]="card.colorClass">
+    </app-counter-card>
+  </div>
+</div>

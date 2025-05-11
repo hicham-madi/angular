@@ -1,0 +1,22 @@
+<tr>
+  <td>
+    <a href="#" uk-icon="icon: file-edit" title="Modifier"></a>
+  </td>
+  <td>{{ row.ticket }}</td>
+  <td>{{ row.maj }}</td>
+  <td>{{ row.client }}</td>
+  <td>{{ row.objet }}</td>
+  <td>{{ row.type }}</td>
+  <td>{{ row.echeance }}</td>
+  <td>
+    <span
+      class="uk-label"
+      [ngClass]="{
+        'uk-label-warning': row.statut === 'En attente',
+        'uk-label-success': row.statut === 'Traitée',
+        'uk-label-danger': row.urgent
+      }">
+      {{ row.statut }}
+    </span>
+  </td>
+</tr>
