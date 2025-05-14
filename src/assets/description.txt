@@ -1,0 +1,5 @@
+feat: création du composant SolicitingsPageComponent sans intégration de sous-composants
+
+- Mise en place du composant standalone de la page
+- Ajout du fichier HTML avec structure de base
+- Définition du layout principal via .layout-page-container
