@@ -9,13 +9,14 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
 })
 export class PageHeaderComponent {
-  tabs = [
+  readonly tabs: string[] = [
     'Mes sollicitations',
     'Mon équipe',
     'Ma caisse régionale',
     'Toutes les sollicitations'
   ];
-  activeTab = this.tabs[0];
+
+  activeTab: string = this.tabs[0];
 
   selectTab(tab: string): void {
     this.activeTab = tab;

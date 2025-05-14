@@ -1,8 +1,8 @@
-feat: création du composant TopBar
+feat: création du composant PageHeader avec onglets dynamiques et bouton d'action
 
-- Composant standalone 'metabot-top-bar' avec structure responsive
-- Intégration des icônes SVG : Accueil, Sollicitation et Menu
-- Labels dynamiques injectés via la classe (homeLabel, solicitingLabel)
-- Structure HTML claire et respect du design Figma
-- SCSS modulaire : flex, spacing, typographie, icon-size standardisée
-- Préparé pour intégration dans la page principale des sollicitations
+- Composant standalone 'app-page-header' affichant les onglets de navigation
+- Gestion de l'onglet actif avec mise en surbrillance via *ngFor et class binding
+- Ajout conditionnel de badges et alerte visuelle sur certains onglets
+- Bouton "nouvelle sollicitation" avec icône SVG intégrée
+- SCSS structuré : onglets, badges, alertes, bouton d'action et responsive layout
+- Respect de la maquette Figma et bonne accessibilité

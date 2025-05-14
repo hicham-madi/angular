@@ -1,26 +1,28 @@
 <div class="tabs-header">
   <div class="tabs">
-    <button class="tab active">
-      <span class="tab-label">Mes sollicitations</span>
-      <span class="badge">11</span>
-      <span class="alert"></span>
-    </button>
+    <button
+      *ngFor="let tab of tabs"
+      class="tab"
+      [class.active]="tab === activeTab"
+      (click)="selectTab(tab)"
+    >
+      <span class="tab-label">{{ tab }}</span>
 
-    <button class="tab">
-      <span class="tab-label">Mon équipe</span>
-      <span class="badge">00</span>
-    </button>
+      <!-- Badge (facultatif) -->
+      <ng-container [ngSwitch]="tab">
+        <span *ngSwitchCase="'Mes sollicitations'" class="badge">11</span>
+        <span *ngSwitchCase="'Mon équipe'" class="badge">00</span>
+      </ng-container>
 
-    <button class="tab">
-      <span class="tab-label">Ma caisse régionale</span>
-    </button>
-
-    <button class="tab">
-      <span class="tab-label">Suivis et Analyses de l’équipe</span>
+      <!-- Alerte visuelle -->
+      <span *ngIf="tab === 'Mes sollicitations'" class="alert"></span>
     </button>
   </div>
 
   <div class="actions">
-    <button class="new-button">＋ nouvelle sollicitation</button>
+    <button class="new-button">
+      <img src="../../assets/add-solicitings.svg" alt="Ajouter" class="icon" />
+      <span>nouvelle sollicitation</span>
+    </button>
   </div>
 </div>

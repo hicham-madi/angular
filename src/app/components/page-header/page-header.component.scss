@@ -15,7 +15,7 @@
       display: flex;
       align-items: center;
       gap: 5px;
-      padding: 6px 16px 16px 16px;
+      padding: 6px 16px 16px;
       height: 37px;
       font-size: 12px;
       font-weight: 500;
@@ -65,6 +65,18 @@
       letter-spacing: 0.02em;
       border: none;
       cursor: pointer;
+
+      .icon {
+        filter: brightness(0) invert(1);
+      }
     }
+  }
+
+  // Icône générique
+  .icon {
+    width: 12px;
+    height: 12px;
+    display: inline-block;
+    object-fit: contain;
   }
 }
