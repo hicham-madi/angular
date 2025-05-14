@@ -1,5 +1,8 @@
-feat: création du composant SolicitingsPageComponent sans intégration de sous-composants
+feat: création du composant TopBar
 
-- Mise en place du composant standalone de la page
-- Ajout du fichier HTML avec structure de base
-- Définition du layout principal via .layout-page-container
+- Composant standalone 'metabot-top-bar' avec structure responsive
+- Intégration des icônes SVG : Accueil, Sollicitation et Menu
+- Labels dynamiques injectés via la classe (homeLabel, solicitingLabel)
+- Structure HTML claire et respect du design Figma
+- SCSS modulaire : flex, spacing, typographie, icon-size standardisée
+- Préparé pour intégration dans la page principale des sollicitations

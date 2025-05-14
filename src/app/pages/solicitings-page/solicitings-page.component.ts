@@ -11,7 +11,7 @@ import { SolicitationsTableComponent } from '../../components/solicitations-tabl
 
 @Component({
   standalone: true,
-  selector: 'app-solicitings-page',
+  selector: 'metabot-solicitings-page',
   templateUrl: './solicitings-page.component.html',
   styleUrls: ['./solicitings-page.component.scss'],
   imports: [
