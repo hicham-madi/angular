@@ -1,19 +1,12 @@
-<div class="uk-flex uk-flex-between uk-flex-middle uk-grid-small" uk-grid>
-
-  <!-- Champ de recherche -->
-  <div class="uk-width-expand">
-    <input
-      class="uk-input uk-form-small"
-      type="text"
-      placeholder="Rechercher..."
-      [(ngModel)]="searchQuery"
-      (ngModelChange)="onSearchChange()" />
+<div class="filter-bar">
+  <div class="search">
+    <input type="text" [(ngModel)]="searchTerm" placeholder="🔍 Rechercher..." />
   </div>
 
-  <!-- Sélecteur de statut -->
-  <div class="uk-width-auto">
-    <select class="uk-select uk-form-small" [(ngModel)]="selectedStatus" (change)="onStatusChange()">
-      <option *ngFor="let option of statusOptions" [value]="option">{{ option }}</option>
+  <div class="status">
+    <label for="status">Filtrer par statut : </label>
+    <select id="status" [(ngModel)]="selectedStatus">
+      <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
     </select>
   </div>
 </div>

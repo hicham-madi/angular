@@ -1,0 +1,15 @@
+<div class="status-tabs">
+  <button
+    class="tab"
+    [class.active]="selected === 'ongoing'"
+    (click)="selected = 'ongoing'">
+    En cours (66)
+  </button>
+
+  <button
+    class="tab"
+    [class.active]="selected === 'completed'"
+    (click)="selected = 'completed'">
+    Terminées (0)
+  </button>
+</div>

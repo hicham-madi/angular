@@ -1,0 +1,39 @@
+<div class="sol-table">
+  <!-- En-tête -->
+  <div class="header-row">
+    <div class="cell actions">Actions</div>
+    <div class="cell ticket">N° ticket</div>
+    <div class="cell date">Dernière MAJ</div>
+    <div class="cell client">Client</div>
+    <div class="cell object">Objet de la sollicitation</div>
+    <div class="cell type">Type</div>
+    <div class="cell deadline">Traitement / Échéance</div>
+    <div class="cell status">Statut</div>
+  </div>
+
+  <!-- Lignes -->
+  <div class="row" *ngFor="let s of solicitations">
+    <div class="cell actions">
+      <span>📎</span>
+      <span>📍</span>
+      <span>⋯</span>
+    </div>
+    <div class="cell ticket">{{ s.ticket }}</div>
+    <div class="cell date">
+      <div class="text-1">21 nov. 2024</div>
+      <div class="text-2">à 17h30</div>
+    </div>
+    <div class="cell client">
+      <div class="name">{{ s.clientName }}</div>
+      <div class="id">{{ s.clientId }}</div>
+    </div>
+    <div class="cell object">{{ s.object }}</div>
+    <div class="cell type">{{ s.type }}</div>
+    <div class="cell deadline">
+      <span class="tag">{{ s.deadlineLabel }}</span>
+    </div>
+    <div class="cell status">
+      <span class="tag status-tag">{{ s.statusLabel }}</span>
+    </div>
+  </div>
+</div>

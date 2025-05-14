@@ -4,8 +4,8 @@ import { TopBarComponent } from '../../components/top-bar/top-bar.component';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 import { CounterCardsComponent } from '../../components/counter-cards/counter-cards.component';
 import { FilterBarComponent } from '../../components/filter-bar/filter-bar.component';
-import { TabsComponent } from '../../components/tabs/tabs.component';
-import { SolicitationTableComponent } from '../../components/solicitation-table/solicitation-table.component';
+import { SolicitationsTableComponent } from '../../components/solicitations-table/solicitations-table.component';
+import { StatusTabsComponent } from '../../components/status-tabs/status-tabs.component';
 
 
 @Component({
@@ -19,8 +19,8 @@ import { SolicitationTableComponent } from '../../components/solicitation-table/
     PageHeaderComponent,
     CounterCardsComponent,
     FilterBarComponent,
-    TabsComponent,
-    SolicitationTableComponent
+    StatusTabsComponent,
+    SolicitationsTableComponent
   ],
 })
 export class SolicitationPageComponent {}

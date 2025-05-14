@@ -1,14 +1,26 @@
-<div class="uk-flex uk-flex-between uk-flex-middle uk-margin-small-bottom">
+<div class="tabs-header">
+  <div class="tabs">
+    <button class="tab active">
+      <span class="tab-label">Mes sollicitations</span>
+      <span class="badge">11</span>
+      <span class="alert"></span>
+    </button>
 
-  <!-- Onglets de navigation -->
-  <ul class="custom-tabs">
-    <li *ngFor="let tab of tabs" [class.active]="tab === activeTab" (click)="selectTab(tab)">
-      <a href="#">{{ tab }}</a>
-    </li>
-  </ul>
+    <button class="tab">
+      <span class="tab-label">Mon équipe</span>
+      <span class="badge">00</span>
+    </button>
 
-  <!-- Bouton nouvelle sollicitation -->
-  <div>
-    <button class="uk-button custom-new-btn">+ NOUVELLE SOLLICITATION</button>
+    <button class="tab">
+      <span class="tab-label">Ma caisse régionale</span>
+    </button>
+
+    <button class="tab">
+      <span class="tab-label">Suivis et Analyses de l’équipe</span>
+    </button>
+  </div>
+
+  <div class="actions">
+    <button class="new-button">＋ nouvelle sollicitation</button>
   </div>
 </div>

@@ -1,6 +1,8 @@
-<div class="counter-card uk-card uk-card-body uk-text-center uk-box-shadow-small"
-     [ngStyle]="{ 'background-color': backgroundColor, 'color': textColor }">
-  <span [attr.uk-icon]="icon" class="uk-icon uk-margin-small-bottom"></span>
-  <h3 class="uk-margin-remove">{{ count }}</h3>
-  <p class="uk-margin-remove-top uk-text-small">{{ label }}</p>
+<div class="card" [ngClass]="[variant, wide ? 'wide' : '', small ? 'small' : '']">
+  <div class="top">
+    <span class="icon">{{ icon }}</span>
+    <span class="count">{{ count }}</span>
+    <span *ngIf="badge !== undefined" class="badge">{{ badge }}</span>
+  </div>
+  <div class="label">{{ label }}</div>
 </div>

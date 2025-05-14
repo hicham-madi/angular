@@ -1,4 +1,41 @@
-.uk-input, .uk-select {
-  border-radius: 4px;
-  font-size: 0.85rem;
+.filter-bar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  width: 1184px;
+  height: 30px;
+  font-family: 'Montserrat', sans-serif;
+
+  .search input {
+    width: 240px;
+    height: 30px;
+    padding: 6px 12px;
+    border: 1px solid rgba(221, 221, 221, 1);
+    border-radius: 6px;
+    font-size: 10px;
+    color: rgba(135, 135, 135, 1);
+  }
+
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    label {
+      font-size: 10px;
+      color: rgba(135, 135, 135, 1);
+    }
+
+    select {
+      font-size: 10px;
+      font-weight: 500;
+      color: rgba(48, 130, 118, 1);
+      background-color: #fff;
+      border: 1px solid rgba(221, 221, 221, 1);
+      border-radius: 6px;
+      padding: 6px 12px;
+      height: 30px;
+      min-width: 120px;
+    }
+  }
 }

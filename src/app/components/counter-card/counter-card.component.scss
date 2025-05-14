@@ -1,0 +1,84 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 10px;
+  height: 70px;
+  border-radius: 6px;
+  font-family: 'Montserrat', sans-serif;
+
+  &.wide {
+    width: 300px;
+  }
+
+  &.small {
+    width: 70px;
+    border: 2px solid rgba(221, 221, 221, 1);
+    background: rgba(255, 235, 235, 1);
+    color: #e64848;
+
+    .label {
+      font-size: 10px;
+      line-height: 1.1;
+    }
+  }
+
+  .top {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    .icon {
+      font-size: 16px;
+    }
+
+    .count {
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .badge {
+      font-size: 10px;
+      background: rgba(255, 121, 123, 0.1);
+      border-radius: 4px;
+      padding: 2px 6px;
+      margin-left: auto;
+    }
+  }
+
+  .label {
+    font-size: 11px;
+    margin-top: 4px;
+    font-weight: 500;
+  }
+
+  &.red {
+    background: #fff7f7;
+    color: #e64848;
+  }
+
+  &.yellow {
+    background: #fff7eb;
+    color: #004652;
+  }
+
+  &.blue {
+    background: #dfeeff;
+    color: #004ea4;
+  }
+
+  &.purple {
+    background: #f6f3ff;
+    color: #6c42ec;
+  }
+
+  &.turquoise {
+    background: #e2f7f7;
+    color: #004652;
+  }
+
+  &.default {
+    background: #ffffff;
+    color: #000000;
+  }
+}

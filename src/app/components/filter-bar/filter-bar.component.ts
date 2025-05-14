@@ -3,23 +3,14 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 @Component({
-  standalone: true,
   selector: 'app-filter-bar',
-  templateUrl: './filter-bar.component.html',
-  styleUrls: ['./filter-bar.component.scss'],
+  standalone: true,
   imports: [CommonModule, FormsModule],
+  templateUrl: './filter-bar.component.html',
+  styleUrls: ['./filter-bar.component.scss']
 })
 export class FilterBarComponent {
-  searchQuery = '';
+  searchTerm = '';
   selectedStatus = 'Tous';
-
-  statusOptions = ['Tous', 'En cours', 'Terminées'];
-
-  onSearchChange() {
-    // émettre l’événement plus tard si nécessaire
-  }
-
-  onStatusChange() {
-    // émettre l’événement plus tard si nécessaire
-  }
+  statuses = ['Tous', 'En attente', 'À clôturer', 'Clôturé'];
 }
