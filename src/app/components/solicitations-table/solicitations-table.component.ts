@@ -1,10 +1,11 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SolicitationRowComponent } from '../solicitation-row/solicitation-row.component';
 
 @Component({
   selector: 'app-solicitations-table',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, SolicitationRowComponent],
   templateUrl: './solicitations-table.component.html',
   styleUrls: ['./solicitations-table.component.scss']
 })

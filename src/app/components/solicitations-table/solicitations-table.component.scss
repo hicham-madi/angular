@@ -5,51 +5,27 @@
   font-family: 'Montserrat', sans-serif;
   font-size: 10px;
 
-  .header-row,
-  .row {
+  .header-row {
     display: flex;
     align-items: center;
-    border-bottom: 1px solid rgba(221, 221, 221, 1);
-  }
-
-  .header-row {
+    height: 35px;
     background-color: rgba(242, 244, 248, 1);
     font-weight: 600;
-    height: 35px;
-  }
+    border-bottom: 1px solid rgba(221, 221, 221, 1);
 
-  .row {
-    height: 40px;
-    padding: 0 6px;
-  }
+    .cell {
+      padding: 6px 10px;
+      display: flex;
+      align-items: center;
 
-  .cell {
-    padding: 6px 10px;
-    display: flex;
-    align-items: center;
-
-    &.actions { width: 66px; gap: 6px; }
-    &.ticket { width: 90px; color: rgba(135, 135, 135, 1); }
-    &.date { width: 100px; flex-direction: column; gap: 2px; }
-    &.client { width: 150px; flex-direction: column; gap: 2px;
-      .name { font-weight: 600; color: rgba(0, 70, 82, 1); font-size: 12px; }
-      .id { font-weight: 500; color: rgba(0, 116, 97, 1); }
-    }
-    &.object { width: 356px; }
-    &.type { width: 170px; }
-    &.deadline { width: 100px; }
-    &.status { width: 140px; }
-  }
-
-  .tag {
-    padding: 4px 8px;
-    border-radius: 5px;
-    font-weight: 600;
-    font-size: 10px;
-    background-color: #eee;
-    &.status-tag {
-      background-color: #e2f7f7;
-      color: #004652;
+      &.actions { width: 66px; }
+      &.ticket { width: 90px; }
+      &.date { width: 100px; }
+      &.client { width: 150px; }
+      &.object { width: 356px; }
+      &.type { width: 170px; }
+      &.deadline { width: 100px; }
+      &.status { width: 140px; }
     }
   }
 }
