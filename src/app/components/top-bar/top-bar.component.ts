@@ -6,6 +6,9 @@ import { CommonModule } from '@angular/common';
   selector: 'app-top-bar',
   templateUrl: './top-bar.component.html',
   styleUrls: ['./top-bar.component.scss'],
-  imports: [CommonModule],
+  imports: [CommonModule]
 })
-export class TopBarComponent {}
+export class TopBarComponent {
+  readonly homeLabel = 'Accueil';
+  readonly solicitingLabel = 'Sollicitation';
+}

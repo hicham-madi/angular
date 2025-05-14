@@ -12,38 +12,34 @@
   .left {
     display: flex;
     gap: 6px;
-
-    .icon-button {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      height: 22px;
-      padding: 4px 10px;
-      border-radius: 5px;
-      border: 1px solid rgba(221, 221, 221, 1);
-      background-color: rgba(255, 255, 255, 1);
-      font-family: 'Montserrat', sans-serif;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-      color: rgba(135, 135, 135, 1);
-      cursor: pointer;
-    }
   }
 
-  .right {
-    .menu-button {
-      width: 22px;
-      height: 22px;
-      padding: 4px;
-      border-radius: 5px;
-      border: 1px solid rgba(221, 221, 221, 1);
-      background-color: rgba(255, 255, 255, 1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-    }
+  .icon-button,
+  .menu-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    border: 1px solid rgba(221, 221, 221, 1);
+    background-color: rgba(255, 255, 255, 1);
+    cursor: pointer;
+  }
+
+  .icon-button {
+    gap: 6px;
+    height: 22px;
+    padding: 4px 10px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: rgba(135, 135, 135, 1);
+  }
+
+  .menu-button {
+    width: 22px;
+    height: 22px;
+    padding: 4px;
   }
 
   .icon {
