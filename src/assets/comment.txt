@@ -1,0 +1,8 @@
+feat: création du composant DashboardCard pour l'affichage des indicateurs
+
+- Composant standalone 'app-dashboard-card' affichant une carte d'indicateur
+- Inputs : icône, valeur numérique, libellé, badge, variante de couleur, format large ou compact
+- Template HTML avec gestion conditionnelle du badge
+- SCSS modulaire : variantes de couleurs, largeur, style compact
+- Alignement complet avec le design Figma
+- Prévu pour être utilisé dans le résumé du tableau de bord (dashboard-summary)
