@@ -1,12 +1,7 @@
 <div class="dashboard-summary">
   <metabot-dashboard-card
     *ngFor="let card of cards"
-    [icon]="card.icon"
-    [count]="card.count"
-    [label]="card.label"
-    [badge]="card.badge"
-    [variant]="card.variant"
-    [wide]="card.wide"
-    [small]="card.small">
+    [card]="card"
+    [ngClass]="card.variant">
   </metabot-dashboard-card>
 </div>

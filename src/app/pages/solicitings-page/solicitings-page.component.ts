@@ -7,7 +7,6 @@ import { DashboardSummaryComponent } from '../../components/dashboard-summary/da
 import { FilterBarComponent } from '../../components/filter-bar/filter-bar.component';
 import { StatusTabsComponent } from '../../components/status-tabs/status-tabs.component';
 import { SolicitationsTableComponent } from '../../components/solicitations-table/solicitations-table.component';
-import { DashboardCardComponent } from "../../components/dashboard-card/dashboard-card.component";
 
 @Component({
   standalone: true,
@@ -20,8 +19,7 @@ import { DashboardCardComponent } from "../../components/dashboard-card/dashboar
     DashboardSummaryComponent,
     FilterBarComponent,
     StatusTabsComponent,
-    SolicitationsTableComponent,
-    DashboardCardComponent
+    SolicitationsTableComponent
 ]
 })
 export class SolicitingsPageComponent {}

@@ -13,7 +13,7 @@ export class PageHeaderComponent {
     'Mes sollicitations',
     'Mon équipe',
     'Ma caisse régionale',
-    'Toutes les sollicitations'
+    'Suivis et Analyses de l\'équipe'
   ];
 
   activeTab: string = this.tabs[0];

@@ -1,19 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
+import { DashboardCardData } from '../../models/dashboard-card.model';
 
 @Component({
   selector: 'metabot-dashboard-card',
+  standalone: true,
   templateUrl: './dashboard-card.component.html',
   styleUrls: ['./dashboard-card.component.scss'],
-  standalone: true,
   imports: [CommonModule]
 })
 export class DashboardCardComponent {
-  @Input() icon: string = '';
-  @Input() count: number = 0;
-  @Input() label: string = '';
-  @Input() badge?: number;
-  @Input() variant: 'red' | 'yellow' | 'blue' | 'purple' | 'turquoise' | 'default' = 'default';
-  @Input() wide = false;
-  @Input() small = false;
+  @Input() card!: DashboardCardData;
 }

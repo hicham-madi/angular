@@ -1,8 +1,17 @@
-<div class="card" [ngClass]="[variant, wide ? 'wide' : '', small ? 'small' : '']">
+<div class="card" [ngClass]="[
+  card.variant || 'default',
+  card.wide ? 'wide' : '',
+  card.small ? 'small' : ''
+]">
   <div class="top">
-    <span class="icon">{{ icon }}</span>
-    <span class="count">{{ count }}</span>
-    <span *ngIf="badge !== undefined" class="badge">{{ badge }}</span>
+    <img *ngIf="card.icon" [src]="card.icon" alt="icon" class="icon" />
+    <span class="count">{{ card.count }}</span>
+    <ng-container *ngIf="card.badges?.length">
+      <span class="badge" *ngFor="let badge of card.badges">
+        <img [src]="badge.icon" alt="badge icon" class="badge-icon" />
+        {{ badge.value }}
+      </span>
+    </ng-container>
   </div>
-  <div class="label">{{ label }}</div>
+  <div class="label">{{ card.label }}</div>
 </div>

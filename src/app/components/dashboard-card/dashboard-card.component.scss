@@ -7,79 +7,298 @@
   border-radius: 6px;
   font-family: 'Montserrat', sans-serif;
 
-  &.wide {
-    width: 300px;
-  }
-
-  &.small {
-    width: 70px;
-    border: 2px solid rgba(221, 221, 221, 1);
-    background-color: #ffebeb;
-    color: #e64848;
-
-    .label {
-      font-size: 10px;
-      line-height: 1.1;
-    }
-  }
-
   .top {
     display: flex;
     align-items: center;
     gap: 4px;
 
     .icon {
-      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      object-fit: contain;
     }
 
     .count {
-      font-weight: 600;
-      font-size: 16px;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 700;
+      font-size: 12.29px;
+      line-height: 100%;
+      letter-spacing: 0;
     }
 
     .badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
       font-size: 10px;
-      background-color: rgba(255, 121, 123, 0.1);
+      font-weight: 600;
+      background: rgba(255, 121, 123, 0.1);
       border-radius: 4px;
       padding: 2px 6px;
       margin-left: auto;
+
+      .badge-icon {
+        width: 12px;
+        height: 12px;
+        object-fit: contain;
+      }
     }
   }
 
   .label {
-    font-size: 11px;
     margin-top: 4px;
-    font-weight: 500;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    line-height: 100%;
+    letter-spacing: 0;
+    text-align: center;
+    white-space: pre-line;
   }
 
-  // Variants
   &.red {
-    background-color: #fff7f7;
-    color: #e64848;
+    background: rgba(255, 247, 247, 1);
+    color: rgba(0, 70, 82, 1);
+    .top {
+      gap: 6px;
+      .icon {
+        width: 25.92px;
+        height: 25.92px;
+      }
+      .count {
+        width: 16px;
+        height: 24px;
+        font-weight: 600;
+        font-size: 20px;
+        color: rgba(0, 70, 82, 1);
+      }
+    }
+    .label {
+      width: 67px;
+      height: 12px;
+      font-weight: 500;
+      font-size: 10px;
+      text-align: center;
+      color: rgba(0, 70, 82, 1);
+    }
+    .badge {
+      .badge-icon {
+        width: 12.29px;
+        height: 12.29px;
+      }
+      .badge-value {
+        width: 7px;
+        height: 12px;
+        font-weight: 600;
+        font-size: 10.24px;
+        color: rgba(221, 221, 221, 1);
+      }
+    }
   }
 
   &.yellow {
-    background-color: #fff7eb;
-    color: #004652;
+    background: #fff7eb;
+    color: rgba(0, 70, 82, 1);
+    .top {
+      gap: 12px;
+      .icon {
+        width: 25.92px;
+        height: 25.92px;
+      }
+      .count {
+        width: 25px;
+        height: 24px;
+        font-weight: 600;
+        font-size: 20px;
+        color: rgba(0, 70, 82, 1);
+      }
+    }
+    .label {
+      width: 75.12px;
+      height: 12px;
+      font-weight: 500;
+      font-size: 10px;
+      text-align: center;
+      color: rgba(0, 70, 82, 1);
+    }
+    .badge {
+      .badge-icon {
+        width: 14.75px;
+        height: 14.75px;
+      }
+      .badge-value {
+        width: 8px;
+        height: 15px;
+        font-weight: 700;
+        font-size: 12.29px;
+        color: rgba(255, 121, 123, 1);
+      }
+    }
   }
 
   &.blue {
-    background-color: #dfeeff;
-    color: #004ea4;
+    background: rgba(223, 238, 255, 1);
+    color: rgba(0, 70, 82, 1);
+    .top {
+      gap: 6px;
+      .icon {
+        width: 19px;
+        height: 19px;
+      }
+      .count {
+        width: 25px;
+        height: 24px;
+        font-weight: 600;
+        font-size: 20px;
+        color: rgba(0, 70, 82, 1);
+      }
+    }
+    .label {
+      width: 85.19px;
+      height: 24px;
+      font-weight: 500;
+      font-size: 10px;
+      text-align: center;
+      color: rgba(0, 70, 82, 1);
+    }
+    .badge {
+      .badge-icon {
+        width: 12.29px;
+        height: 12.29px;
+      }
+      .badge-value {
+        width: 7px;
+        height: 12px;
+        font-weight: 600;
+        font-size: 10.24px;
+        color: rgba(221, 221, 221, 1);
+      }
+    }
   }
 
   &.purple {
-    background-color: #f6f3ff;
+    background: #f6f3ff;
     color: #6c42ec;
+    .top {
+      gap: 12px;
+      .icon {
+        width: 24px;
+        height: 24px;
+      }
+      .count {
+        width: 20px;
+        height: 24px;
+        font-weight: 600;
+        font-size: 20px;
+        color: rgba(0, 70, 82, 1);
+      }
+    }
+    .label {
+      width: 68px;
+      height: 12px;
+      font-weight: 500;
+      font-size: 10px;
+      text-align: center;
+      color: rgba(0, 70, 82, 1);
+    }
+    .badge {
+      .badge-icon {
+        width: 14.75px;
+        height: 14.75px;
+      }
+      .badge-value {
+        width: 8px;
+        height: 15px;
+        font-weight: 700;
+        font-size: 12.29px;
+        color: rgba(255, 121, 123, 1);
+      }
+    }
   }
 
   &.turquoise {
-    background-color: #e2f7f7;
+    background: #e2f7f7;
     color: #004652;
+
+    .top {
+      gap: 6px;
+
+      .icon {
+        width: 24px;
+        height: 24px;
+      }
+
+      .count {
+        width: 25px;
+        height: 24px;
+        font-weight: 600;
+        font-size: 20px;
+        color: rgba(0, 70, 82, 1);
+      }
+    }
+
+    .label {
+      width: 172px;
+      height: 12px;
+      font-weight: 500;
+      font-size: 10px;
+      text-align: center;
+      color: rgba(0, 70, 82, 1);
+    }
+
+    .badge {
+      .badge-icon {
+        width: 12.29px;
+        height: 12.29px;
+      }
+
+      .badge-value {
+        width: 7px;
+        height: 12px;
+        font-weight: 600;
+        font-size: 10.24px;
+        color: rgba(221, 221, 221, 1);
+      }
+    }
   }
 
   &.default {
-    background-color: #ffffff;
+    background: #ffffff;
     color: #000000;
+  }
+
+  &.small-red {
+    height: 70px;
+    padding: 4.8px 12.8px;
+    border-radius: 4.8px;
+    background: linear-gradient(
+      252.13deg,
+      rgba(255, 166, 167, 0.6) -38.94%,
+      rgba(255, 237, 238, 0.6) 109.8%
+    );
+
+    .top {
+      gap: 4px;
+      .icon {
+        width: 14.75px;
+        height: 14.75px;
+      }
+      .count {
+        width: 9px;
+        height: 15px;
+        font-weight: 700;
+        font-size: 12.29px;
+        color: rgba(255, 121, 123, 1);
+      }
+    }
+
+    .label {
+      height: 12px;
+      font-weight: 700;
+      font-size: 10px;
+      text-align: center;
+      color: rgba(255, 121, 123, 1);
+      white-space: pre-line;
+    }
   }
 }
