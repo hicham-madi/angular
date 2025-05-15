@@ -1,8 +1,14 @@
-feat: création du composant PageHeader avec onglets dynamiques et bouton d'action
+Hier, j’ai finalisé plusieurs composants structurants de la page de sollicitations.
 
-- Composant standalone 'app-page-header' affichant les onglets de navigation
-- Gestion de l'onglet actif avec mise en surbrillance via *ngFor et class binding
-- Ajout conditionnel de badges et alerte visuelle sur certains onglets
-- Bouton "nouvelle sollicitation" avec icône SVG intégrée
-- SCSS structuré : onglets, badges, alertes, bouton d'action et responsive layout
-- Respect de la maquette Figma et bonne accessibilité
+J’ai d’abord mis en place le composant `SolicitingsPage`, qui sert de conteneur principal, avec un layout flexible basé sur la maquette Figma.
+
+Ensuite, j’ai intégré le `TopBar`, avec les icônes SVG pour "Accueil", "Sollicitation" et le menu, le tout stylé proprement avec une base responsive. 
+
+Côté navigation, j’ai développé le `PageHeader`, avec des onglets dynamiques (gérés en *ngFor*), l’onglet actif est bien mis en surbrillance. 
+Le bouton "nouvelle sollicitation" inclut l’icône et suit parfaitement le design Figma.
+
+Pour les indicateurs chiffrés, j’ai créé le composant `DashboardCard`, paramétrable en icône, valeur, label, badge et couleur via une variante typée.
+
+Chaque composant est autonome, bien typé, stylé selon le design system, et prêt à être intégré dans une page.
+
+Et aujourd'hui, je suis en train de regrouper ces cartes dans un composant dédié "DashboardSummary, qui gère l’affichage horizontal de manière modulaire. Le nom a été volontairement explicité pour bien refléter sa finalité sur le dashboard.
