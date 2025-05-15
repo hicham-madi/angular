@@ -2,13 +2,13 @@ import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
 
 @Component({
-  selector: 'app-counter-card',
-  templateUrl: './counter-card.component.html',
-  styleUrls: ['./counter-card.component.scss'],
+  selector: 'metabot-dashboard-card',
+  templateUrl: './dashboard-card.component.html',
+  styleUrls: ['./dashboard-card.component.scss'],
   standalone: true,
   imports: [CommonModule]
 })
-export class CounterCardComponent {
+export class DashboardCardComponent {
   @Input() icon: string = '';
   @Input() count: number = 0;
   @Input() label: string = '';

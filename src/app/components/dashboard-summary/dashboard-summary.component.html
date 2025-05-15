@@ -1,5 +1,5 @@
-<div class="counter-cards">
-  <app-counter-card
+<div class="dashboard-summary">
+  <metabot-dashboard-card
     *ngFor="let card of cards"
     [icon]="card.icon"
     [count]="card.count"
@@ -8,5 +8,5 @@
     [variant]="card.variant"
     [wide]="card.wide"
     [small]="card.small">
-  </app-counter-card>
+  </metabot-dashboard-card>
 </div>

@@ -2,12 +2,12 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 // Feature Components
-import { TopBarComponent } from '../../components/top-bar/top-bar.component';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
-import { CounterCardsComponent } from '../../components/counter-cards/counter-cards.component';
+import { DashboardSummaryComponent } from '../../components/dashboard-summary/dashboard-summary.component';
 import { FilterBarComponent } from '../../components/filter-bar/filter-bar.component';
 import { StatusTabsComponent } from '../../components/status-tabs/status-tabs.component';
 import { SolicitationsTableComponent } from '../../components/solicitations-table/solicitations-table.component';
+import { DashboardCardComponent } from "../../components/dashboard-card/dashboard-card.component";
 
 @Component({
   standalone: true,
@@ -16,12 +16,12 @@ import { SolicitationsTableComponent } from '../../components/solicitations-tabl
   styleUrls: ['./solicitings-page.component.scss'],
   imports: [
     CommonModule,
-    TopBarComponent,
     PageHeaderComponent,
-    CounterCardsComponent,
+    DashboardSummaryComponent,
     FilterBarComponent,
     StatusTabsComponent,
-    SolicitationsTableComponent
-  ]
+    SolicitationsTableComponent,
+    DashboardCardComponent
+]
 })
 export class SolicitingsPageComponent {}
