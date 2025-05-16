@@ -61,7 +61,7 @@ export class DashboardSummaryComponent {
       icon: '../../assets/discussion-group.svg',
       count: 28,
       label: 'groupes de discussion',
-      variant: 'blue',
+      variant: 'calcareous-sinter',
       badges: [{ icon: '../../assets/unread-badge.svg', value: 0 }],
     },
     {
