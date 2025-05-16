@@ -1,15 +1,12 @@
-<div class="status-tabs">
+<div class="status-tabs" role="tablist">
   <button
+    *ngFor="let tab of tabs"
     class="tab"
-    [class.active]="selected === 'ongoing'"
-    (click)="selected = 'ongoing'">
-    En cours (66)
-  </button>
-
-  <button
-    class="tab"
-    [class.active]="selected === 'completed'"
-    (click)="selected = 'completed'">
-    Terminées (0)
+    [class.active]="selected === tab.value"
+    (click)="selected = tab.value"
+    role="tab"
+    [attr.aria-selected]="selected === tab.value"
+  >
+    {{ tab.label }} <span class="count">({{ tab.count }})</span>
   </button>
 </div>

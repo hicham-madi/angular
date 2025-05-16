@@ -1,6 +1,6 @@
-feat: création du composant filter-bar avec champ de recherche et filtre par statut
+feat: création du composant status-tabs pour la navigation entre statuts
 
-- Ajout du champ de recherche avec icône intégrée
-- Implémentation d’un menu déroulant pour filtrer par statut
-- Intégration du label dans la valeur sélectionnée selon la maquette Figma
-- Styles SCSS alignés avec le design (espacements, typographies, couleurs)
+- Composant d’onglets avec sélection dynamique via *ngFor
+- Affichage du nombre d’éléments par statut
+- Styles conformes à la maquette (hauteur, couleurs, polices, arrondis)
+- Préparation à l’intégration dynamique via @Input()
