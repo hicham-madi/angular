@@ -9,4 +9,9 @@
     <div class="cell deadline">Traitement / Échéance</div>
     <div class="cell status">Statut</div>
   </div>
+
+  <app-soliciting-row
+    *ngFor="let s of solicitings"
+    [soliciting]="s">
+  </app-soliciting-row>
 </div>

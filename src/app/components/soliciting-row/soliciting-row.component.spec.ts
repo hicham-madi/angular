@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { SolicitationRowComponent } from './solicitation-row.component';
+import { SolicitationRowComponent } from './soliciting-row.component';
 
 describe('SolicitationRowComponent', () => {
   let component: SolicitationRowComponent;

@@ -1,0 +1,16 @@
+<div class="row">
+  <div class="cell actions">Modifier</div>
+  <div class="cell ticket">{{ soliciting.ticketNumber }}</div>
+  <div class="cell date">
+    {{ soliciting.lastUpdate | date: 'd MMM. y' : undefined : 'fr' }}<br />
+    à {{ soliciting.lastUpdate | date: 'HH\'h\'mm' : undefined : 'fr' }}
+  </div>
+  <div class="cell client">{{ soliciting.client }}</div>
+  <div class="cell object">{{ soliciting.subject }}</div>
+  <div class="cell type">{{ soliciting.type }}</div>
+  <div class="cell deadline">
+    {{ soliciting.deadline | date: 'd MMM. y' : undefined : 'fr' }}<br />
+    à {{ soliciting.deadline | date: 'HH\'h\'mm' : undefined : 'fr' }}
+  </div>
+  <div class="cell status">{{ soliciting.status }}</div>
+</div>
