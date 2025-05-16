@@ -12,5 +12,5 @@ import { FormsModule } from '@angular/forms';
 export class FilterBarComponent {
   searchTerm = '';
   selectedStatus = 'Tous';
-  statuses = ['Tous', 'En attente', 'À clôturer', 'Clôturé'];
+  statuses = ['Tous'];
 }

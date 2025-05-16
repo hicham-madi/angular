@@ -1,41 +1,52 @@
 .filter-bar {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
-  width: 1184px;
-  height: 30px;
-  font-family: 'Montserrat', sans-serif;
 
-  .search input {
-    width: 240px;
-    height: 30px;
-    padding: 6px 12px;
-    border: 1px solid rgba(221, 221, 221, 1);
-    border-radius: 6px;
-    font-size: 10px;
-    color: rgba(135, 135, 135, 1);
+  .search {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    input {
+      padding: 8px 12px 8px 36px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+      width: 180px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      width: 16px;
+      height: 16px;
+      opacity: 0.5;
+    }
   }
 
   .status {
     display: flex;
     align-items: center;
-    gap: 6px;
+    font-size: 14px;
 
     label {
-      font-size: 10px;
-      color: rgba(135, 135, 135, 1);
+      margin-right: 8px;
+      color: #6b6b6b;
     }
 
     select {
-      font-size: 10px;
-      font-weight: 500;
-      color: rgba(48, 130, 118, 1);
-      background-color: #fff;
-      border: 1px solid rgba(221, 221, 221, 1);
-      border-radius: 6px;
-      padding: 6px 12px;
-      height: 30px;
-      min-width: 120px;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #007472;
     }
+  }
+
+  .status select optgroup {
+    font-weight: 500;
+    font-style: normal;
+    color: #6b6b6b;
   }
 }

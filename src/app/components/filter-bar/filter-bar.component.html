@@ -1,12 +1,14 @@
 <div class="filter-bar">
   <div class="search">
-    <input type="text" [(ngModel)]="searchTerm" placeholder="🔍 Rechercher..." />
+    <img src="../../assets/search.svg" alt="Rechercher" class="search-icon" />
+    <input type="text" [(ngModel)]="searchTerm" placeholder="Rechercher..." />
   </div>
 
   <div class="status">
-    <label for="status">Filtrer par statut : </label>
-    <select id="status" [(ngModel)]="selectedStatus">
-      <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+    <select [(ngModel)]="selectedStatus">
+      <option *ngFor="let status of statuses" [value]="status">
+        {{ 'Filtrer par statut : ' + status }}
+      </option>
     </select>
   </div>
 </div>
