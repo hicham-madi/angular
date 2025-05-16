@@ -1,6 +1,6 @@
-feat: refonte du composant dashboard-card et ajout des icônes associées
+feat: création du composant filter-bar avec champ de recherche et filtre par statut
 
-- Restructuration HTML avec card-header pour un alignement précis des éléments
-- Mise à jour des styles pour respecter les variantes Figma (small, wide, badges)
-- Affichage conditionnel des badges horizontalement avec style unifié
-- Ajout des icônes SVG pour les cartes et badges
+- Ajout du champ de recherche avec icône intégrée
+- Implémentation d’un menu déroulant pour filtrer par statut
+- Intégration du label dans la valeur sélectionnée selon la maquette Figma
+- Styles SCSS alignés avec le design (espacements, typographies, couleurs)
