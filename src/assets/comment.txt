@@ -1,12 +1,6 @@
-feat: implémentation du composant dashboard-summary avec gestion responsive des cartes
+feat: refonte du composant dashboard-card et ajout des icônes associées
 
-- Affichage des cartes small et wide avec variantes visuelles (small-red, yellow, etc.)
-- Alignement horizontal des badges corrigé dans les cartes étendues
-- Structure HTML/SCSS refactorée pour respecter la maquette Figma
-- Support dynamique des icônes, compteurs, libellés et pastilles
-
-feat: création des modèles DashboardCardData et DashboardCardBadge
-
-- Définition des interfaces typées pour les cartes du dashboard
-- Support des propriétés icon, count, label, variant, small, wide et badges
-- Préparation à l’extensibilité et à la validation des données en entrée
+- Restructuration HTML avec card-header pour un alignement précis des éléments
+- Mise à jour des styles pour respecter les variantes Figma (small, wide, badges)
+- Affichage conditionnel des badges horizontalement avec style unifié
+- Ajout des icônes SVG pour les cartes et badges
