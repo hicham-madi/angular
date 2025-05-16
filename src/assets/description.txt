@@ -1,14 +1,27 @@
-Hier, j’ai finalisé plusieurs composants structurants de la page de sollicitations.
+J'ai pu finaliser l'ensemble des composants visuels de la vue dashboard et tableau des sollicitations, alignés sur Figma.
 
-J’ai d’abord mis en place le composant `SolicitingsPage`, qui sert de conteneur principal, avec un layout flexible basé sur la maquette Figma.
+Dashboard
+  J’ai implémenté le composant `dashboard-summary` avec gestion responsive des cartes
+  Chaque carte affiche dynamiquement des icônes, labels et compteurs, avec un alignement précis des pastilles (badges) dans les versions étendues.
 
-Ensuite, j’ai intégré le `TopBar`, avec les icônes SVG pour "Accueil", "Sollicitation" et le menu, le tout stylé proprement avec une base responsive. 
+Modélisation
+  Les modèles `DashboardCardData` et `DashboardCardBadge` ont été créés pour typer les données et anticiper l’extensibilité.
 
-Côté navigation, j’ai développé le `PageHeader`, avec des onglets dynamiques (gérés en *ngFor*), l’onglet actif est bien mis en surbrillance. 
-Le bouton "nouvelle sollicitation" inclut l’icône et suit parfaitement le design Figma.
+Refactor UI
+  Le composant `dashboard-card` a été refondu pour intégrer les pastilles horizontalement selon la maquette, et les icônes SVG ont été ajoutées.
 
-Pour les indicateurs chiffrés, j’ai créé le composant `DashboardCard`, paramétrable en icône, valeur, label, badge et couleur via une variante typée.
+Filtres & Recherches
+  J’ai ajouté un composant `filter-bar` avec champ de recherche (icône intégrée) et un `select` pour filtrer par statut. Le design suit Figma avec le label intégré dans le champ, et les couleurs/textes sont conformes.
 
-Chaque composant est autonome, bien typé, stylé selon le design system, et prêt à être intégré dans une page.
+Navigation par onglets
+  Le composant `status-tabs` a été développé pour permettre la navigation dynamique entre statuts. Il est basé sur un `*ngFor` pour la réutilisabilité et stylisé selon Figma.
 
-Et aujourd'hui, je suis en train de regrouper ces cartes dans un composant dédié "DashboardSummary, qui gère l’affichage horizontal de manière modulaire. Le nom a été volontairement explicité pour bien refléter sa finalité sur le dashboard.
+Tableau de sollicitations
+  J’ai mis en place le composant `solicitings-table` avec une structure HTML alignée sur les colonnes Figma.
+  Le modèle `Soliciting` a été créé pour typer les données (ticket, client, dates, statut, etc.).
+
+Lignes dynamiques
+  Le composant `soliciting-row` a été développé pour chaque ligne du tableau. Les données sont passées via `@Input()` et les dates sont formatées en français (`21 nov. 2024 à 17h30`) avec gestion de la locale Angular.
+
+Finalisation table
+  Le tableau affiche désormais 11 lignes mockées avec toutes les colonnes renseignées dynamiquement, prêt pour être connecté à l’API.
