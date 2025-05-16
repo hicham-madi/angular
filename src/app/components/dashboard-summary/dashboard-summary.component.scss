@@ -2,7 +2,11 @@
   display: flex;
   gap: 10px;
   align-items: center;
-  height: 70px;
-  width: 100%;
   flex-wrap: wrap;
+}
+
+.dashboard-separator {
+  height: 70px;
+  border: 1px solid var(--Border, rgba(221, 221, 221, 1));
+  background-color: transparent;
 }

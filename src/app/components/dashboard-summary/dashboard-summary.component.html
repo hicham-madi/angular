@@ -1,7 +1,11 @@
 <div class="dashboard-summary">
-  <metabot-dashboard-card
-    *ngFor="let card of cards"
-    [card]="card"
-    [ngClass]="card.variant">
-  </metabot-dashboard-card>
+  <ng-container *ngFor="let card of smallCards">
+    <metabot-dashboard-card [card]="card" [ngClass]="card.variant"></metabot-dashboard-card>
+  </ng-container>
+
+  <div class="dashboard-separator"></div>
+
+  <ng-container *ngFor="let card of largeCards">
+    <metabot-dashboard-card [card]="card" [ngClass]="card.variant"></metabot-dashboard-card>
+  </ng-container>
 </div>

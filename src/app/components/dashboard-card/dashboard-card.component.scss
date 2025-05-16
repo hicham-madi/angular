@@ -1,11 +1,11 @@
 .card {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding: 10px;
   height: 70px;
-  border-radius: 6px;
-  font-family: 'Montserrat', sans-serif;
+  border-radius: 5px;
 
   .top {
     display: flex;
@@ -19,255 +19,50 @@
     }
 
     .count {
-      font-family: 'Montserrat', sans-serif;
       font-weight: 700;
       font-size: 12.29px;
       line-height: 100%;
-      letter-spacing: 0;
     }
 
-    .badge {
+    .badge-group {
+      position: absolute;
+      top: 10px;
+      right: 10px;
       display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 10px;
-      font-weight: 600;
-      background: rgba(255, 121, 123, 0.1);
-      border-radius: 4px;
-      padding: 2px 6px;
-      margin-left: auto;
+      flex-direction: column;
+      gap: 4.8px;
+      width: 34.36px;
+      height: 50px;
+      
+      .badge {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        font-weight: 600;
+        background: rgba(255, 121, 123, 0.1);
+        border-radius: 4px;
+        padding: 2px 6px;
 
-      .badge-icon {
-        width: 12px;
-        height: 12px;
-        object-fit: contain;
+        .badge-icon {
+          width: 12.29px;
+          height: 12.29px;
+          object-fit: contain;
+        }
+
+        .badge-value {
+          font-weight: 600;
+          font-size: 10.24px;
+          line-height: 100%;
+          color: rgba(221, 221, 221, 1);
+        }
       }
     }
   }
 
-  .label {
-    margin-top: 4px;
-    font-family: 'Montserrat', sans-serif;
-    font-weight: 700;
-    font-size: 10px;
-    line-height: 100%;
-    letter-spacing: 0;
-    text-align: center;
-    white-space: pre-line;
-  }
-
-  &.red {
-    background: rgba(255, 247, 247, 1);
-    color: rgba(0, 70, 82, 1);
-    .top {
-      gap: 6px;
-      .icon {
-        width: 25.92px;
-        height: 25.92px;
-      }
-      .count {
-        width: 16px;
-        height: 24px;
-        font-weight: 600;
-        font-size: 20px;
-        color: rgba(0, 70, 82, 1);
-      }
-    }
-    .label {
-      width: 67px;
-      height: 12px;
-      font-weight: 500;
-      font-size: 10px;
-      text-align: center;
-      color: rgba(0, 70, 82, 1);
-    }
-    .badge {
-      .badge-icon {
-        width: 12.29px;
-        height: 12.29px;
-      }
-      .badge-value {
-        width: 7px;
-        height: 12px;
-        font-weight: 600;
-        font-size: 10.24px;
-        color: rgba(221, 221, 221, 1);
-      }
-    }
-  }
-
-  &.yellow {
-    background: #fff7eb;
-    color: rgba(0, 70, 82, 1);
-    .top {
-      gap: 12px;
-      .icon {
-        width: 25.92px;
-        height: 25.92px;
-      }
-      .count {
-        width: 25px;
-        height: 24px;
-        font-weight: 600;
-        font-size: 20px;
-        color: rgba(0, 70, 82, 1);
-      }
-    }
-    .label {
-      width: 75.12px;
-      height: 12px;
-      font-weight: 500;
-      font-size: 10px;
-      text-align: center;
-      color: rgba(0, 70, 82, 1);
-    }
-    .badge {
-      .badge-icon {
-        width: 14.75px;
-        height: 14.75px;
-      }
-      .badge-value {
-        width: 8px;
-        height: 15px;
-        font-weight: 700;
-        font-size: 12.29px;
-        color: rgba(255, 121, 123, 1);
-      }
-    }
-  }
-
-  &.blue {
-    background: rgba(223, 238, 255, 1);
-    color: rgba(0, 70, 82, 1);
-    .top {
-      gap: 6px;
-      .icon {
-        width: 19px;
-        height: 19px;
-      }
-      .count {
-        width: 25px;
-        height: 24px;
-        font-weight: 600;
-        font-size: 20px;
-        color: rgba(0, 70, 82, 1);
-      }
-    }
-    .label {
-      width: 85.19px;
-      height: 24px;
-      font-weight: 500;
-      font-size: 10px;
-      text-align: center;
-      color: rgba(0, 70, 82, 1);
-    }
-    .badge {
-      .badge-icon {
-        width: 12.29px;
-        height: 12.29px;
-      }
-      .badge-value {
-        width: 7px;
-        height: 12px;
-        font-weight: 600;
-        font-size: 10.24px;
-        color: rgba(221, 221, 221, 1);
-      }
-    }
-  }
-
-  &.purple {
-    background: #f6f3ff;
-    color: #6c42ec;
-    .top {
-      gap: 12px;
-      .icon {
-        width: 24px;
-        height: 24px;
-      }
-      .count {
-        width: 20px;
-        height: 24px;
-        font-weight: 600;
-        font-size: 20px;
-        color: rgba(0, 70, 82, 1);
-      }
-    }
-    .label {
-      width: 68px;
-      height: 12px;
-      font-weight: 500;
-      font-size: 10px;
-      text-align: center;
-      color: rgba(0, 70, 82, 1);
-    }
-    .badge {
-      .badge-icon {
-        width: 14.75px;
-        height: 14.75px;
-      }
-      .badge-value {
-        width: 8px;
-        height: 15px;
-        font-weight: 700;
-        font-size: 12.29px;
-        color: rgba(255, 121, 123, 1);
-      }
-    }
-  }
-
-  &.turquoise {
-    background: #e2f7f7;
-    color: #004652;
-
-    .top {
-      gap: 6px;
-
-      .icon {
-        width: 24px;
-        height: 24px;
-      }
-
-      .count {
-        width: 25px;
-        height: 24px;
-        font-weight: 600;
-        font-size: 20px;
-        color: rgba(0, 70, 82, 1);
-      }
-    }
-
-    .label {
-      width: 172px;
-      height: 12px;
-      font-weight: 500;
-      font-size: 10px;
-      text-align: center;
-      color: rgba(0, 70, 82, 1);
-    }
-
-    .badge {
-      .badge-icon {
-        width: 12.29px;
-        height: 12.29px;
-      }
-
-      .badge-value {
-        width: 7px;
-        height: 12px;
-        font-weight: 600;
-        font-size: 10.24px;
-        color: rgba(221, 221, 221, 1);
-      }
-    }
-  }
-
-  &.default {
-    background: #ffffff;
-    color: #000000;
-  }
 
   &.small-red {
+    width: 70.6px;
     height: 70px;
     padding: 4.8px 12.8px;
     border-radius: 4.8px;
@@ -279,6 +74,8 @@
 
     .top {
       gap: 4px;
+      justify-content: center;
+
       .icon {
         width: 14.75px;
         height: 14.75px;
@@ -286,6 +83,7 @@
       .count {
         width: 9px;
         height: 15px;
+        font-family: 'Montserrat', serif;
         font-weight: 700;
         font-size: 12.29px;
         color: rgba(255, 121, 123, 1);
@@ -294,8 +92,10 @@
 
     .label {
       height: 12px;
+      font-family: 'Montserrat', sans-serif;
       font-weight: 700;
       font-size: 10px;
+      line-height: 100%;
       text-align: center;
       color: rgba(255, 121, 123, 1);
       white-space: pre-line;
