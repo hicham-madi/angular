@@ -1,6 +1,6 @@
-feat: création du composant status-tabs pour la navigation entre statuts
+feat: création du composant solicitings-table et du modèle Soliciting
 
-- Composant d’onglets avec sélection dynamique via *ngFor
-- Affichage du nombre d’éléments par statut
-- Styles conformes à la maquette (hauteur, couleurs, polices, arrondis)
-- Préparation à l’intégration dynamique via @Input()
+- Composant solicitings-table avec affichage dynamique des lignes
+- Structure HTML conforme à la maquette (colonnes : actions, ticket, date, client, etc.)
+- Création du modèle Soliciting pour typer les données du tableau
+- Préparation à l’extension future via enums pour le statut et le type

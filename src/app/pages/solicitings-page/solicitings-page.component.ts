@@ -6,7 +6,7 @@ import { PageHeaderComponent } from '../../components/page-header/page-header.co
 import { DashboardSummaryComponent } from '../../components/dashboard-summary/dashboard-summary.component';
 import { FilterBarComponent } from '../../components/filter-bar/filter-bar.component';
 import { StatusTabsComponent } from '../../components/status-tabs/status-tabs.component';
-import { SolicitationsTableComponent } from '../../components/solicitations-table/solicitations-table.component';
+import { SolicitingsTableComponent } from '../../components/solicitings-table/solicitings-table.component';
 
 @Component({
   standalone: true,
@@ -19,7 +19,7 @@ import { SolicitationsTableComponent } from '../../components/solicitations-tabl
     DashboardSummaryComponent,
     FilterBarComponent,
     StatusTabsComponent,
-    SolicitationsTableComponent
+    SolicitingsTableComponent
 ]
 })
 export class SolicitingsPageComponent {}

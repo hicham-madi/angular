@@ -1,5 +1,4 @@
 <div class="sol-table">
-  <!-- En-tête -->
   <div class="header-row">
     <div class="cell actions">Actions</div>
     <div class="cell ticket">N° ticket</div>
@@ -10,10 +9,4 @@
     <div class="cell deadline">Traitement / Échéance</div>
     <div class="cell status">Statut</div>
   </div>
-
-  <!-- Lignes -->
-  <app-solicitation-row
-    *ngFor="let s of solicitations"
-    [solicitation]="s">
-  </app-solicitation-row>
 </div>
