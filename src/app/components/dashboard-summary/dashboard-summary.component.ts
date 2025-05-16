@@ -47,14 +47,14 @@ export class DashboardSummaryComponent {
       icon: '../../assets/claim.svg',
       count: 11,
       label: 'réclamations',
-      variant: 'red',
-      badges: [{ icon: '../../assets/unread.svg', value: 0 }],
+      variant: 'sea-salt-sherbet',
+      badges: [{ icon: '../../assets/unread-badge.svg', value: 0 }],
     },
     {
       icon: '../../assets/approval.svg',
       count: 13,
       label: 'approbations',
-      variant: 'purple',
+      variant: 'cloud-break',
       badges: [{ icon: '../../assets/unread.svg', value: 2 }],
     },
     {
@@ -62,7 +62,7 @@ export class DashboardSummaryComponent {
       count: 28,
       label: 'groupes de discussion',
       variant: 'blue',
-      badges: [{ icon: '../../assets/unread.svg', value: 0 }],
+      badges: [{ icon: '../../assets/unread-badge.svg', value: 0 }],
     },
     {
       icon: '../../assets/request-expert-service.svg',
@@ -71,9 +71,9 @@ export class DashboardSummaryComponent {
       variant: 'turquoise',
       wide: true,
       badges: [
-        { icon: '../../assets/unread.svg', value: 2 },
-        { icon: '../../assets/unread.svg', value: 1 },
-        { icon: '../../assets/unread.svg', value: 0 },
+        { icon: '../../assets/unread-badge.svg', value: 0 },
+        { icon: '../../assets/unread-badge.svg', value: 0 },
+        { icon: '../../assets/unread-badge.svg', value: 0 },
       ],
     },
   ];
