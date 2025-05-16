@@ -1,21 +1,23 @@
 <div class="card" [ngClass]="[
-card.variant || 'default',
+  card.variant || 'default',
   card.wide ? 'wide' : '',
   card.small ? 'small' : ''
 ]">
 
-  <div class="top">
-    <img *ngIf="card.icon" [src]="card.icon" alt="icon" class="icon" />
-    <span class="count">{{ card.count }}</span>
+  <div class="card-header">
+    <div class="top">
+      <img *ngIf="card.icon" [src]="card.icon" alt="icon" class="icon" />
+      <span class="count">{{ card.count }}</span>
+    </div>
+
+    <div class="badge-group" *ngIf="card.badges?.length">
+      <span class="badge" *ngFor="let badge of card.badges">
+        <img [src]="badge.icon" alt="badge icon" class="badge-icon" />
+        <span class="badge-value">{{ badge.value }}</span>
+      </span>
+    </div>
   </div>
 
-  <div class="badge-group" *ngIf="card.badges?.length">
-    <span class="badge" *ngFor="let badge of card.badges">
-      <img [src]="badge.icon" alt="badge icon" class="badge-icon" />
-      <span class="badge-value">{{ badge.value }}</span>
-    </span>
-  </div>
 
-  <!-- Libellé -->
   <div class="label">{{ card.label }}</div>
 </div>

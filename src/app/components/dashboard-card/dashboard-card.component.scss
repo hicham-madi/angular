@@ -34,12 +34,19 @@
   }
 
   &.small-red {
-    width: 70.6px;
+    width: 74.6px;
     padding: 4.8px 12.8px;
     border-radius: 4.8px;
     background: linear-gradient(252.13deg,
         rgba(255, 166, 167, 0.6) -38.94%,
         rgba(255, 237, 238, 0.6) 109.8%);
+
+    .card-header {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 4px;
+    }
 
     .top {
       gap: 4px;
@@ -70,7 +77,7 @@
   }
 
   &.yellow {
-    width: 145.55px;
+    width: 120px;
     background: #fff7eb;
 
     .top {
@@ -138,7 +145,7 @@
   }
 
   &.sea-salt-sherbet {
-    width: 145.55px;
+    width: 120px;
     background: #fff7f7;
 
     .top {
@@ -206,7 +213,7 @@
   }
 
   &.cloud-break {
-    width: 145.55px;
+    width: 120px;
     background: #f6f3ff;
 
     .top {
@@ -276,7 +283,7 @@
   }
 
   &.calcareous-sinter {
-    width: 145.55px;
+    width: 120px;
     background: #dfeeff;
 
     .top {
@@ -316,6 +323,78 @@
       background: rgba(255, 255, 255, 0.6);
       border-radius: 4px;
       padding: 2px 6px;
+
+      .badge-icon {
+        width: 14.75px;
+        height: 14.75px;
+        object-fit: contain;
+      }
+
+      .badge-value {
+        width: 8px;
+        height: 15px;
+        font-weight: 700;
+        font-size: 12.29px;
+        color: var(--Border, rgba(221, 221, 221, 1));
+      }
+    }
+
+    .label {
+      width: 75.12px;
+      height: 12px;
+      font-weight: 500;
+      font-size: 10px;
+      line-height: 100%;
+      text-align: center;
+      color: rgba(0, 70, 82, 1);
+    }
+  }
+
+  &.coastal-breeze {
+    width: 220px;
+    background: #e2f7f7;
+
+    .top {
+      gap: 12px;
+
+      .icon {
+        width: 25.92px;
+        height: 25.92px;
+      }
+
+      .count {
+        width: 16px;
+        height: 24px;
+        font-weight: 600;
+        font-size: 20px;
+        line-height: 100%;
+        color: rgba(0, 70, 82, 1);
+      }
+    }
+
+    .badge-group {
+      position: flex;
+      right: 10px;
+      height: 50px;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+    }
+
+    .badge {
+      height: 50px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 4px;
+      padding-top: 4.8px;
+      padding-right: 6px;
+      padding-bottom: 4.8px;
+      padding-left: 6px;
+      margin: 1px;
 
       .badge-icon {
         width: 14.75px;

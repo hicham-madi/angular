@@ -68,7 +68,7 @@ export class DashboardSummaryComponent {
       icon: '../../assets/request-expert-service.svg',
       count: 28,
       label: 'demandes services expert',
-      variant: 'turquoise',
+      variant: 'coastal-breeze',
       wide: true,
       badges: [
         { icon: '../../assets/unread-badge.svg', value: 0 },
