@@ -1,13 +1,1 @@
-feat: création du composant soliciting-row avec affichage formaté de la date
-
-- Affiche dynamiquement les données d'une sollicitation via @Input()
-- Formatage de la date en français (ex. : 21 nov. 2024 à 17h30)
-- Intégration des locales françaises via registerLocaleData
-- Styles adaptés pour un rendu conforme à la maquette (deux lignes, couleurs sobres)
-
-feat: finalisation du composant solicitings-table avec rendu dynamique des lignes
-
-- Intégration du composant soliciting-row pour chaque ligne de sollicitation
-- Génération de 11 lignes mockées avec dates formatées
-- Respect de la structure Figma (colonnes, labels, statuts, dates, etc.)
-- Préparation à la connexion future avec des données API
+refactor: harmonisation et nettoyage complet des styles CSS du dashboard
