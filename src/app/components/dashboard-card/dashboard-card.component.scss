@@ -8,6 +8,13 @@
   border-radius: 5px;
   font-family: 'Montserrat', serif;
 
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
   .top {
     display: flex;
     align-items: center;
@@ -26,26 +33,14 @@
     }
   }
 
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 4px;
-  }
-
   &.small-red {
     width: 47px;
     padding: 4.8px 12.8px;
     border-radius: 4.8px;
-    background: linear-gradient(252.13deg,
-        rgba(255, 166, 167, 0.6) -38.94%,
-        rgba(255, 237, 238, 0.6) 109.8%);
+    background: linear-gradient(252.13deg, rgba(255, 166, 167, 0.6) -38.94%, rgba(255, 237, 238, 0.6) 109.8%);
 
     .card-header {
-      display: flex;
       justify-content: center;
-      align-items: center;
-      margin-bottom: 4px;
     }
 
     .top {
@@ -76,9 +71,11 @@
     }
   }
 
-  &.yellow {
+  &.yellow,
+  &.sea-salt-sherbet,
+  &.cloud-break,
+  &.calcareous-sinter {
     width: 120px;
-    background: #fff7eb;
 
     .top {
       gap: 12px;
@@ -114,7 +111,6 @@
       gap: 4px;
       font-size: 10px;
       font-weight: 600;
-      background: rgba(255, 121, 123, 0.1);
       border-radius: 4px;
       padding: 2px 6px;
 
@@ -129,7 +125,6 @@
         height: 15px;
         font-weight: 700;
         font-size: 12.29px;
-        color: rgba(255, 121, 123, 1);
       }
     }
 
@@ -141,212 +136,54 @@
       line-height: 100%;
       text-align: center;
       color: rgba(0, 70, 82, 1);
+    }
+  }
+
+  &.yellow {
+    background: #fff7eb;
+
+    .badge {
+      background: rgba(255, 121, 123, 0.1);
+
+      .badge-value {
+        color: rgba(255, 121, 123, 1);
+      }
     }
   }
 
   &.sea-salt-sherbet {
-    width: 120px;
     background: #fff7f7;
 
-    .top {
-      gap: 12px;
-
-      .icon {
-        width: 25.92px;
-        height: 25.92px;
-      }
-
-      .count {
-        width: 16px;
-        height: 24px;
-        font-weight: 600;
-        font-size: 20px;
-        line-height: 100%;
-        color: rgba(0, 70, 82, 1);
-      }
-    }
-
-    .badge-group {
-      position: absolute;
-      right: 10px;
-      height: 50px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
     .badge {
-      height: 50px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 10px;
-      font-weight: 600;
       background: rgba(255, 247, 247, 1);
-      border-radius: 4px;
-      padding: 2px 6px;
-
-      .badge-icon {
-        width: 14.75px;
-        height: 14.75px;
-        object-fit: contain;
-      }
 
       .badge-value {
-        width: 8px;
-        height: 15px;
-        font-weight: 700;
-        font-size: 12.29px;
         color: rgba(221, 221, 221, 1);
       }
-    }
-
-    .label {
-      width: 75.12px;
-      height: 12px;
-      font-weight: 500;
-      font-size: 10px;
-      line-height: 100%;
-      text-align: center;
-      color: rgba(0, 70, 82, 1);
     }
   }
 
   &.cloud-break {
-    width: 120px;
     background: #f6f3ff;
 
-    .top {
-      gap: 12px;
-
-      .icon {
-        width: 25.92px;
-        height: 25.92px;
-      }
-
-      .count {
-        width: 16px;
-        height: 24px;
-        font-weight: 600;
-        font-size: 20px;
-        line-height: 100%;
-        color: rgba(0, 70, 82, 1);
-      }
-    }
-
-    .badge-group {
-      position: absolute;
-      right: 10px;
-      height: 50px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
     .badge {
-      height: 50px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 10px;
-      font-weight: 600;
-      background: linear-gradient(252.13deg,
-          rgba(255, 166, 167, 0.6) -38.94%,
-          rgba(255, 237, 238, 0.6) 109.8%);
-      border-radius: 4px;
-      padding: 2px 6px;
-
-      .badge-icon {
-        width: 14.75px;
-        height: 14.75px;
-        object-fit: contain;
-      }
+      background: linear-gradient(252.13deg, rgba(255, 166, 167, 0.6) -38.94%, rgba(255, 237, 238, 0.6) 109.8%);
 
       .badge-value {
-        width: 8px;
-        height: 15px;
-        font-weight: 700;
-        font-size: 12.29px;
         color: var(--Alert, rgba(255, 121, 123, 1));
       }
-    }
-
-    .label {
-      width: 75.12px;
-      height: 12px;
-      font-weight: 500;
-      font-size: 10px;
-      line-height: 100%;
-      text-align: center;
-      color: rgba(0, 70, 82, 1);
     }
   }
 
   &.calcareous-sinter {
-    width: 120px;
     background: #dfeeff;
 
-    .top {
-      gap: 12px;
-
-      .icon {
-        width: 25.92px;
-        height: 25.92px;
-      }
-
-      .count {
-        width: 16px;
-        height: 24px;
-        font-weight: 600;
-        font-size: 20px;
-        line-height: 100%;
-        color: rgba(0, 70, 82, 1);
-      }
-    }
-
-    .badge-group {
-      position: absolute;
-      right: 10px;
-      height: 50px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
     .badge {
-      height: 50px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 10px;
-      font-weight: 600;
       background: rgba(255, 255, 255, 0.6);
-      border-radius: 4px;
-      padding: 2px 6px;
-
-      .badge-icon {
-        width: 14.75px;
-        height: 14.75px;
-        object-fit: contain;
-      }
 
       .badge-value {
-        width: 8px;
-        height: 15px;
-        font-weight: 700;
-        font-size: 12.29px;
         color: var(--Border, rgba(221, 221, 221, 1));
       }
-    }
-
-    .label {
-      width: 75.12px;
-      height: 12px;
-      font-weight: 500;
-      font-size: 10px;
-      line-height: 100%;
-      text-align: center;
-      color: rgba(0, 70, 82, 1);
     }
   }
 
