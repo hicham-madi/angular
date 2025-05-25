@@ -1,31 +1,100 @@
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
 .sol-table {
+  min-width: 1024px;
+  font-size: 10px;
   display: flex;
   flex-direction: column;
-  width: 1184px;
-  font-family: 'Montserrat', sans-serif;
-  font-size: 10px;
+
+  .header-row,
+  .cdk-virtual-scroll-viewport .row {
+    display: grid;
+    grid-template-columns:
+      55px    // actions
+      90px    // ticket
+      100px   // date
+      150px   // client
+      356px   // object
+      170px   // type
+      100px   // deadline
+      140px;  // status
+    align-items: center;
+    height: 40px;
+    border-bottom: 1px solid rgba(221, 221, 221, 1);
+    font-family: 'Montserrat', sans-serif;
+  }
 
   .header-row {
-    display: flex;
-    align-items: center;
-    height: 35px;
     background-color: rgba(242, 244, 248, 1);
     font-weight: 600;
-    border-bottom: 1px solid rgba(221, 221, 221, 1);
+  }
 
-    .cell {
-      padding: 6px 10px;
-      display: flex;
-      align-items: center;
+  .cell {
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 
-      &.actions { width: 66px; }
-      &.ticket { width: 90px; }
-      &.date { width: 100px; }
-      &.client { width: 150px; }
-      &.object { width: 356px; }
-      &.type { width: 170px; }
-      &.deadline { width: 100px; }
-      &.status { width: 140px; }
+    &.actions {
+      justify-content: center;
+    }
+
+    &.ticket {
+      color: rgba(135, 135, 135, 1);
+      font-weight: 500;
+    }
+
+    &.date {
+      flex-direction: column;
+      gap: 2px;
+
+      .text-1 {
+        font-size: 12px;
+        font-weight: 500;
+        color: rgba(135, 135, 135, 1);
+      }
+
+      .text-2 {
+        font-size: 10px;
+        color: rgba(135, 135, 135, 1);
+      }
+    }
+
+    &.client {
+      flex-direction: column;
+
+      .name {
+        font-size: 12px;
+        font-weight: 600;
+        color: rgba(0, 70, 82, 1);
+      }
+
+      .id {
+        font-size: 10px;
+        font-weight: 500;
+        color: rgba(0, 116, 97, 1);
+      }
+    }
+
+    &.object {
+      font-weight: 500;
+    }
+
+    &.type,
+    &.deadline,
+    &.status {
+      font-weight: 500;
+    }
+
+    .icon-arrows {
+      width: 10px;
+      height: 10px;
+      margin-left: 7px;
     }
   }
 }
