@@ -1,0 +1,190 @@
+
+@Getter
+public enum CardTypeConfig {
+
+    // Carte : Mes Réclamations non lues
+    UNREAD_CLAIMS("Unread Claims",
+        List.of("RC"),
+        List.of("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+        Map.of("readCustomer", false)),
+
+    // Carte : Mes DS en retard en tant que OW80700
+    LATE_DS_AS_CUSTOMER("Late DS",
+        List.of("DS"),
+        List.of("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+        Map.of("ds.treatmentIsLate", true,
+               "$or", List.of(
+                   Map.of("ds.collabTreatmentDone", false),
+                   Map.of("ds.collabTreatmentDone", true, "readCustomer", false)
+               ),
+               "$orCustomer", List.of(
+                   Map.of("customer.id", "OW80700"),
+                   Map.of("customer.eds", true, "customer.edsId", "88200-00501")
+               ))),
+
+    // Carte : Mes sollicitations D/DC non lues
+    UNREAD_DDC("Unread D/DC",
+        List.of("D", "DC"),
+        List.of("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+        Map.of("readCustomer", false)),
+
+    // Carte : Mes groupes de discussion non lus
+    UNREAD_DISCUSSIONS("Unread Discussions",
+        List.of(),
+        List.of(),
+        Map.of("$elemMatch", Map.of(
+            "discussionGroup.users._id", "OW80700",
+            "discussionGroup.users.ticketRead", false
+        ))),
+
+    // Carte : Mes DS affectées à l’unité en tant que OW80700
+    ASSIGNED_DS_UNIT("Assigned DS Unit",
+        List.of("DS"),
+        List.of(),
+        Map.of("customer.eds", true, "customer.edsId", "88200-00501")),
+
+    // Carte : Mes DS en retard en tant que OW80700 avec filtre EDS
+    LATE_DS_AS_CUSTOMER_WITH_EDS("Late DS with EDS",
+        List.of("DS"),
+        List.of("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+        Map.of("ds.treatmentIsLate", true,
+               "$or", List.of(
+                   Map.of("ds.collabTreatmentDone", false),
+                   Map.of("ds.collabTreatmentDone", true, "readCustomer", false)
+               ),
+               "$orCustomer", List.of(
+                   Map.of("customer.id", "OW80700"),
+                   Map.of("customer.eds", true, "customer.edsId", "88200-00501")
+               ))),
+
+    // Carte : Mes DS non lues en tant que OW80700
+    UNREAD_DS("Unread DS",
+        List.of("DS"),
+        List.of("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+        Map.of("readCustomer", false,
+               "$or", List.of(
+                   Map.of("ds.collabTreatmentDone", false),
+                   Map.of("ds.collabTreatmentDone", true, "readCustomer", false)
+               ),
+               "$orCustomer", List.of(
+                   Map.of("customer.id", "OW80700"),
+                   Map.of("customer.eds", true, "customer.edsId", "88200-00501")
+               ))),
+
+    // Carte : Mes DS affectées à l’unité (EDS) en tant que OW80700
+    ASSIGNED_DS_UNIT_EDS("Assigned DS Unit EDS",
+        List.of("DS"),
+        List.of(),
+        Map.of("customer.eds", true, "customer.edsId", "88200-00501")),
+
+    // Carte : Mes sollicitations non lues globales (D, DC, RC + discussions + DS)
+    UNREAD_GLOBAL("Unread Global Solicitations",
+        List.of("D", "DC", "RC"),
+        List.of("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+        Map.of("readCustomer", false)),
+
+    // Carte : Mes DS en tant que OW80700
+    DS_AS_CUSTOMER("DS as Customer",
+        List.of("DS"),
+        List.of("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+        Map.of("$or", List.of(
+            Map.of("ds.collabTreatmentDone", false),
+            Map.of("ds.collabTreatmentDone", true, "readCustomer", false)
+        ),
+        "$orCustomer", List.of(
+            Map.of("customer.id", "OW80700"),
+            Map.of("customer.eds", true, "customer.edsId", "88200-00501")
+        ))),
+
+    // Carte : Mes groupes de discussion en tant que OW80700
+    DISCUSSIONS_AS_CUSTOMER("Discussions as Customer",
+        List.of(),
+        List.of(),
+        Map.of("discussionGroup.users._id", "OW80700"));
+
+    private final String title;
+    private final List<String> claimCodes;
+    private final List<String> statuses;
+    private final Map<String, Object> extraFilters;
+
+    CardTypeConfig(String title, List<String> claimCodes, List<String> statuses, Map<String, Object> extraFilters) {
+        this.title = title;
+        this.claimCodes = claimCodes;
+        this.statuses = statuses;
+        this.extraFilters = extraFilters;
+    }
+}
+
+
+
+@Override
+public List<Ticket> findTicketsForCard(String customerId, CardTypeConfig cardTypeConfig) {
+    Criteria criteria = new Criteria();
+
+    List<Criteria> criteriaList = new ArrayList<>();
+
+    // Claim codes (si présents)
+    if (!cardTypeConfig.getClaimCodes().isEmpty()) {
+        criteriaList.add(Criteria.where("claimType.code").in(cardTypeConfig.getClaimCodes()));
+    }
+
+    // Statuses (si présents)
+    if (!cardTypeConfig.getStatuses().isEmpty()) {
+        criteriaList.add(Criteria.where("status").in(cardTypeConfig.getStatuses()));
+    }
+
+    // Customer ID (toujours présent)
+    if (customerId != null) {
+        criteriaList.add(Criteria.where("customer._id").is(customerId));
+    }
+
+    // Extra filters dynamiques
+    if (cardTypeConfig.getExtraFilters() != null) {
+        for (Map.Entry<String, Object> entry : cardTypeConfig.getExtraFilters().entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+
+            if ("$or".equals(key) && value instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> orConditions = (List<Map<String, Object>>) value;
+                List<Criteria> orCriteria = orConditions.stream()
+                    .map(cond -> cond.entrySet().stream()
+                        .map(e -> Criteria.where(e.getKey()).is(e.getValue()))
+                        .reduce(Criteria::andOperator)
+                        .orElseThrow())
+                    .collect(Collectors.toList());
+                criteriaList.add(new Criteria().orOperator(orCriteria.toArray(new Criteria[0])));
+            } else if ("$orCustomer".equals(key) && value instanceof List) {
+                // or spécifique sur customer avec eds/id
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> orCustomerConditions = (List<Map<String, Object>>) value;
+                List<Criteria> orCustomerCriteria = orCustomerConditions.stream()
+                    .map(cond -> cond.entrySet().stream()
+                        .map(e -> Criteria.where(e.getKey()).is(e.getValue()))
+                        .reduce(Criteria::andOperator)
+                        .orElseThrow())
+                    .collect(Collectors.toList());
+                criteriaList.add(new Criteria().orOperator(orCustomerCriteria.toArray(new Criteria[0])));
+            } else if ("$elemMatch".equals(key) && value instanceof Map) {
+                // Cas de $elemMatch pour discussionGroup
+                @SuppressWarnings("unchecked")
+                Map<String, Object> elemMatch = (Map<String, Object>) value;
+                Criteria elemCriteria = new Criteria().elemMatch(elemMatch.entrySet().stream()
+                    .map(e -> Criteria.where(e.getKey()).is(e.getValue()))
+                    .reduce(Criteria::andOperator)
+                    .orElseThrow());
+                criteriaList.add(elemCriteria);
+            } else {
+                // Cas par défaut : champ simple
+                criteriaList.add(Criteria.where(key).is(value));
+            }
+        }
+    }
+
+    // Combinaison globale
+    criteria = new Criteria().andOperator(criteriaList.toArray(new Criteria[0]));
+
+    Query query = new Query(criteria);
+
+    return mongoTemplate.find(query, Ticket.class, "tickets_CR882");
+}
