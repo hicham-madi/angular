@@ -1,117 +1,106 @@
-@Repository
-public class TicketCustomRepository {
+public class TicketPredicates {
 
-    private final MongoTemplate mongoTemplate;
+    public static Predicate getAllMatchingPredicate(String customerId, String customerEdsId) {
+        List<Predicate> predicates = new ArrayList<>();
 
-    @Autowired
-    public TicketCustomRepository(MongoTemplate mongoTemplate) {
-        this.mongoTemplate = mongoTemplate;
-    }
-
-    public List<Document> findAllMatchingTickets(String customerId, String customerEdsId) {
-        List<Criteria> criteriaList = new ArrayList<>();
-
-        // 1) Sollicitations D/DC
-        criteriaList.add(new Criteria().andOperator(
-            Criteria.where("claimType.code").in("D", "DC"),
-            Criteria.where("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-            Criteria.where("customer._id").is(customerId)
+        // Sollicitations D/DC
+        predicates.add(Predicates.and(
+                Predicates.in("claimType.code", "D", "DC"),
+                Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+                Predicates.equal("customer._id", customerId)
         ));
 
-        criteriaList.add(new Criteria().andOperator(
-            Criteria.where("claimType.code").in("D", "DC"),
-            Criteria.where("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-            Criteria.where("customer._id").is(customerId),
-            Criteria.where("readCustomer").is(false)
+        predicates.add(Predicates.and(
+                Predicates.in("claimType.code", "D", "DC"),
+                Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+                Predicates.equal("customer._id", customerId),
+                Predicates.equal("readCustomer", false)
         ));
 
-        // 2) Réclamations RC
-        criteriaList.add(new Criteria().andOperator(
-            Criteria.where("claimType.code").in("RC"),
-            Criteria.where("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-            Criteria.where("customer._id").is(customerId)
-        ));
-        criteriaList.add(new Criteria().andOperator(
-            Criteria.where("claimType.code").in("RC"),
-            Criteria.where("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-            Criteria.where("customer._id").is(customerId),
-            Criteria.where("readCustomer").is(false)
+        // Réclamations RC
+        predicates.add(Predicates.and(
+                Predicates.in("claimType.code", "RC"),
+                Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+                Predicates.equal("customer._id", customerId)
         ));
 
-        // 3) Approbations
-        criteriaList.add(new Criteria().andOperator(
-            Criteria.where("approval.manager").is(customerId),
-            new Criteria().orOperator(
-                Criteria.where("status").is("APPROVAL_PENDING"),
-                new Criteria().andOperator(
-                    Criteria.where("status").is("APPROVAL_REFUSED"),
-                    Criteria.where("approval.discussion").is(true)
+        predicates.add(Predicates.and(
+                Predicates.in("claimType.code", "RC"),
+                Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+                Predicates.equal("customer._id", customerId),
+                Predicates.equal("readCustomer", false)
+        ));
+
+        // Approbations
+        predicates.add(Predicates.and(
+                Predicates.equal("approval.manager", customerId),
+                Predicates.or(
+                        Predicates.equal("status", "APPROVAL_PENDING"),
+                        Predicates.and(
+                                Predicates.equal("status", "APPROVAL_REFUSED"),
+                                Predicates.equal("approval.discussion", true)
+                        )
                 )
-            )
         ));
 
-        // 4) Groupes de discussion
-        criteriaList.add(Criteria.where("discussionGroup.users._id").is(customerId));
+        // Groupes de discussion
+        predicates.add(Predicates.equal("discussionGroup.users._id", customerId));
 
-        // 5) Groupes de discussion non lus
-        criteriaList.add(Criteria.where("discussionGroup.users").elemMatch(
-            Criteria.where("_id").is(customerId).and("ticketRead").is(false)
+        // Groupes de discussion non lus
+        predicates.add(Predicates.and(
+                Predicates.equal("discussionGroup.users._id", customerId),
+                Predicates.equal("discussionGroup.users.ticketRead", false)
         ));
 
-        // 6) DS (avec sous-conditions)
-        Criteria dsCriteria = new Criteria().andOperator(
-            Criteria.where("claimType.code").in("DS"),
-            Criteria.where("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-            new Criteria().orOperator(
-                Criteria.where("ds.collabTreatmentDone").is(false),
-                new Criteria().andOperator(
-                    Criteria.where("ds.collabTreatmentDone").is(true),
-                    Criteria.where("readCustomer").is(false)
+        // DS combinées
+        predicates.add(Predicates.and(
+                Predicates.in("claimType.code", "DS"),
+                Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+                Predicates.or(
+                        Predicates.equal("ds.collabTreatmentDone", false),
+                        Predicates.and(
+                                Predicates.equal("ds.collabTreatmentDone", true),
+                                Predicates.equal("readCustomer", false)
+                        )
+                ),
+                Predicates.or(
+                        Predicates.equal("customer._id", customerId),
+                        Predicates.and(
+                                Predicates.equal("customer.eds", true),
+                                Predicates.equal("customer.edsId", customerEdsId)
+                        )
                 )
-            ),
-            new Criteria().orOperator(
-                Criteria.where("customer._id").is(customerId),
-                new Criteria().andOperator(
-                    Criteria.where("customer.eds").is(true),
-                    Criteria.where("customer.edsId").is(customerEdsId)
-                )
-            )
-        );
-        criteriaList.add(dsCriteria);
-
-        // 7) DS en retard
-        Criteria dsLateCriteria = new Criteria().andOperator(
-            Criteria.where("ds.treatmentIsLate").is(true),
-            Criteria.where("claimType.code").in("DS"),
-            Criteria.where("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-            new Criteria().orOperator(
-                Criteria.where("ds.collabTreatmentDone").is(false),
-                new Criteria().andOperator(
-                    Criteria.where("ds.collabTreatmentDone").is(true),
-                    Criteria.where("readCustomer").is(false)
-                )
-            ),
-            new Criteria().orOperator(
-                Criteria.where("customer._id").is(customerId),
-                new Criteria().andOperator(
-                    Criteria.where("customer.eds").is(true),
-                    Criteria.where("customer.edsId").is(customerEdsId)
-                )
-            )
-        );
-        criteriaList.add(dsLateCriteria);
-
-        // 8) DS affectées à l'unité
-        criteriaList.add(new Criteria().andOperator(
-            Criteria.where("customer.eds").is(true),
-            Criteria.where("customer.edsId").is(customerEdsId),
-            Criteria.where("claimType.code").in("DS")
         ));
 
-        Criteria orCriteria = new Criteria().orOperator(criteriaList.toArray(new Criteria[0]));
+        // DS en retard
+        predicates.add(Predicates.and(
+                Predicates.equal("ds.treatmentIsLate", true),
+                Predicates.in("claimType.code", "DS"),
+                Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+                Predicates.or(
+                        Predicates.equal("ds.collabTreatmentDone", false),
+                        Predicates.and(
+                                Predicates.equal("ds.collabTreatmentDone", true),
+                                Predicates.equal("readCustomer", false)
+                        )
+                ),
+                Predicates.or(
+                        Predicates.equal("customer._id", customerId),
+                        Predicates.and(
+                                Predicates.equal("customer.eds", true),
+                                Predicates.equal("customer.edsId", customerEdsId)
+                        )
+                )
+        ));
 
-        Query query = new Query(orCriteria);
-        return mongoTemplate.find(query, Document.class, "tickets_CR882");
+        // DS affectées à l'unité
+        predicates.add(Predicates.and(
+                Predicates.equal("customer.eds", true),
+                Predicates.equal("customer.edsId", customerEdsId),
+                Predicates.in("claimType.code", "DS")
+        ));
+
+        return Predicates.or(predicates.toArray(new Predicate[0]));
     }
 }
 @Service
@@ -125,27 +114,28 @@ public class TicketService {
     }
 
     public List<Document> getAllMatchingTickets(String customerId, String customerEdsId) {
-        return ticketCustomRepository.findAllMatchingTickets(customerId, customerEdsId);
+        Predicate predicate = TicketPredicates.getAllMatchingPredicate(customerId, customerEdsId);
+        return ticketCustomRepository.findAllMatchingTickets(predicate);
     }
 }
-@RestController
-@RequestMapping("/api/tickets")
-public class TicketController {
+@Repository
+public class TicketCustomRepository {
 
-    private final TicketService ticketService;
+    private final MongoTemplate mongoTemplate;
 
     @Autowired
-    public TicketController(TicketService ticketService) {
-        this.ticketService = ticketService;
+    public TicketCustomRepository(MongoTemplate mongoTemplate) {
+        this.mongoTemplate = mongoTemplate;
     }
 
-    @GetMapping("/all-matching")
-    @PreAuthorize("hasAuthority('MBOT')") // ajustez selon vos permissions
-    public ResponseEntity<List<Document>> getAllMatchingTickets(
-            @RequestParam("customerId") String customerId,
-            @RequestParam("customerEdsId") String customerEdsId) {
+    public List<Document> findAllMatchingTickets(Predicate predicate) {
+        Query query = new Query(predicateToCriteria(predicate));
+        return mongoTemplate.find(query, Document.class, "tickets_CR882");
+    }
 
-        List<Document> tickets = ticketService.getAllMatchingTickets(customerId, customerEdsId);
-        return ResponseEntity.ok(tickets);
+    private Criteria predicateToCriteria(Predicate predicate) {
+        // Utilisez ici votre propre adaptateur de Predicate -> Criteria si vous en avez un
+        // Ou construisez-le vous-même à partir de la liste des conditions du Predicate
+        throw new UnsupportedOperationException("predicateToCriteria doit être implémenté");
     }
 }
