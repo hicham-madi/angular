@@ -1,133 +1,50 @@
-TicketCardDto ticketCardDto = new TicketCardDto();
-
-for (Ticket ticket : ticketsPage) {
-    for (CardTypeConfig cardType : CardTypeConfig.values()) {
-        if (ticketMatchesCardUsingPredicate(ticket, cardType)) {
-            incrementTicketCardDto(ticketCardDto, cardType);
-        }
-    }
-}
-private boolean ticketMatchesCardUsingPredicate(Ticket ticket, CardTypeConfig cardType) {
-    // Tu peux utiliser ta logique métier existante dans les prédicats des enums
-    // Ici un simple exemple basé sur des méthodes fictives du Ticket
-    switch (cardType) {
+private boolean ticketMatchesCardTypeConfig(Ticket ticket, CardTypeConfig config, String userId) {
+    switch (config) {
         case READ_CUSTOMER:
-            return !ticket.isReadByCustomer();
+            return ticket.getReadCustomer() != null && !ticket.getReadCustomer();
 
-        case CLAIMS:
-            return ticket.isClaim();
+        case TREATMENT_IS_LATE_DS:
+            return ticket.isTreatmentLate();
 
-        case APPROVALS:
-            return ticket.isApproval();
-
-        case DISCUSSION_GROUPS:
-            return ticket.isDiscussionGroup();
+        case CUSTOMER_EDS_DS:
+            return ticket.getCustomerEds() != null;
 
         case REQUESTS:
-            return ticket.isRequest();
+            return ticket.getType() != null && ticket.getType().equalsIgnoreCase("REQUEST");
+
+        case REQUESTS_READ_CUSTOMER:
+            return ticket.getType() != null
+                && ticket.getType().equalsIgnoreCase("REQUEST")
+                && ticket.getReadCustomer() != null && !ticket.getReadCustomer();
+
+        case CLAIMS:
+            return ticket.getType() != null && ticket.getType().equalsIgnoreCase("CLAIM");
+
+        case CLAIMS_READ_CUSTOMER:
+            return ticket.getType() != null
+                && ticket.getType().equalsIgnoreCase("CLAIM")
+                && ticket.getReadCustomer() != null && !ticket.getReadCustomer();
+
+        case APPROVALS:
+            return ticket.getApprovalManager() != null && ticket.getApprovalManager().equals(userId);
+
+        case DISCUSSION_GROUPS:
+            return ticket.getDiscussionGroup() != null && !ticket.isTicketRead();
 
         case REQUEST_EXPERT_SERVICE:
-            return ticket.isRequestExpertService();
+            return ticket.isExpertServiceRequest();
+
+        case REQUEST_EXPERT_SERVICE_READ_CUSTOMER:
+            return ticket.isExpertServiceRequest()
+                && ticket.getReadCustomer() != null && !ticket.getReadCustomer();
 
         case REQUEST_EXPERT_SERVICE_TREATMENT_IS_LATE:
-            return ticket.isRequestExpertService() && ticket.isTreatmentLate();
+            return ticket.isExpertServiceRequest() && ticket.isTreatmentLate();
+
+        case REQUEST_EXPERT_SERVICE_EDS:
+            return ticket.isExpertServiceRequest() && ticket.getCustomerEds() != null;
 
         default:
             return false;
     }
 }
-private void incrementTicketCardDto(TicketCardDto dto, CardTypeConfig cardType) {
-    switch (cardType) {
-        case READ_CUSTOMER:
-            dto.setReadCustomer(dto.getReadCustomer() + 1);
-            break;
-        case CLAIMS:
-            dto.setClaims(dto.getClaims() + 1);
-            break;
-        case APPROVALS:
-            dto.setApprovals(dto.getApprovals() + 1);
-            break;
-        case DISCUSSION_GROUPS:
-            dto.setDiscussionGroups(dto.getDiscussionGroups() + 1);
-            break;
-        case REQUESTS:
-            dto.setRequests(dto.getRequests() + 1);
-            break;
-        case REQUEST_EXPERT_SERVICE:
-            dto.setRequestExpertService(dto.getRequestExpertService() + 1);
-            break;
-        case REQUEST_EXPERT_SERVICE_TREATMENT_IS_LATE:
-            dto.setRequestExpertServiceTreatmentIsLate(dto.getRequestExpertServiceTreatmentIsLate() + 1);
-            break;
-        default:
-            // gérer les autres cas si besoin
-            break;
-    }
-}return MbotPageDtoV2.builder()
-    .tickets(new PageImpl<>(ticketLightDtos, pageable, totalElements))
-    .stats(ticketCardDto)  // Ajoute le TicketCardDto rempli dans la réponse
-    .build();
-Map<String, Object> predicate = Map.of(
-    "$and", List.of(
-        Map.of("claimType.code", "D"),
-        Map.of("status", "NEW")
-    )
-);
-private boolean ticketMatchesPredicateMap(Ticket ticket, Map<String, Object> predicate) {
-    for (Map.Entry<String, Object> entry : predicate.entrySet()) {
-        String key = entry.getKey();
-        Object value = entry.getValue();
-
-        if ("$and".equals(key)) {
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> conditions = (List<Map<String, Object>>) value;
-            for (Map<String, Object> cond : conditions) {
-                if (!ticketMatchesPredicateMap(ticket, cond)) {
-                    return false; // au moins une condition échoue
-                }
-            }
-            return true;
-        } else if ("$or".equals(key)) {
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> conditions = (List<Map<String, Object>>) value;
-            for (Map<String, Object> cond : conditions) {
-                if (ticketMatchesPredicateMap(ticket, cond)) {
-                    return true; // au moins une condition passe
-                }
-            }
-            return false;
-        } else {
-            // Condition simple : ex "status" -> "NEW"
-            Object ticketValue = getNestedFieldValue(ticket, key);
-            if (!value.equals(ticketValue)) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-private Object getNestedFieldValue(Object obj, String fieldPath) {
-    try {
-        String[] fields = fieldPath.split("\\.");
-        Object current = obj;
-        for (String field : fields) {
-            Field f = current.getClass().getDeclaredField(field);
-            f.setAccessible(true);
-            current = f.get(current);
-            if (current == null) {
-                return null;
-            }
-        }
-        return current;
-    } catch (Exception e) {
-        throw new RuntimeException("Erreur lors de l'accès au champ " + fieldPath, e);
-    }
-}
-for (Ticket ticket : ticketsPage) {
-    for (CardTypeConfig cardType : CardTypeConfig.values()) {
-        if (ticketMatchesPredicateMap(ticket, cardType.getPredicate())) {
-            incrementTicketCardDto(ticketCardDto, cardType);
-        }
-    }
-}
-
