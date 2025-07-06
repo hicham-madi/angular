@@ -1,23 +1,139 @@
-public MbotPageDtoV2 getTicketsForCard(MbotRequestDataDto mbotRequestData) {
-    // 1️⃣ Déterminer la carte sélectionnée via le paramètre front
-    CardTypeConfig cardTypeConfig = CardTypeConfig.valueOf(mbotRequestData.getCardType());
+db.getCollection("tickets_CR882").find({
+  $or: [
+    // Requêtes D/DC
+    {
+      $and: [
+        { "claimType.code": { $in: ["D", "DC"] } },
+        { "status": { $in: ["NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"] } },
+        { "customer._id": "OW80700" }
+      ]
+    },
+    {
+      $and: [
+        { "claimType.code": { $in: ["D", "DC"] } },
+        { "status": { $in: ["NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"] } },
+        { "customer._id": "OW80700" },
+        { "readCustomer": false }
+      ]
+    },
 
-    // 2️⃣ Construire le filtre de base depuis les infos front (optionnel si besoin)
-    TicketFiltersDto filters = ticketBuilderService.buildTicketFilterFromMbotRequestData(new Customer(), mbotRequestData);
+    // Requêtes RC
+    {
+      $and: [
+        { "claimType.code": { $in: ["RC"] } },
+        { "status": { $in: ["NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"] } },
+        { "customer._id": "OW80700" }
+      ]
+    },
+    {
+      $and: [
+        { "claimType.code": { $in: ["RC"] } },
+        { "status": { $in: ["NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"] } },
+        { "customer._id": "OW80700" },
+        { "readCustomer": false }
+      ]
+    },
 
-    // 3️⃣ Appeler le repository avec le CardTypeConfig
-    String customerId = mbotRequestData.getCustomerId(); // id transmis par le front
-    List<Ticket> tickets = ticketRepository.findTicketsForCard(customerId, cardTypeConfig);
+    // Approbations
+    {
+      $and: [
+        { "approval.manager": "OW80700" },
+        {
+          $or: [
+            { "status": "APPROVAL_PENDING" },
+            {
+              $and: [
+                { "status": "APPROVAL_REFUSED" },
+                { "approval.discussion": true }
+              ]
+            }
+          ]
+        }
+      ]
+    },
 
-    // 4️⃣ Construire les stats éventuelles
-    TicketCardDto ticketStatsDto = ticketStatsService.computeStats(tickets, securityService.getAuthUser().getId());
+    // Groupes de discussion
+    { "discussionGroup.users._id": "OW80700" },
 
-    // 5️⃣ Mapper les tickets au DTO light
-    List<MbotTicketLightDto> ticketLightDtos = IMapperTicket.INSTANCE.listTicketToListMbotTicketDto(tickets);
+    // Groupes de discussion non lus
+    {
+      discussionGroup: {
+        $elemMatch: {
+          "users._id": "OW80700",
+          "users.ticketRead": false
+        }
+      }
+    },
 
-    // 6️⃣ Retourner la pagination
-    return MbotPageDtoV2.builder()
-        .tickets(PageableExecutionUtils.getPage(ticketLightDtos, FiltersHelper.getPageable(filters), tickets::size))
-        .stats(ticketStatsDto)
-        .build();
-}
+    // DS en tant que OW80700
+    {
+      $and: [
+        { "claimType.code": { $in: ["DS"] } },
+        { "status": { $in: ["NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"] } },
+        {
+          $or: [
+            { "ds.collabTreatmentDone": false },
+            { $and: [{ "ds.collabTreatmentDone": true }, { "readCustomer": false }] }
+          ]
+        },
+        {
+          $or: [
+            { "customer._id": "OW80700" },
+            { $and: [{ "customer.eds": true }, { "customer.edsId": "88200-00501" }] }
+          ]
+        }
+      ]
+    },
+
+    // DS non lus
+    {
+      $and: [
+        { "readCustomer": false },
+        { "claimType.code": { $in: ["DS"] } },
+        { "status": { $in: ["NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"] } },
+        {
+          $or: [
+            { "ds.collabTreatmentDone": false },
+            { $and: [{ "ds.collabTreatmentDone": true }, { "readCustomer": false }] }
+          ]
+        },
+        {
+          $or: [
+            { "customer._id": "OW80700" },
+            { $and: [{ "customer.eds": true }, { "customer.edsId": "88200-00501" }] }
+          ]
+        }
+      ]
+    },
+
+    // DS en retard
+    {
+      $and: [
+        { "ds.treatmentIsLate": true },
+        { "claimType.code": { $in: ["DS"] } },
+        { "status": { $in: ["NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"] } },
+        {
+          $or: [
+            { "ds.collabTreatmentDone": false },
+            { $and: [{ "ds.collabTreatmentDone": true }, { "readCustomer": false }] }
+          ]
+        },
+        {
+          $or: [
+            { "customer._id": "OW80700" },
+            { $and: [{ "customer.eds": true }, { "customer.edsId": "88200-00501" }] }
+          ]
+        }
+      ]
+    },
+
+    // DS affectées à l'unité
+    {
+      $and: [
+        { "customer.eds": true },
+        { "customer.edsId": "88200-00501" },
+        { "claimType.code": { $in: ["DS"] } }
+      ]
+    }
+  ]
+})
