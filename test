@@ -1,139 +1,151 @@
-db.getCollection("tickets_CR882").find({
-  $or: [
-    // Requêtes D/DC
-    {
-      $and: [
-        { "claimType.code": { $in: ["D", "DC"] } },
-        { "status": { $in: ["NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"] } },
-        { "customer._id": "OW80700" }
-      ]
-    },
-    {
-      $and: [
-        { "claimType.code": { $in: ["D", "DC"] } },
-        { "status": { $in: ["NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"] } },
-        { "customer._id": "OW80700" },
-        { "readCustomer": false }
-      ]
-    },
+@Repository
+public class TicketCustomRepository {
 
-    // Requêtes RC
-    {
-      $and: [
-        { "claimType.code": { $in: ["RC"] } },
-        { "status": { $in: ["NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"] } },
-        { "customer._id": "OW80700" }
-      ]
-    },
-    {
-      $and: [
-        { "claimType.code": { $in: ["RC"] } },
-        { "status": { $in: ["NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"] } },
-        { "customer._id": "OW80700" },
-        { "readCustomer": false }
-      ]
-    },
+    private final MongoTemplate mongoTemplate;
 
-    // Approbations
-    {
-      $and: [
-        { "approval.manager": "OW80700" },
-        {
-          $or: [
-            { "status": "APPROVAL_PENDING" },
-            {
-              $and: [
-                { "status": "APPROVAL_REFUSED" },
-                { "approval.discussion": true }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-
-    // Groupes de discussion
-    { "discussionGroup.users._id": "OW80700" },
-
-    // Groupes de discussion non lus
-    {
-      discussionGroup: {
-        $elemMatch: {
-          "users._id": "OW80700",
-          "users.ticketRead": false
-        }
-      }
-    },
-
-    // DS en tant que OW80700
-    {
-      $and: [
-        { "claimType.code": { $in: ["DS"] } },
-        { "status": { $in: ["NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"] } },
-        {
-          $or: [
-            { "ds.collabTreatmentDone": false },
-            { $and: [{ "ds.collabTreatmentDone": true }, { "readCustomer": false }] }
-          ]
-        },
-        {
-          $or: [
-            { "customer._id": "OW80700" },
-            { $and: [{ "customer.eds": true }, { "customer.edsId": "88200-00501" }] }
-          ]
-        }
-      ]
-    },
-
-    // DS non lus
-    {
-      $and: [
-        { "readCustomer": false },
-        { "claimType.code": { $in: ["DS"] } },
-        { "status": { $in: ["NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"] } },
-        {
-          $or: [
-            { "ds.collabTreatmentDone": false },
-            { $and: [{ "ds.collabTreatmentDone": true }, { "readCustomer": false }] }
-          ]
-        },
-        {
-          $or: [
-            { "customer._id": "OW80700" },
-            { $and: [{ "customer.eds": true }, { "customer.edsId": "88200-00501" }] }
-          ]
-        }
-      ]
-    },
-
-    // DS en retard
-    {
-      $and: [
-        { "ds.treatmentIsLate": true },
-        { "claimType.code": { $in: ["DS"] } },
-        { "status": { $in: ["NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"] } },
-        {
-          $or: [
-            { "ds.collabTreatmentDone": false },
-            { $and: [{ "ds.collabTreatmentDone": true }, { "readCustomer": false }] }
-          ]
-        },
-        {
-          $or: [
-            { "customer._id": "OW80700" },
-            { $and: [{ "customer.eds": true }, { "customer.edsId": "88200-00501" }] }
-          ]
-        }
-      ]
-    },
-
-    // DS affectées à l'unité
-    {
-      $and: [
-        { "customer.eds": true },
-        { "customer.edsId": "88200-00501" },
-        { "claimType.code": { $in: ["DS"] } }
-      ]
+    @Autowired
+    public TicketCustomRepository(MongoTemplate mongoTemplate) {
+        this.mongoTemplate = mongoTemplate;
     }
-  ]
-})
+
+    public List<Document> findAllMatchingTickets(String customerId, String customerEdsId) {
+        List<Criteria> criteriaList = new ArrayList<>();
+
+        // 1) Sollicitations D/DC
+        criteriaList.add(new Criteria().andOperator(
+            Criteria.where("claimType.code").in("D", "DC"),
+            Criteria.where("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+            Criteria.where("customer._id").is(customerId)
+        ));
+
+        criteriaList.add(new Criteria().andOperator(
+            Criteria.where("claimType.code").in("D", "DC"),
+            Criteria.where("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+            Criteria.where("customer._id").is(customerId),
+            Criteria.where("readCustomer").is(false)
+        ));
+
+        // 2) Réclamations RC
+        criteriaList.add(new Criteria().andOperator(
+            Criteria.where("claimType.code").in("RC"),
+            Criteria.where("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+            Criteria.where("customer._id").is(customerId)
+        ));
+        criteriaList.add(new Criteria().andOperator(
+            Criteria.where("claimType.code").in("RC"),
+            Criteria.where("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+            Criteria.where("customer._id").is(customerId),
+            Criteria.where("readCustomer").is(false)
+        ));
+
+        // 3) Approbations
+        criteriaList.add(new Criteria().andOperator(
+            Criteria.where("approval.manager").is(customerId),
+            new Criteria().orOperator(
+                Criteria.where("status").is("APPROVAL_PENDING"),
+                new Criteria().andOperator(
+                    Criteria.where("status").is("APPROVAL_REFUSED"),
+                    Criteria.where("approval.discussion").is(true)
+                )
+            )
+        ));
+
+        // 4) Groupes de discussion
+        criteriaList.add(Criteria.where("discussionGroup.users._id").is(customerId));
+
+        // 5) Groupes de discussion non lus
+        criteriaList.add(Criteria.where("discussionGroup.users").elemMatch(
+            Criteria.where("_id").is(customerId).and("ticketRead").is(false)
+        ));
+
+        // 6) DS (avec sous-conditions)
+        Criteria dsCriteria = new Criteria().andOperator(
+            Criteria.where("claimType.code").in("DS"),
+            Criteria.where("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+            new Criteria().orOperator(
+                Criteria.where("ds.collabTreatmentDone").is(false),
+                new Criteria().andOperator(
+                    Criteria.where("ds.collabTreatmentDone").is(true),
+                    Criteria.where("readCustomer").is(false)
+                )
+            ),
+            new Criteria().orOperator(
+                Criteria.where("customer._id").is(customerId),
+                new Criteria().andOperator(
+                    Criteria.where("customer.eds").is(true),
+                    Criteria.where("customer.edsId").is(customerEdsId)
+                )
+            )
+        );
+        criteriaList.add(dsCriteria);
+
+        // 7) DS en retard
+        Criteria dsLateCriteria = new Criteria().andOperator(
+            Criteria.where("ds.treatmentIsLate").is(true),
+            Criteria.where("claimType.code").in("DS"),
+            Criteria.where("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+            new Criteria().orOperator(
+                Criteria.where("ds.collabTreatmentDone").is(false),
+                new Criteria().andOperator(
+                    Criteria.where("ds.collabTreatmentDone").is(true),
+                    Criteria.where("readCustomer").is(false)
+                )
+            ),
+            new Criteria().orOperator(
+                Criteria.where("customer._id").is(customerId),
+                new Criteria().andOperator(
+                    Criteria.where("customer.eds").is(true),
+                    Criteria.where("customer.edsId").is(customerEdsId)
+                )
+            )
+        );
+        criteriaList.add(dsLateCriteria);
+
+        // 8) DS affectées à l'unité
+        criteriaList.add(new Criteria().andOperator(
+            Criteria.where("customer.eds").is(true),
+            Criteria.where("customer.edsId").is(customerEdsId),
+            Criteria.where("claimType.code").in("DS")
+        ));
+
+        Criteria orCriteria = new Criteria().orOperator(criteriaList.toArray(new Criteria[0]));
+
+        Query query = new Query(orCriteria);
+        return mongoTemplate.find(query, Document.class, "tickets_CR882");
+    }
+}
+@Service
+public class TicketService {
+
+    private final TicketCustomRepository ticketCustomRepository;
+
+    @Autowired
+    public TicketService(TicketCustomRepository ticketCustomRepository) {
+        this.ticketCustomRepository = ticketCustomRepository;
+    }
+
+    public List<Document> getAllMatchingTickets(String customerId, String customerEdsId) {
+        return ticketCustomRepository.findAllMatchingTickets(customerId, customerEdsId);
+    }
+}
+@RestController
+@RequestMapping("/api/tickets")
+public class TicketController {
+
+    private final TicketService ticketService;
+
+    @Autowired
+    public TicketController(TicketService ticketService) {
+        this.ticketService = ticketService;
+    }
+
+    @GetMapping("/all-matching")
+    @PreAuthorize("hasAuthority('MBOT')") // ajustez selon vos permissions
+    public ResponseEntity<List<Document>> getAllMatchingTickets(
+            @RequestParam("customerId") String customerId,
+            @RequestParam("customerEdsId") String customerEdsId) {
+
+        List<Document> tickets = ticketService.getAllMatchingTickets(customerId, customerEdsId);
+        return ResponseEntity.ok(tickets);
+    }
+}
