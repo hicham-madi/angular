@@ -1,45 +1,84 @@
+@Injectable({
+  providedIn: 'root',
+})
+export class DashboardCardConfigFactory {
+  constructor(
+    private readonly listService: ListService,
+    private readonly mbotService: MbotService
+  ) {}
+
+  public loadTicketsByCard(type: FilterCardType): Observable<MbotListV2> {
+    const params = { ...this.listService.getCurrentParams() };
+
+    // Envoyer le nom de l'enum en majuscules, comme attendu côté Java
+    params.cardType = FilterCardType[type];
+
+    return this.mbotService.getTicketsForCard(params).pipe(
+      map((response) => {
+        console.log('method ok', response);
+        return response;
+      }),
+      catchError((err) => {
+        console.error('Erreur lors du chargement des tickets pour la carte sélectionnée :', err);
+        return of({ tickets: { content: [], totalElements: 0, totalPages: 0, number: 0 } } as MbotListV2);
+      })
+    );
+  }
+
+  public extractTicketsFromResponse(response: MbotListV2, card: FilterCardType): { tickets: Ticket[]; ticketsCount: number } {
+    let tickets: Ticket[] = [];
+    let ticketsCount = 0;
+
+    switch (card) {
+      case FilterCardType.APPROVALS:
+        tickets = response.approvals?.content ?? [];
+        ticketsCount = response.approvals?.totalElements ?? 0;
+        break;
+
+      case FilterCardType.CLAIMS:
+        tickets = response.claims?.content ?? [];
+        ticketsCount = response.claims?.totalElements ?? 0;
+        break;
+
+      case FilterCardType.DISCUSSION_GROUPS:
+        tickets = response.discussionGroups?.content ?? [];
+        ticketsCount = response.discussionGroups?.totalElements ?? 0;
+        break;
+
+      default:
+        tickets = response.tickets?.content ?? [];
+        ticketsCount = response.tickets?.totalElements ?? 0;
+        break;
+    }
+
+    return { tickets, ticketsCount };
+  }
+}
 protected onCardClicked(type: FilterCardType): void {
   if (this.activeCard === type) {
-    // Cas : la carte sélectionnée est déjà active → désélectionner
+    // Si on clique sur la carte déjà active → désélectionner et recharger tous les tickets
     this.activeCard = FilterCardType.NONE;
     this.currentPage = 0;
     this.scrollCompleted = false;
 
-    // Désactiver toutes les cartes visuellement
-    [...this.smallCards, ...this.largeCards].forEach(card => {
-      card.active = false;
-      card.badges?.forEach(badge => badge.active = false);
-    });
-
-    // Charger toute la liste sans filtrage
     this.loadFullTicketList();
     return;
   }
 
-  // Cas : nouvelle carte sélectionnée → activer la carte choisie
-  [...this.smallCards, ...this.largeCards].forEach(card => {
-    card.active = false;
-    card.badges?.forEach(badge => badge.active = false);
-  });
-
-  const selectedCard = [...this.smallCards, ...this.largeCards].find(card => card.type === type);
-  if (selectedCard) {
-    selectedCard.active = true;
-  }
-
+  // Nouvelle sélection → charger les tickets filtrés
   this.activeCard = type;
   this.currentPage = 0;
   this.scrollCompleted = false;
 
-  // Charger les tickets filtrés selon la carte
-  this.cardConfigFactory.loadTicketsByCard(type, this.currentPage, this.pageSize).subscribe({
+  this.cardConfigFactory.loadTicketsByCard(type).subscribe({
     next: (response) => this.handleTicketResponse(response),
-    error: (err) => console.error('Erreur lors du chargement des tickets pour la carte sélectionnée :', err)
-  });
-}private loadFullTicketList(): void {
-  this.cardConfigFactory.loadTicketsByCard(FilterCardType.NONE, this.currentPage, this.pageSize).subscribe({
-    next: (response) => this.handleTicketResponse(response),
-    error: (err) => console.error('Erreur lors du chargement de la liste complète des tickets :', err)
+    error: (err) => console.error('Erreur lors du chargement des tickets pour la carte sélectionnée :', err),
   });
 }
 
+private loadFullTicketList(): void {
+  this.cardConfigFactory.loadTicketsByCard(FilterCardType.NONE).subscribe({
+    next: (response) => this.handleTicketResponse(response),
+    error: (err) => console.error('Erreur lors du chargement de la liste complète des tickets :', err),
+  });
+}
