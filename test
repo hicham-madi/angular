@@ -1,19 +1,102 @@
-Predicate<Object, Ticket> dsAsOwPredicate = Predicates.and(
-    Predicates.in("claimType.code", "DS"),
-    Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-    Predicates.or(
-        Predicates.equal("ds.collabTreatmentDone", false),
-        Predicates.and(
-            Predicates.equal("ds.collabTreatmentDone", true),
-            Predicates.equal("readCustomer", false)
-        )
-    ),
-    Predicates.or(
-        Predicates.equal("customer._id", customerId),
-        Predicates.and(
-            Predicates.equal("customer.eds", true),
-            Predicates.equal("customer.edsId", customerEdsId)
-        )
-    )
-);
-predicates.add(dsAsOwPredicate);
+public TicketCardDto computeStats(List<Ticket> tickets, String userId) {
+    TicketCardDto.TicketCardDtoBuilder builder = TicketCardDto.builder();
+
+    // Parcourir chaque ticket
+    for (Ticket ticket : tickets) {
+        // Parcourir chaque type de badge à incrémenter
+        for (CardTypeConfig config : CardTypeConfig.values()) {
+            if (ticketMatchesCardTypeConfig(ticket, config, userId)) {
+                incrementBuilderField(builder, config.getFieldName());
+            }
+        }
+    }
+
+    return builder.build();
+}
+
+/**
+ * Vérifie si le ticket correspond au CardTypeConfig donné.
+ */
+private boolean ticketMatchesCardTypeConfig(Ticket ticket, CardTypeConfig config, String userId) {
+    switch (config) {
+        case DISCUSSION_GROUPS:
+            return ticket.getDiscussionGroup() != null;
+
+        case DISCUSSION_GROUPS_READ_CUSTOMER:
+            return ticket.getDiscussionGroup() != null
+                && !CollectionUtils.isEmpty(ticket.getDiscussionGroup().getUsers())
+                && ticket.getDiscussionGroup().getUsers().stream().anyMatch(UserGroup::isTicketRead);
+
+        case REQUESTS_EXPERT_SERVICE:
+            return ticket.isExpertServiceRequest();
+
+        case REQUESTS_EXPERT_SERVICE_READ_CUSTOMER:
+            return ticket.isExpertServiceRequest()
+                && ticket.getReadCustomer() != null
+                && ticket.getReadCustomer();
+
+        case REQUESTS_EXPERT_SERVICE_TREATMENT_IS_LATE:
+            return ticket.isExpertServiceRequest() && ticket.isTreatmentIsLate();
+
+        case REQUESTS_EXPERT_SERVICE_EDS:
+            return ticket.isExpertServiceRequest() && ticket.getCustomerEds() != null;
+
+        case READ_CUSTOMER:
+            return ticket.getReadCustomer() != null && ticket.getReadCustomer();
+
+        case TREATMENT_IS_LATE_DS:
+            return ticket.getDS() != null && ticket.getDS().isTreatmentIsLate();
+
+        case CUSTOMER_EDS_DS:
+            return ticket.getCustomer() != null && ticket.getCustomer().isEds();
+
+        case REQUESTS:
+            return ticket.getType() != null && ticket.getType().equalsIgnoreCase("REQUEST");
+
+        case REQUESTS_READ_CUSTOMER:
+            return ticket.getType() != null
+                && ticket.getType().equalsIgnoreCase("REQUEST")
+                && ticket.getReadCustomer() != null && ticket.getReadCustomer();
+
+        case CLAIMS:
+            return ticket.getType() != null && ticket.getType().equalsIgnoreCase("CLAIM");
+
+        case CLAIMS_READ_CUSTOMER:
+            return ticket.getType() != null
+                && ticket.getType().equalsIgnoreCase("CLAIM")
+                && ticket.getReadCustomer() != null && ticket.getReadCustomer();
+
+        case APPROVALS:
+            return ticket.getApproval() != null
+                && !StringUtils.isEmpty(ticket.getApproval().getManager())
+                && ticket.getApproval().getManager().equals(userId);
+
+        default:
+            return false;
+    }
+}
+
+/**
+ * Incrémente dynamiquement le champ du builder correspondant au badge.
+ */
+private void incrementBuilderField(TicketCardDto.TicketCardDtoBuilder builder, String fieldName) {
+    try {
+        Method getter = TicketCardDto.class.getDeclaredMethod("get" + capitalize(fieldName));
+        int currentValue = (int) getter.invoke(builder.build());
+
+        Method setter = builder.getClass().getDeclaredMethod(fieldName, int.class);
+        setter.invoke(builder, currentValue + 1);
+    } catch (Exception e) {
+        throw new RuntimeException("Erreur lors de l'incrément du badge " + fieldName, e);
+    }
+}
+
+/**
+ * Capitalise le premier caractère d'un champ pour accéder aux getters/setters.
+ */
+private String capitalize(String fieldName) {
+    if (fieldName == null || fieldName.isEmpty()) {
+        return "";
+    }
+    return Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
+}
