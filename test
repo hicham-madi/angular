@@ -1,102 +1,48 @@
-public TicketCardDto computeStats(List<Ticket> tickets, String userId) {
-    TicketCardDto.TicketCardDtoBuilder builder = TicketCardDto.builder();
+@RestController
+@RequestMapping("/api/tickets")
+public class TicketController {
 
-    // Parcourir chaque ticket
-    for (Ticket ticket : tickets) {
-        // Parcourir chaque type de badge à incrémenter
-        for (CardTypeConfig config : CardTypeConfig.values()) {
-            if (ticketMatchesCardTypeConfig(ticket, config, userId)) {
-                incrementBuilderField(builder, config.getFieldName());
-            }
-        }
+    private final TicketService ticketService;
+
+    public TicketController(TicketService ticketService) {
+        this.ticketService = ticketService;
     }
 
-    return builder.build();
-}
+    @GetMapping("/by-card")
+    public ResponseEntity<Page<Ticket>> getTicketsByCard(
+            @RequestParam("userId") String userId,
+            @RequestParam("cardType") CardTypeConfig cardType,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
-/**
- * Vérifie si le ticket correspond au CardTypeConfig donné.
- */
-private boolean ticketMatchesCardTypeConfig(Ticket ticket, CardTypeConfig config, String userId) {
-    switch (config) {
-        case DISCUSSION_GROUPS:
-            return ticket.getDiscussionGroup() != null;
+        // 1) Charger tous les tickets de Hazelcast
+        List<Ticket> allTickets = ticketService.getTicketsFromCache(userId);
 
-        case DISCUSSION_GROUPS_READ_CUSTOMER:
-            return ticket.getDiscussionGroup() != null
-                && !CollectionUtils.isEmpty(ticket.getDiscussionGroup().getUsers())
-                && ticket.getDiscussionGroup().getUsers().stream().anyMatch(UserGroup::isTicketRead);
+        // 2) Filtrer localement en fonction du cardTypeConfig
+        List<Ticket> filtered = allTickets.stream()
+                .filter(ticket -> ticketMatchesCardTypeConfig(ticket, cardType, userId))
+                .collect(Collectors.toList());
 
-        case REQUESTS_EXPERT_SERVICE:
-            return ticket.isExpertServiceRequest();
+        // 3) Appliquer la pagination sur la liste filtrée
+        Page<Ticket> paged = paginate(filtered, page, size);
 
-        case REQUESTS_EXPERT_SERVICE_READ_CUSTOMER:
-            return ticket.isExpertServiceRequest()
-                && ticket.getReadCustomer() != null
-                && ticket.getReadCustomer();
-
-        case REQUESTS_EXPERT_SERVICE_TREATMENT_IS_LATE:
-            return ticket.isExpertServiceRequest() && ticket.isTreatmentIsLate();
-
-        case REQUESTS_EXPERT_SERVICE_EDS:
-            return ticket.isExpertServiceRequest() && ticket.getCustomerEds() != null;
-
-        case READ_CUSTOMER:
-            return ticket.getReadCustomer() != null && ticket.getReadCustomer();
-
-        case TREATMENT_IS_LATE_DS:
-            return ticket.getDS() != null && ticket.getDS().isTreatmentIsLate();
-
-        case CUSTOMER_EDS_DS:
-            return ticket.getCustomer() != null && ticket.getCustomer().isEds();
-
-        case REQUESTS:
-            return ticket.getType() != null && ticket.getType().equalsIgnoreCase("REQUEST");
-
-        case REQUESTS_READ_CUSTOMER:
-            return ticket.getType() != null
-                && ticket.getType().equalsIgnoreCase("REQUEST")
-                && ticket.getReadCustomer() != null && ticket.getReadCustomer();
-
-        case CLAIMS:
-            return ticket.getType() != null && ticket.getType().equalsIgnoreCase("CLAIM");
-
-        case CLAIMS_READ_CUSTOMER:
-            return ticket.getType() != null
-                && ticket.getType().equalsIgnoreCase("CLAIM")
-                && ticket.getReadCustomer() != null && ticket.getReadCustomer();
-
-        case APPROVALS:
-            return ticket.getApproval() != null
-                && !StringUtils.isEmpty(ticket.getApproval().getManager())
-                && ticket.getApproval().getManager().equals(userId);
-
-        default:
-            return false;
+        return ResponseEntity.ok(paged);
     }
 }
+private <T> Page<T> paginate(List<T> items, int page, int size) {
+    int start = page * size;
+    int end = Math.min(start + size, items.size());
 
-/**
- * Incrémente dynamiquement le champ du builder correspondant au badge.
- */
-private void incrementBuilderField(TicketCardDto.TicketCardDtoBuilder builder, String fieldName) {
-    try {
-        Method getter = TicketCardDto.class.getDeclaredMethod("get" + capitalize(fieldName));
-        int currentValue = (int) getter.invoke(builder.build());
+    List<T> content = start > items.size() ? Collections.emptyList() : items.subList(start, end);
 
-        Method setter = builder.getClass().getDeclaredMethod(fieldName, int.class);
-        setter.invoke(builder, currentValue + 1);
-    } catch (Exception e) {
-        throw new RuntimeException("Erreur lors de l'incrément du badge " + fieldName, e);
-    }
+    return new PageImpl<>(content, PageRequest.of(page, size), items.size());
 }
+public List<Ticket> getTicketsFromCache(String userId) {
+    // Exemple avec Hazelcast, suppose une map "tickets" contenant les tickets
+    IMap<String, Ticket> ticketMap = hazelcastInstance.getMap("tickets");
 
-/**
- * Capitalise le premier caractère d'un champ pour accéder aux getters/setters.
- */
-private String capitalize(String fieldName) {
-    if (fieldName == null || fieldName.isEmpty()) {
-        return "";
-    }
-    return Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
+    // Charge tous les tickets dont le customer_id correspond à l'utilisateur
+    return ticketMap.values(Predicates.equal("customer_id", userId))
+                    .stream()
+                    .collect(Collectors.toList());
 }
