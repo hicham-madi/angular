@@ -1,50 +1,68 @@
-private boolean ticketMatchesCardTypeConfig(Ticket ticket, CardTypeConfig config, String userId) {
-    switch (config) {
-        case READ_CUSTOMER:
-            return ticket.getReadCustomer() != null && !ticket.getReadCustomer();
+public static Predicate<Object, Ticket> getAllTicketsPredicate(String customerId, String customerEdsId) {
+    List<Predicate<Object, Ticket>> predicates = new ArrayList<>();
 
-        case TREATMENT_IS_LATE_DS:
-            return ticket.isTreatmentLate();
+    // -- Exemple : Tickets non lus (readCustomer = false) avec statut actif et customer
+    Predicate<Object, Ticket> unreadTicketsPredicate = Predicates.and(
+        Predicates.equal("readCustomer", false),
+        Predicates.in("claimType.code", "D", "DC", "RC"),
+        Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+        Predicates.or(
+            Predicates.equal("customer._id", customerId),
+            Predicates.and(
+                Predicates.equal("customer.eds", true),
+                Predicates.equal("customer.edsId", customerEdsId)
+            )
+        )
+    );
+    predicates.add(unreadTicketsPredicate);
 
-        case CUSTOMER_EDS_DS:
-            return ticket.getCustomerEds() != null;
+    // -- Exemple : Tickets en retard (ds.treatmentIsLate = true) avec statut actif et customer
+    Predicate<Object, Ticket> lateTicketsPredicate = Predicates.and(
+        Predicates.equal("ds.treatmentIsLate", true),
+        Predicates.in("claimType.code", "DS"),
+        Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+        Predicates.or(
+            Predicates.equal("customer._id", customerId),
+            Predicates.and(
+                Predicates.equal("customer.eds", true),
+                Predicates.equal("customer.edsId", customerEdsId)
+            )
+        )
+    );
+    predicates.add(lateTicketsPredicate);
 
-        case REQUESTS:
-            return ticket.getType() != null && ticket.getType().equalsIgnoreCase("REQUEST");
+    // -- Exemple : Tickets affectés à l'unité (EDS activé avec type DS)
+    Predicate<Object, Ticket> unitAssignedTicketsPredicate = Predicates.and(
+        Predicates.equal("customer.eds", true),
+        Predicates.equal("customer.edsId", customerEdsId),
+        Predicates.in("claimType.code", "DS")
+    );
+    predicates.add(unitAssignedTicketsPredicate);
 
-        case REQUESTS_READ_CUSTOMER:
-            return ticket.getType() != null
-                && ticket.getType().equalsIgnoreCase("REQUEST")
-                && ticket.getReadCustomer() != null && !ticket.getReadCustomer();
+    // -- Exemple : Approbations
+    Predicate<Object, Ticket> approvalsPredicate = Predicates.and(
+        Predicates.equal("approval.manager", customerId),
+        Predicates.or(
+            Predicates.equal("status", "APPROVAL_PENDING"),
+            Predicates.and(
+                Predicates.equal("status", "APPROVAL_REFUSED"),
+                Predicates.equal("approval.discussion", true)
+            )
+        )
+    );
+    predicates.add(approvalsPredicate);
 
-        case CLAIMS:
-            return ticket.getType() != null && ticket.getType().equalsIgnoreCase("CLAIM");
+    // -- Exemple : Groupes de discussion
+    Predicate<Object, Ticket> discussionGroupsPredicate = Predicates.equal("discussionGroup.users._id", customerId);
+    predicates.add(discussionGroupsPredicate);
 
-        case CLAIMS_READ_CUSTOMER:
-            return ticket.getType() != null
-                && ticket.getType().equalsIgnoreCase("CLAIM")
-                && ticket.getReadCustomer() != null && !ticket.getReadCustomer();
+    // -- Exemple : Groupes de discussion non lus
+    Predicate<Object, Ticket> unreadDiscussionGroupsPredicate = Predicates.and(
+        Predicates.equal("discussionGroup.users._id", customerId),
+        Predicates.equal("discussionGroup.users.ticketRead", false)
+    );
+    predicates.add(unreadDiscussionGroupsPredicate);
 
-        case APPROVALS:
-            return ticket.getApprovalManager() != null && ticket.getApprovalManager().equals(userId);
-
-        case DISCUSSION_GROUPS:
-            return ticket.getDiscussionGroup() != null && !ticket.isTicketRead();
-
-        case REQUEST_EXPERT_SERVICE:
-            return ticket.isExpertServiceRequest();
-
-        case REQUEST_EXPERT_SERVICE_READ_CUSTOMER:
-            return ticket.isExpertServiceRequest()
-                && ticket.getReadCustomer() != null && !ticket.getReadCustomer();
-
-        case REQUEST_EXPERT_SERVICE_TREATMENT_IS_LATE:
-            return ticket.isExpertServiceRequest() && ticket.isTreatmentLate();
-
-        case REQUEST_EXPERT_SERVICE_EDS:
-            return ticket.isExpertServiceRequest() && ticket.getCustomerEds() != null;
-
-        default:
-            return false;
-    }
+    // Combine toutes les conditions avec OR global (pour matcher n'importe quelle règle ci-dessus)
+    return Predicates.or(predicates.toArray(new Predicate[0]));
 }
