@@ -1,93 +1,45 @@
-private boolean ticketMatchesCardTypeConfig(Ticket ticket, CardTypeConfig config, String userId) {
-    // Vérifie le claim type si défini dans la config
-    if (!config.getClaimCodes().isEmpty() &&
-            (ticket.getClaimType() == null || !config.getClaimCodes().contains(ticket.getClaimType().getCode()))) {
-        return false;
-    }
+protected onCardClicked(type: FilterCardType): void {
+  if (this.activeCard === type) {
+    // Cas : la carte sélectionnée est déjà active → désélectionner
+    this.activeCard = FilterCardType.NONE;
+    this.currentPage = 0;
+    this.scrollCompleted = false;
 
-    // Vérifie le statut si défini dans la config
-    if (!config.getStatuses().isEmpty() &&
-            (ticket.getStatus() == null || !config.getStatuses().contains(ticket.getStatus().name()))) {
-        return false;
-    }
+    // Désactiver toutes les cartes visuellement
+    [...this.smallCards, ...this.largeCards].forEach(card => {
+      card.active = false;
+      card.badges?.forEach(badge => badge.active = false);
+    });
 
-    // Vérifie les filtres additionnels de la config
-    for (Map.Entry<String, Object> filter : config.getExtrafilters().entrySet()) {
-        switch (filter.getKey()) {
-            case "readCustomer":
-                if (!Boolean.valueOf(filter.getValue().toString()).equals(ticket.getReadCustomer())) {
-                    return false;
-                }
-                break;
+    // Charger toute la liste sans filtrage
+    this.loadFullTicketList();
+    return;
+  }
 
-            case "approval.manager":
-                if (ticket.getApproval() == null ||
-                        !filter.getValue().toString().equals(ticket.getApproval().getManager())) {
-                    return false;
-                }
-                break;
+  // Cas : nouvelle carte sélectionnée → activer la carte choisie
+  [...this.smallCards, ...this.largeCards].forEach(card => {
+    card.active = false;
+    card.badges?.forEach(badge => badge.active = false);
+  });
 
-            case "approval.discussion":
-                if (ticket.getApproval() == null ||
-                        !Boolean.valueOf(filter.getValue().toString()).equals(ticket.getApproval().isDiscussion())) {
-                    return false;
-                }
-                break;
+  const selectedCard = [...this.smallCards, ...this.largeCards].find(card => card.type === type);
+  if (selectedCard) {
+    selectedCard.active = true;
+  }
 
-            case "discussionGroup.users._id":
-                if (ticket.getDiscussionGroup() == null ||
-                        ticket.getDiscussionGroup().getUsers().stream()
-                                .noneMatch(u -> filter.getValue().toString().equals(u.getId()))) {
-                    return false;
-                }
-                break;
+  this.activeCard = type;
+  this.currentPage = 0;
+  this.scrollCompleted = false;
 
-            case "discussionGroup.users.ticketRead":
-                if (ticket.getDiscussionGroup() == null ||
-                        ticket.getDiscussionGroup().getUsers().stream()
-                                .noneMatch(u -> Boolean.valueOf(filter.getValue().toString()).equals(u.isTicketRead()))) {
-                    return false;
-                }
-                break;
-
-            case "ds.treatmentIsLate":
-                if (!Boolean.valueOf(filter.getValue().toString()).equals(ticket.isTreatmentIsLate())) {
-                    return false;
-                }
-                break;
-
-            case "ds.collabTreatmentDone":
-                if (!Boolean.valueOf(filter.getValue().toString()).equals(ticket.isCollabTreatmentDone())) {
-                    return false;
-                }
-                break;
-
-            case "customer.eds":
-                if (ticket.getCustomer() == null ||
-                        !Boolean.valueOf(filter.getValue().toString()).equals(ticket.getCustomer().isEds())) {
-                    return false;
-                }
-                break;
-
-            case "customer.edsId":
-                if (ticket.getCustomer() == null ||
-                        !filter.getValue().toString().equals(ticket.getCustomer().getEdsId())) {
-                    return false;
-                }
-                break;
-
-            case "customer._id":
-                if (ticket.getCustomer() == null ||
-                        !filter.getValue().toString().equals(ticket.getCustomer().getId())) {
-                    return false;
-                }
-                break;
-
-            default:
-                // Logger un warning pour un filtre inconnu (optionnel)
-                break;
-        }
-    }
-
-    return true;
+  // Charger les tickets filtrés selon la carte
+  this.cardConfigFactory.loadTicketsByCard(type, this.currentPage, this.pageSize).subscribe({
+    next: (response) => this.handleTicketResponse(response),
+    error: (err) => console.error('Erreur lors du chargement des tickets pour la carte sélectionnée :', err)
+  });
+}private loadFullTicketList(): void {
+  this.cardConfigFactory.loadTicketsByCard(FilterCardType.NONE, this.currentPage, this.pageSize).subscribe({
+    next: (response) => this.handleTicketResponse(response),
+    error: (err) => console.error('Erreur lors du chargement de la liste complète des tickets :', err)
+  });
 }
+
