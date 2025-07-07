@@ -1,48 +1,93 @@
-@RestController
-@RequestMapping("/api/tickets")
-public class TicketController {
-
-    private final TicketService ticketService;
-
-    public TicketController(TicketService ticketService) {
-        this.ticketService = ticketService;
+private boolean ticketMatchesCardTypeConfig(Ticket ticket, CardTypeConfig config, String userId) {
+    // Vérifie le claim type si défini dans la config
+    if (!config.getClaimCodes().isEmpty() &&
+            (ticket.getClaimType() == null || !config.getClaimCodes().contains(ticket.getClaimType().getCode()))) {
+        return false;
     }
 
-    @GetMapping("/by-card")
-    public ResponseEntity<Page<Ticket>> getTicketsByCard(
-            @RequestParam("userId") String userId,
-            @RequestParam("cardType") CardTypeConfig cardType,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-
-        // 1) Charger tous les tickets de Hazelcast
-        List<Ticket> allTickets = ticketService.getTicketsFromCache(userId);
-
-        // 2) Filtrer localement en fonction du cardTypeConfig
-        List<Ticket> filtered = allTickets.stream()
-                .filter(ticket -> ticketMatchesCardTypeConfig(ticket, cardType, userId))
-                .collect(Collectors.toList());
-
-        // 3) Appliquer la pagination sur la liste filtrée
-        Page<Ticket> paged = paginate(filtered, page, size);
-
-        return ResponseEntity.ok(paged);
+    // Vérifie le statut si défini dans la config
+    if (!config.getStatuses().isEmpty() &&
+            (ticket.getStatus() == null || !config.getStatuses().contains(ticket.getStatus().name()))) {
+        return false;
     }
-}
-private <T> Page<T> paginate(List<T> items, int page, int size) {
-    int start = page * size;
-    int end = Math.min(start + size, items.size());
 
-    List<T> content = start > items.size() ? Collections.emptyList() : items.subList(start, end);
+    // Vérifie les filtres additionnels de la config
+    for (Map.Entry<String, Object> filter : config.getExtrafilters().entrySet()) {
+        switch (filter.getKey()) {
+            case "readCustomer":
+                if (!Boolean.valueOf(filter.getValue().toString()).equals(ticket.getReadCustomer())) {
+                    return false;
+                }
+                break;
 
-    return new PageImpl<>(content, PageRequest.of(page, size), items.size());
-}
-public List<Ticket> getTicketsFromCache(String userId) {
-    // Exemple avec Hazelcast, suppose une map "tickets" contenant les tickets
-    IMap<String, Ticket> ticketMap = hazelcastInstance.getMap("tickets");
+            case "approval.manager":
+                if (ticket.getApproval() == null ||
+                        !filter.getValue().toString().equals(ticket.getApproval().getManager())) {
+                    return false;
+                }
+                break;
 
-    // Charge tous les tickets dont le customer_id correspond à l'utilisateur
-    return ticketMap.values(Predicates.equal("customer_id", userId))
-                    .stream()
-                    .collect(Collectors.toList());
+            case "approval.discussion":
+                if (ticket.getApproval() == null ||
+                        !Boolean.valueOf(filter.getValue().toString()).equals(ticket.getApproval().isDiscussion())) {
+                    return false;
+                }
+                break;
+
+            case "discussionGroup.users._id":
+                if (ticket.getDiscussionGroup() == null ||
+                        ticket.getDiscussionGroup().getUsers().stream()
+                                .noneMatch(u -> filter.getValue().toString().equals(u.getId()))) {
+                    return false;
+                }
+                break;
+
+            case "discussionGroup.users.ticketRead":
+                if (ticket.getDiscussionGroup() == null ||
+                        ticket.getDiscussionGroup().getUsers().stream()
+                                .noneMatch(u -> Boolean.valueOf(filter.getValue().toString()).equals(u.isTicketRead()))) {
+                    return false;
+                }
+                break;
+
+            case "ds.treatmentIsLate":
+                if (!Boolean.valueOf(filter.getValue().toString()).equals(ticket.isTreatmentIsLate())) {
+                    return false;
+                }
+                break;
+
+            case "ds.collabTreatmentDone":
+                if (!Boolean.valueOf(filter.getValue().toString()).equals(ticket.isCollabTreatmentDone())) {
+                    return false;
+                }
+                break;
+
+            case "customer.eds":
+                if (ticket.getCustomer() == null ||
+                        !Boolean.valueOf(filter.getValue().toString()).equals(ticket.getCustomer().isEds())) {
+                    return false;
+                }
+                break;
+
+            case "customer.edsId":
+                if (ticket.getCustomer() == null ||
+                        !filter.getValue().toString().equals(ticket.getCustomer().getEdsId())) {
+                    return false;
+                }
+                break;
+
+            case "customer._id":
+                if (ticket.getCustomer() == null ||
+                        !filter.getValue().toString().equals(ticket.getCustomer().getId())) {
+                    return false;
+                }
+                break;
+
+            default:
+                // Logger un warning pour un filtre inconnu (optionnel)
+                break;
+        }
+    }
+
+    return true;
 }
