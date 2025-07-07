@@ -1,27 +1,19 @@
 public static Predicate<Object, Ticket> getAllTicketsPredicate(String customerId, String customerEdsId) {
     List<Predicate<Object, Ticket>> predicates = new ArrayList<>();
 
-    // -- Exemple : Tickets non lus (readCustomer = false) avec statut actif et customer
-    Predicate<Object, Ticket> unreadTicketsPredicate = Predicates.and(
-        Predicates.equal("readCustomer", false),
-        Predicates.in("claimType.code", "D", "DC", "RC"),
-        Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-        Predicates.or(
-            Predicates.equal("customer._id", customerId),
-            Predicates.and(
-                Predicates.equal("customer.eds", true),
-                Predicates.equal("customer.edsId", customerEdsId)
-            )
-        )
-    );
-    predicates.add(unreadTicketsPredicate);
-
-    // -- Exemple : Tickets en retard (ds.treatmentIsLate = true) avec statut actif et customer
-    Predicate<Object, Ticket> lateTicketsPredicate = Predicates.and(
+    // Blocs "DS en retard"
+    Predicate<Object, Ticket> dsLatePredicate = Predicates.and(
         Predicates.equal("ds.treatmentIsLate", true),
         Predicates.in("claimType.code", "DS"),
         Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
         Predicates.or(
+            Predicates.equal("ds.collabTreatmentDone", false),
+            Predicates.and(
+                Predicates.equal("ds.collabTreatmentDone", true),
+                Predicates.equal("readCustomer", false)
+            )
+        ),
+        Predicates.or(
             Predicates.equal("customer._id", customerId),
             Predicates.and(
                 Predicates.equal("customer.eds", true),
@@ -29,17 +21,63 @@ public static Predicate<Object, Ticket> getAllTicketsPredicate(String customerId
             )
         )
     );
-    predicates.add(lateTicketsPredicate);
+    predicates.add(dsLatePredicate);
 
-    // -- Exemple : Tickets affectés à l'unité (EDS activé avec type DS)
-    Predicate<Object, Ticket> unitAssignedTicketsPredicate = Predicates.and(
+    // Blocs "DS non lus"
+    Predicate<Object, Ticket> dsUnreadPredicate = Predicates.and(
+        Predicates.equal("readCustomer", false),
+        Predicates.in("claimType.code", "DS"),
+        Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+        Predicates.or(
+            Predicates.equal("ds.collabTreatmentDone", false),
+            Predicates.and(
+                Predicates.equal("ds.collabTreatmentDone", true),
+                Predicates.equal("readCustomer", false)
+            )
+        ),
+        Predicates.or(
+            Predicates.equal("customer._id", customerId),
+            Predicates.and(
+                Predicates.equal("customer.eds", true),
+                Predicates.equal("customer.edsId", customerEdsId)
+            )
+        )
+    );
+    predicates.add(dsUnreadPredicate);
+
+    // Blocs "DS affectées à l'unité"
+    Predicate<Object, Ticket> dsAssignedUnitPredicate = Predicates.and(
         Predicates.equal("customer.eds", true),
         Predicates.equal("customer.edsId", customerEdsId),
         Predicates.in("claimType.code", "DS")
     );
-    predicates.add(unitAssignedTicketsPredicate);
+    predicates.add(dsAssignedUnitPredicate);
 
-    // -- Exemple : Approbations
+    // Blocs "Requêtes D/DC"
+    Predicate<Object, Ticket> requestDDCPredicate1 = Predicates.and(
+        Predicates.in("claimType.code", "D", "DC"),
+        Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+        Predicates.equal("customer._id", customerId)
+    );
+    Predicate<Object, Ticket> requestDDCPredicate2 = Predicates.and(
+        Predicates.in("claimType.code", "D", "DC"),
+        Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+        Predicates.equal("customer._id", customerId),
+        Predicates.equal("readCustomer", false)
+    );
+    predicates.add(requestDDCPredicate1);
+    predicates.add(requestDDCPredicate2);
+
+    // Blocs "Requêtes RC"
+    Predicate<Object, Ticket> requestRCPredicate = Predicates.and(
+        Predicates.in("claimType.code", "RC"),
+        Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+        Predicates.equal("customer._id", customerId),
+        Predicates.equal("readCustomer", false)
+    );
+    predicates.add(requestRCPredicate);
+
+    // Blocs "Approbations"
     Predicate<Object, Ticket> approvalsPredicate = Predicates.and(
         Predicates.equal("approval.manager", customerId),
         Predicates.or(
@@ -52,17 +90,17 @@ public static Predicate<Object, Ticket> getAllTicketsPredicate(String customerId
     );
     predicates.add(approvalsPredicate);
 
-    // -- Exemple : Groupes de discussion
+    // Blocs "Groupes de discussion"
     Predicate<Object, Ticket> discussionGroupsPredicate = Predicates.equal("discussionGroup.users._id", customerId);
     predicates.add(discussionGroupsPredicate);
 
-    // -- Exemple : Groupes de discussion non lus
-    Predicate<Object, Ticket> unreadDiscussionGroupsPredicate = Predicates.and(
+    // Blocs "Groupes de discussion non lus"
+    Predicate<Object, Ticket> discussionGroupsUnreadPredicate = Predicates.and(
         Predicates.equal("discussionGroup.users._id", customerId),
         Predicates.equal("discussionGroup.users.ticketRead", false)
     );
-    predicates.add(unreadDiscussionGroupsPredicate);
+    predicates.add(discussionGroupsUnreadPredicate);
 
-    // Combine toutes les conditions avec OR global (pour matcher n'importe quelle règle ci-dessus)
+    // Retourner le OR global avec tous les blocs
     return Predicates.or(predicates.toArray(new Predicate[0]));
 }
