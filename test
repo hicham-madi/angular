@@ -1,26 +1,33 @@
-loadTicketsByCard(type: FilterCardType, page: number = 0): Observable<MbotListV2<Ticket>> {
-  const params = this.buildParamsForCardType(type);
-  params.currentPage = page; // 👈 injecte la pagination ici
+public class HazelcastRepository {
 
-  return this.ticketService.getTicketListV2(params);
+    public long countDsUnread(TicketFiltersDto filtersDto) {
+        try {
+            return hazelcastService.countByOrg(
+                filtersDto.getEnvId(),
+                HazelcastPredicate.getDsUnreadPredicate(filtersDto.getCustomerId())
+            );
+        } catch (JsonProcessingException e) {
+            logger.error("Error reading Hazelcast data [{}]", filtersDto.getEnvId(), e);
+            return 0;
+        }
+    }
+
+    public List<Ticket> findMatchingTickets(String envId, String customerId) {
+        Predicate<Object, Ticket> globalPredicate = Predicates.or(
+            TicketCriteria.getPredicateDiscussionGroup(customerId),
+            TicketCriteria.getPredicateClaimTypeDC(customerId),
+            TicketCriteria.getPredicateClaimTypeDS(customerId),
+            TicketCriteria.getPredicateCustomerEDS(customerId)
+        );
+
+        List<Ticket> filteredTickets = this.filterByViewsTypeAndPredicate(
+            envId,
+            Arrays.asList(InMemoryViewEnum.ON_GOING, InMemoryViewEnum.TO_PROCESS),
+            globalPredicate
+        );
+
+        return filteredTickets.stream()
+            .distinct()
+            .toList();
+    }
 }
-
-const page = this.currentPage + 1;
-const params = this.listService.getCurrentParams(); // ne sera utilisé que si aucune carte active
-params.currentPage = page;
-
-const observable = this.activeCard && this.activeCard !== FilterCardType.NONE
-  ? this.cardConfigFactory.loadTicketsByCard(this.activeCard, page)
-  : this.mbotService.getTicketListV2(params);
-
-observable.subscribe({
-  next: (response) => {
-    this.handleTicketResponse(response);
-  },
-  error: (err) => {
-    console.error('Erreur lors du scroll :', err);
-  },
-  complete: () => {
-    this.isLoading = false;
-  }
-});
