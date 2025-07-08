@@ -1,11 +1,62 @@
-public List<Ticket> getTicketsForClaimTypeD_DC(String envId, String customerId) {
-    Predicate<Object, Ticket> predicate = Predicates.and(
-        Predicates.in("claimType.code", "D", "DC"),
-        Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+public List<Ticket> findMatchingTickets(String envId, String customerId) throws JsonProcessingException {
+    Predicate<?, ?> predicate = Predicates.or(
+
+        // 1. Tickets liés à l'utilisateur dans discussionGroup.users._id
+        Predicates.equal("discussionGroup.users._id", customerId),
+
+        // 2. Tickets approuvés ou en discussion et manager = customerId
+        Predicates.and(
+            Predicates.equal("approval.manager", customerId),
+            Predicates.or(
+                Predicates.equal("status", "APPROVAL_PENDING"),
+                Predicates.equal("status", "APPROVAL_REFUSED"),
+                Predicates.equal("approval.discussion", true)
+            )
+        ),
+
+        // 3. Réclamations RC
+        Predicates.and(
+            Predicates.equal("claimType.code", "RC"),
+            Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+            Predicates.equal("customer._id", customerId)
+        ),
+
+        // 4. Demandes D ou DC
+        Predicates.and(
+            Predicates.in("claimType.code", "D", "DC"),
+            Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+            Predicates.equal("customer._id", customerId)
+        ),
+
+        // 5. Demandes DS
+        Predicates.and(
+            Predicates.equal("claimType.code", "DS"),
+            Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+            Predicates.or(
+                Predicates.equal("ds.collabTreatmentDone", false),
+                Predicates.and(
+                    Predicates.equal("ds.collabTreatmentDone", true),
+                    Predicates.equal("readCustomer", false)
+                )
+            )
+        ),
+
+        // 6. Cas spécifique : customer.eds = true && edsId = ...
+        Predicates.and(
+            Predicates.equal("customer.eds", true),
+            Predicates.equal("customer.edsId", "88200-00501")
+        ),
+
+        // 7. Fallback : customerId direct
         Predicates.equal("customer._id", customerId)
     );
 
-    IMap<Object, Ticket> map = client.getMap("tickets_" + envId);
-    Collection<Ticket> results = map.values(predicate);
-    return new ArrayList<>(results);
+    List<Ticket> allTickets = new ArrayList<>();
+    allTickets.addAll(this.filterByViewsTypeAndPredicate(
+        envId,
+        Arrays.asList(InMemoryViewEnum.ON_GOING, InMemoryViewEnum.TO_PROCESS),
+        predicate
+    ));
+
+    return allTickets.stream().distinct().toList();
 }
