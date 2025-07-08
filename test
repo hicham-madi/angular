@@ -1,51 +1,11 @@
-public onClick(badge?: DashboardCardBadge, event?: MouseEvent): void {
-  if (badge) {
-    event?.stopPropagation();
-    if (badge.clickable && badge.onClick && badge.count > 0) {
-      badge.active = !badge.active;
-      badge.onClick();
-      this.cardclicked.emit(); // <-- ceci ne doit pas être ici
-    }
-    return;
-  }
-
-  if (this.card.clickable && this.card.onClick && this.card.count > 0) {
-    this.card.badges?.forEach((b) => (b.active = false));
-    this.card.active = !this.card.active;
-    this.card.onClick();
-    this.cardclicked.emit();
-  }
-}
-<!-- Carte -->
-<div class="card" 
-     [class.clickable]="card.clickable"
-     [class.active]="activeType === card.type"
-     (click)="onClick()"
-     [ngClass]="[...]">
-<!-- Badge -->
-<div class="badge" 
-     [ngClass]="{ 'unread': badge.count > 0 }"
-     [class.clickable]="badge.clickable && badge.count > 0"
-     [class.active]="badge.active && badge.count > 0"
-     (click)="onClick(badge, $event)">
 @Output() badgeClicked = new EventEmitter<DashboardCardBadge>();
-this.badgeClicked.emit(badge); // pour le parent
-protected onBadgeClicked(badge: DashboardCardBadge): void {
-  console.log('Badge cliqué :', badge);
+if (badge.clickable && badge.onClick && badge.count > 0) {
+  badge.active = !badge.active;
+  badge.onClick();
 
-  // Exemple de logique personnalisée :
-  // - tu peux déclencher un filtrage côté front
-  // - ou appeler une méthode qui recharge les tickets avec des filtres
-  this.tickets = []; // optionnel : reset de la liste visible
-  this.ticketsCount = 0;
+  this.badgeClicked.emit(badge); // ← ici, on notifie le parent
 
-  // Exemple : si chaque badge représente un sous-filtre, applique sa logique
-  if (badge.onClick) {
-    badge.onClick(); // exécute la logique du badge
-  }
-
-  // Optionnel : recharger les tickets si besoin (si le badge contient un type ou statut)
-  // this.loadTicketsForBadge(badge);
+  return; // très important : on ne passe pas à l’activation de la carte
 }
 <metabot-dashboard-card
   class="card"
@@ -55,3 +15,7 @@ protected onBadgeClicked(badge: DashboardCardBadge): void {
   (cardClicked)="onCardClicked(card.type)"
   (badgeClicked)="onBadgeClicked($event)">
 </metabot-dashboard-card>
+protected onBadgeClicked(badge: DashboardCardBadge): void {
+  console.log('Badge cliqué :', badge);
+  // Implémente ici ta logique de filtrage ou traitement
+}
