@@ -1,122 +1,53 @@
-package com.zef.wikipg.service;
+public class TicketCriteria {
 
-import com.zef.wikipg.dto.MbotRequestDataDto;
-import com.zef.wikipg.dto.MbotPageDtoV2;
-import com.zef.wikipg.dto.MbotTicketLightDto;
-import com.zef.wikipg.dto.filters.TicketFiltersDto;
-import com.zef.wikipg.enums.CardTypeConfig;
-import com.zef.wikipg.mapper.IMapperTicket;
-import com.zef.wikipg.model.Customer;
-import com.zef.wikipg.model.Ticket;
-import com.zef.wikipg.model.User;
-import com.zef.wikipg.repository.HazelcastTicketRepository;
-import com.zef.wikipg.security.SecurityService;
-import com.zef.wikipg.util.FiltersHelper;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.stream.Collectors;
-
-@Service
-@RequiredArgsConstructor
-public class MbotServiceV2 {
-
-    private final SecurityService securityService;
-    private final HazelcastTicketRepository hazelcastRepository;
-    private final TicketBuilderService ticketBuilderService;
-    private final TicketStatsService ticketStatsService;
-
-    public MbotPageDtoV2 getTicketsByCard(MbotRequestDataDto mbotRequestData) {
-        User user = securityService.getAuthUser();
-        Customer customer = this.getCustomer(user) != null ? this.getCustomer(user) : Customer.builder().build();
-
-        TicketFiltersDto filters = ticketBuilderService.buildTicketFilterFromMbotRequestData(customer, mbotRequestData);
-        Pageable pageable = FiltersHelper.getPageable(filters);
-
-        List<Ticket> allTickets = hazelcastRepository.findMatchingTickets(
-                user.getOrg(), filters.getCustomer().getId(), filters.getCustomer().getEdsId());
-
-        CardTypeConfig cardTypeConfig;
-        if (mbotRequestData.getCardType() != null) {
-            cardTypeConfig = CardTypeConfig.valueOf(mbotRequestData.getCardType().toUpperCase());
-        } else {
-            cardTypeConfig = CardTypeConfig.NONE;
-        }
-
-        List<Ticket> filteredTickets;
-        if (cardTypeConfig == CardTypeConfig.NONE) {
-            filteredTickets = allTickets;
-        } else {
-            filteredTickets = allTickets.stream()
-                    .filter(ticket -> ticketStatsService.ticketMatchesCardTypeConfig(
-                            ticket, cardTypeConfig, filters.getCustomer().getId(), user.getId()))
-                    .collect(Collectors.toList());
-        }
-
-        long totalElements = filteredTickets.size();
-
-        List<Ticket> paginatedTickets = filteredTickets.stream()
-                .skip((long) pageable.getPageNumber() * pageable.getPageSize())
-                .limit(pageable.getPageSize())
-                .collect(Collectors.toList());
-
-        List<MbotTicketLightDto> ticketLightDtos = IMapperTicket.INSTANCE.listTicketToMbotTicketDto(paginatedTickets);
-
-        return MbotPageDtoV2.builder()
-                .tickets(new PageImpl<>(ticketLightDtos, pageable, totalElements))
-                .build();
-    }
-
-    private Customer getCustomer(User user) {
-        // Méthode fictive pour récupérer le customer d’un user (à adapter selon votre code)
-        return user.getCustomer();
+    public static Predicate<Ticket> requests(String customerId) {
+        return ticket ->
+            ticket.getClaimType() != null &&
+            ("D".equals(ticket.getClaimType().getCode()) || "DC".equals(ticket.getClaimType().getCode())) &&
+            ticket.getStatus() != null &&
+            Arrays.asList("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED").contains(ticket.getStatus()) &&
+            ticket.getCustomer() != null &&
+            customerId.equals(ticket.getCustomer().getId());
     }
 }
-package com.zef.wikipg.service;
+public MbotPageDtoV2 getTicketsByCard(MbotRequestDataDto mbotRequestData) {
+    User user = securityService.getAuthUser();
+    Customer customer = this.getCustomer(user) != null ? this.getCustomer(user) : Customer.builder().build();
 
-import com.zef.wikipg.model.Ticket;
-import com.zef.wikipg.model.enums.CardTypeConfig;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.stereotype.Service;
+    TicketFiltersDto filters = ticketBuilderService.buildTicketFilterFromMbotRequestData(customer, mbotRequestData);
+    Pageable pageable = FiltersHelper.getPageable(filters);
 
-import java.util.List;
+    CardTypeConfig cardTypeConfig = Optional.ofNullable(mbotRequestData.getCardType())
+        .map(String::toUpperCase)
+        .map(CardTypeConfig::valueOf)
+        .orElse(CardTypeConfig.NONE);
 
-@Service
-public class TicketStatsService {
-
-    public boolean ticketMatchesCardTypeConfig(Ticket ticket, CardTypeConfig config, String userId) {
-        return switch (config) {
-            case REQUESTS -> isRequest(ticket);
-            case CLAIMS -> isClaim(ticket);
-            case APPROVALS -> isApproval(ticket, userId);
-            case DISCUSSION_GROUPS -> isDiscussionGroup(ticket, userId);
-            default -> false;
-        };
+    List<Ticket> tickets;
+    if (cardTypeConfig == CardTypeConfig.REQUESTS) {
+        tickets = hazelcastRepository.findMatchingTickets(
+            user.getOrg(),
+            filters.getCustomer().getId(),
+            TicketCriteria.requests(filters.getCustomer().getId())
+        );
+    } else {
+        // fallback : tous les tickets si aucune carte sélectionnée
+        tickets = hazelcastRepository.findMatchingTickets(
+            user.getOrg(),
+            filters.getCustomer().getId(),
+            ticket -> true
+        );
     }
 
-    private boolean isRequest(Ticket ticket) {
-        return StringUtils.isNotEmpty(ticket.getClaimType().getCode())
-                && ("D".equals(ticket.getClaimType().getCode()) || "DC".equals(ticket.getClaimType().getCode()));
-    }
+    long totalElements = tickets.size();
 
-    private boolean isClaim(Ticket ticket) {
-        return StringUtils.isNotEmpty(ticket.getClaimType().getCode())
-                && "RC".equals(ticket.getClaimType().getCode());
-    }
+    List<Ticket> paginatedTickets = tickets.stream()
+        .skip((long) pageable.getPageNumber() * pageable.getPageSize())
+        .limit(pageable.getPageSize())
+        .toList();
 
-    private boolean isApproval(Ticket ticket, String userId) {
-        return ticket.getApproval() != null
-                && userId.equals(ticket.getApproval().getManager());
-    }
+    List<MbotTicketLightDto> ticketLightDtos = IMapperTicket.INSTANCE.listTicketToMbotTicketDto(paginatedTickets);
 
-    private boolean isDiscussionGroup(Ticket ticket, String userId) {
-        return ticket.getDiscussionGroup() != null
-                && CollectionUtils.isNotEmpty(ticket.getDiscussionGroup().getUsers())
-                && ticket.getDiscussionGroup().getUsers().stream()
-                .anyMatch(user -> userId.equals(user.getId()));
-    }
+    return MbotPageDtoV2.builder()
+        .tickets(new PageImpl<>(ticketLightDtos, pageable, totalElements))
+        .build();
 }
