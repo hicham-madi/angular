@@ -1,38 +1,122 @@
-activeCardType?: FilterCardType;
-activeBadgeType?: FilterCardType;
+package com.zef.wikipg.service;
 
-onCardClicked(type: FilterCardType) {
-  this.activeCardType = type;
-  this.activeBadgeType = undefined; // reset badge when card clicked
-  // autres traitements si besoin
+import com.zef.wikipg.dto.MbotRequestDataDto;
+import com.zef.wikipg.dto.MbotPageDtoV2;
+import com.zef.wikipg.dto.MbotTicketLightDto;
+import com.zef.wikipg.dto.filters.TicketFiltersDto;
+import com.zef.wikipg.enums.CardTypeConfig;
+import com.zef.wikipg.mapper.IMapperTicket;
+import com.zef.wikipg.model.Customer;
+import com.zef.wikipg.model.Ticket;
+import com.zef.wikipg.model.User;
+import com.zef.wikipg.repository.HazelcastTicketRepository;
+import com.zef.wikipg.security.SecurityService;
+import com.zef.wikipg.util.FiltersHelper;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class MbotServiceV2 {
+
+    private final SecurityService securityService;
+    private final HazelcastTicketRepository hazelcastRepository;
+    private final TicketBuilderService ticketBuilderService;
+    private final TicketStatsService ticketStatsService;
+
+    public MbotPageDtoV2 getTicketsByCard(MbotRequestDataDto mbotRequestData) {
+        User user = securityService.getAuthUser();
+        Customer customer = this.getCustomer(user) != null ? this.getCustomer(user) : Customer.builder().build();
+
+        TicketFiltersDto filters = ticketBuilderService.buildTicketFilterFromMbotRequestData(customer, mbotRequestData);
+        Pageable pageable = FiltersHelper.getPageable(filters);
+
+        List<Ticket> allTickets = hazelcastRepository.findMatchingTickets(
+                user.getOrg(), filters.getCustomer().getId(), filters.getCustomer().getEdsId());
+
+        CardTypeConfig cardTypeConfig;
+        if (mbotRequestData.getCardType() != null) {
+            cardTypeConfig = CardTypeConfig.valueOf(mbotRequestData.getCardType().toUpperCase());
+        } else {
+            cardTypeConfig = CardTypeConfig.NONE;
+        }
+
+        List<Ticket> filteredTickets;
+        if (cardTypeConfig == CardTypeConfig.NONE) {
+            filteredTickets = allTickets;
+        } else {
+            filteredTickets = allTickets.stream()
+                    .filter(ticket -> ticketStatsService.ticketMatchesCardTypeConfig(
+                            ticket, cardTypeConfig, filters.getCustomer().getId(), user.getId()))
+                    .collect(Collectors.toList());
+        }
+
+        long totalElements = filteredTickets.size();
+
+        List<Ticket> paginatedTickets = filteredTickets.stream()
+                .skip((long) pageable.getPageNumber() * pageable.getPageSize())
+                .limit(pageable.getPageSize())
+                .collect(Collectors.toList());
+
+        List<MbotTicketLightDto> ticketLightDtos = IMapperTicket.INSTANCE.listTicketToMbotTicketDto(paginatedTickets);
+
+        return MbotPageDtoV2.builder()
+                .tickets(new PageImpl<>(ticketLightDtos, pageable, totalElements))
+                .build();
+    }
+
+    private Customer getCustomer(User user) {
+        // Méthode fictive pour récupérer le customer d’un user (à adapter selon votre code)
+        return user.getCustomer();
+    }
 }
+package com.zef.wikipg.service;
 
-onBadgeClicked(type: FilterCardType) {
-  this.activeBadgeType = type;
-  this.activeCardType = undefined; // reset card when badge clicked
-  // autres traitements si besoin
+import com.zef.wikipg.model.Ticket;
+import com.zef.wikipg.model.enums.CardTypeConfig;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class TicketStatsService {
+
+    public boolean ticketMatchesCardTypeConfig(Ticket ticket, CardTypeConfig config, String userId) {
+        return switch (config) {
+            case REQUESTS -> isRequest(ticket);
+            case CLAIMS -> isClaim(ticket);
+            case APPROVALS -> isApproval(ticket, userId);
+            case DISCUSSION_GROUPS -> isDiscussionGroup(ticket, userId);
+            default -> false;
+        };
+    }
+
+    private boolean isRequest(Ticket ticket) {
+        return StringUtils.isNotEmpty(ticket.getClaimType().getCode())
+                && ("D".equals(ticket.getClaimType().getCode()) || "DC".equals(ticket.getClaimType().getCode()));
+    }
+
+    private boolean isClaim(Ticket ticket) {
+        return StringUtils.isNotEmpty(ticket.getClaimType().getCode())
+                && "RC".equals(ticket.getClaimType().getCode());
+    }
+
+    private boolean isApproval(Ticket ticket, String userId) {
+        return ticket.getApproval() != null
+                && userId.equals(ticket.getApproval().getManager());
+    }
+
+    private boolean isDiscussionGroup(Ticket ticket, String userId) {
+        return ticket.getDiscussionGroup() != null
+                && CollectionUtils.isNotEmpty(ticket.getDiscussionGroup().getUsers())
+                && ticket.getDiscussionGroup().getUsers().stream()
+                .anyMatch(user -> userId.equals(user.getId()));
+    }
 }
-<metabot-dashboard-card
-  [card]="card"
-  [activeType]="activeCardType"
-  (cardClicked)="onCardClicked(card.type)"
-></metabot-dashboard-card>
-
-...
-
-<metabot-dashboard-card
-  [card]="card"
-  [activeType]="activeBadgeType"
-  (cardClicked)="onCardClicked(card.type)"
-  (badgeClicked)="onBadgeClicked($event)"
-></metabot-dashboard-card>
-<!-- Appliquer la classe 'active' uniquement si activeType === card.type -->
-<div class="card"
-  [class.active]="activeType === card.type"
-  (click)="onClick()"
->
-<div
-  class="badge"
-  [class.active]="badge.active && badge.count > 0"
-  ...
->
