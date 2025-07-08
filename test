@@ -1,33 +1,116 @@
-public class HazelcastRepository {
+// TicketCriteria.java public class TicketCriteria {
 
-    public long countDsUnread(TicketFiltersDto filtersDto) {
-        try {
-            return hazelcastService.countByOrg(
-                filtersDto.getEnvId(),
-                HazelcastPredicate.getDsUnreadPredicate(filtersDto.getCustomerId())
-            );
-        } catch (JsonProcessingException e) {
-            logger.error("Error reading Hazelcast data [{}]", filtersDto.getEnvId(), e);
-            return 0;
-        }
-    }
+public static Predicate<Object, Ticket> getPredicateByCardType(CardTypeConfig cardType, TicketFiltersDto filters) {
+    String customerId = filters.getCustomer().getId();
 
-    public List<Ticket> findMatchingTickets(String envId, String customerId) {
-        Predicate<Object, Ticket> globalPredicate = Predicates.or(
-            TicketCriteria.getPredicateDiscussionGroup(customerId),
-            TicketCriteria.getPredicateClaimTypeDC(customerId),
-            TicketCriteria.getPredicateClaimTypeDS(customerId),
-            TicketCriteria.getPredicateCustomerEDS(customerId)
-        );
-
-        List<Ticket> filteredTickets = this.filterByViewsTypeAndPredicate(
-            envId,
-            Arrays.asList(InMemoryViewEnum.ON_GOING, InMemoryViewEnum.TO_PROCESS),
-            globalPredicate
-        );
-
-        return filteredTickets.stream()
-            .distinct()
-            .toList();
-    }
+    return switch (cardType) {
+        case CLAIM -> getPredicateClaimTypeRC(customerId);
+        case REQUESTS -> getPredicateClaimTypeDCDC(customerId);
+        case DISCUSSION_GROUP -> getPredicateDiscussionGroup(customerId);
+        case APPROVAL -> getPredicateApproval(customerId);
+        default -> Predicates.alwaysTrue();
+    };
 }
+
+public static Predicate<Object, Ticket> getPredicateClaimTypeRC(String customerId) {
+    return ticket -> {
+        ClaimType claimType = ticket.getClaimType();
+        return claimType != null && "RC".equals(claimType.getCode()) && customerId.equals(ticket.getCustomer().getId());
+    };
+}
+
+public static Predicate<Object, Ticket> getPredicateClaimTypeDCDC(String customerId) {
+    return ticket -> {
+        ClaimType claimType = ticket.getClaimType();
+        return claimType != null && ("D".equals(claimType.getCode()) || "DC".equals(claimType.getCode())) && customerId.equals(ticket.getCustomer().getId());
+    };
+}
+
+public static Predicate<Object, Ticket> getPredicateDiscussionGroup(String customerId) {
+    return ticket -> ticket.getDiscussionGroup() != null && customerId.equals(ticket.getDiscussionGroup().getManagerId());
+}
+
+public static Predicate<Object, Ticket> getPredicateApproval(String customerId) {
+    return ticket -> ticket.getApproval() != null && customerId.equals(ticket.getApproval().getManagerId());
+}
+
+}
+
+
+Predicate<Object, Ticket> predicate = TicketCriteria.getPredicateByCardType(cardType, filters);
+List<Ticket> filteredTickets = allTickets.stream()
+    .filter(ticket -> predicate.apply(null, ticket))
+    .toList();
+
+
+public class TicketStatsService {
+
+public boolean ticketMatchesCardTypeConfig(Ticket ticket, CardTypeConfig cardTypeConfig) {
+    if (cardTypeConfig == null || cardTypeConfig == CardTypeConfig.NONE) {
+        return true;
+    }
+    return getPredicateByCardType(cardTypeConfig, ticket.getCustomerId()).apply(null, ticket);
+}
+
+public Predicate<Object, Ticket> getPredicateByCardType(CardTypeConfig cardType, String customerId) {
+    return switch (cardType) {
+        case CLAIM -> TicketCriteria.getPredicateClaim(customerId);
+        case REQUEST -> TicketCriteria.getPredicateRequest(customerId);
+        case APPROVAL -> TicketCriteria.getPredicateApproval(customerId);
+        case DISCUSSION_GROUP -> TicketCriteria.getPredicateDiscussionGroup(customerId);
+        default -> (k, v) -> true;
+    };
+}
+
+public Map<CardTypeConfig, Long> getTicketStats(List<Ticket> tickets, String customerId) {
+    Map<CardTypeConfig, Long> stats = new EnumMap<>(CardTypeConfig.class);
+    for (CardTypeConfig cardType : CardTypeConfig.values()) {
+        if (cardType == CardTypeConfig.NONE) continue;
+        Predicate<Object, Ticket> predicate = getPredicateByCardType(cardType, customerId);
+        long count = tickets.stream().filter(ticket -> predicate.apply(null, ticket)).count();
+        stats.put(cardType, count);
+    }
+    return stats;
+}
+
+}
+
+public MbotPageDtoV2 getTicketsByCard(MbotRequestDataDto mbotRequestData) {
+    User user = securityService.getAuthUser();
+    Customer customer = this.getCustomer(user) != null ? this.getCustomer(user) : Customer.builder().build();
+
+    TicketFiltersDto filters = ticketBuilderService.buildTicketFiltersDto(customer, mbotRequestData);
+    Pageable pageable = FiltersHelper.getPageable(filters);
+
+    List<Ticket> allTickets = hazelcastRepository.findMatchingTickets(
+        filters.getOrg(), filters.getCustomer().getId(), filters.getCustomer().getEdsId()
+    );
+
+    // Identification de la configuration liée à la carte sélectionnée
+    CardTypeConfig cardTypeConfig = CardTypeConfig.NONE;
+    if (mbotRequestData.getCardType() != null) {
+        cardTypeConfig = CardTypeConfig.valueOf(mbotRequestData.getCardType().toUpperCase());
+    }
+
+    // On filtre directement à l’aide de la configuration de la carte
+    List<Ticket> filteredTickets = allTickets.stream()
+        .filter(ticket -> ticketStatsService.ticketMatchesCardTypeConfig(ticket, cardTypeConfig))
+        .toList();
+
+    long totalElements = filteredTickets.size();
+
+    // Pagination des tickets filtrés
+    List<Ticket> paginatedTickets = filteredTickets.stream()
+        .skip((long) pageable.getPageNumber() * pageable.getPageSize())
+        .limit(pageable.getPageSize())
+        .toList();
+
+    List<MbotTicketLightDto> ticketLightDtos = mapperTicket.INSTANCE.listTicketToListMbotTicketDto(paginatedTickets);
+
+    return MbotPageDtoV2.builder()
+        .tickets(new PageImpl<>(ticketLightDtos, pageable, totalElements))
+        .build();
+}
+
+
+
