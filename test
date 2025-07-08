@@ -1,7 +1,7 @@
-public static Predicate<Object, Ticket> requests(String customerId) {
-    return Predicates.and(
-        Predicates.in("claimType.code", "D", "DC"),
-        Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-        Predicates.equal("customer.id", customerId)
+if (cardTypeConfig == CardTypeConfig.REQUESTS) {
+    tickets = hazelcastRepository.findMatchingTickets(
+        user.getOrg(),
+        filters.getCustomer().getId(),
+        TicketCriteria.requests(filters.getCustomer().getId()) // <- Hazelcast Predicate OK
     );
 }
