@@ -1,32 +1,47 @@
 public List<Ticket> findAllMatchingTickets(String customerId) {
-    Predicate<?, ?> globalPredicate = Predicates.or(
-        // 1. Status = APPROVAL_PENDING or APPROVAL_REFUSED AND approval.discussion = true
+    Predicate<?, ?> predicate = Predicates.or(
+        // 1. Groupes de discussion dont le manager est customerId
+        Predicates.equal("discussionGroup.manager.id", customerId),
+
+        // 2. Approbations en cours avec discussion = true
         Predicates.and(
             Predicates.in("status", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-            Predicates.equal("approval.discussion", true)
+            Predicates.equal("approval.discussion", true),
+            Predicates.equal("customer.id", customerId)
         ),
 
-        // 2. Ticket affecté au manager = ORS3655 avec statut = PENDING / APPROVAL_PENDING / APPROVAL_REFUSED
+        // 3. Sollicitations DC/RC en tant que manager
         Predicates.and(
-            Predicates.equal("assignedManager.id", customerId),
-            Predicates.in("status", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED")
-        ),
-
-        // 3. Ticket client ORS3655 de type D, statut = NEW / PROCESSING / APPROVAL_PENDING / REFUSED
-        Predicates.and(
-            Predicates.equal("customer.id", customerId),
             Predicates.equal("claimType.code", "D"),
-            Predicates.in("status", "NEW", "PROCESSING", "APPROVAL_PENDING", "APPROVAL_REFUSED")
+            Predicates.in("status", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+            Predicates.equal("customer.id", customerId)
         ),
 
-        // 4. Ticket avec traitement non terminé, readCustomer = false, et client ORS3655
+        // 4. Sollicitations DS de type D pour customerId avec statut classique
+        Predicates.and(
+            Predicates.equal("claimType.code", "D"),
+            Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+            Predicates.equal("customer.id", customerId)
+        ),
+
+        // 5. Sollicitations DS de type R pour customerId avec statut classique
+        Predicates.and(
+            Predicates.equal("claimType.code", "R"),
+            Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+            Predicates.equal("customer.id", customerId)
+        ),
+
+        // 6. Tickets non lus : readCustomer = false + colaTreatmentDone != true
         Predicates.and(
             Predicates.equal("customer.id", customerId),
             Predicates.equal("readCustomer", false),
-            Predicates.equal("ds.colaTreatmentDone", false)
+            Predicates.or(
+                Predicates.notEqual("ds.colaTreatmentDone", true),
+                Predicates.equal("ds.colaTreatmentDone", null)
+            )
         ),
 
-        // 5. Ticket EDS = true pour le client
+        // 7. Tickets EDS = true
         Predicates.and(
             Predicates.equal("customer.id", customerId),
             Predicates.equal("customer.eds", true)
@@ -35,5 +50,5 @@ public List<Ticket> findAllMatchingTickets(String customerId) {
 
     IMap<String, Ticket> ticketMap = hazelcastInstance.getMap("tickets");
 
-    return new ArrayList<>(ticketMap.values(globalPredicate));
+    return new ArrayList<>(ticketMap.values(predicate));
 }
