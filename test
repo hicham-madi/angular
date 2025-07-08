@@ -1,25 +1,56 @@
-switch (cardType) {
-    case "claims":
-        predicate = TicketCriteria.claims(filters.getCustomer().getId());
-        break;
-    case "claimsReadCustomer":
-        predicate = TicketCriteria.claimsReadCustomer(filters.getCustomer().getId());
-        break;
-    // autres cas…
-}
-public static PredicateObject<Object, Ticket> claims(String customerId) {
+public static PredicateObject<Object, Ticket> approvals(String managerId) {
     return Predicates.and(
-        Predicates.in("claimType.code", "RC"),
-        Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-        Predicates.equal("customer_id", customerId)
+        Predicates.equal("approval.manager", managerId),
+        Predicates.or(
+            Predicates.equal("status", "APPROVAL_PENDING"),
+            Predicates.and(
+                Predicates.equal("status", "APPROVAL_REFUSED"),
+                Predicates.equal("approval.discussion", true)
+            )
+        )
+    );
+}
+case "approvals":
+    predicate = TicketCriteria.approvals(user.getOrg()); // ou getId() selon ta logique
+    break;
+public static PredicateObject<Object, Ticket> discussionGroups(String userId) {
+    return Predicates.equal("discussionGroup.users._id", userId);
+}
+public static Predicate<Object, Ticket> discussionGroupsReadCustomer(String userId) {
+    PredicateBuilder.EntryObject e = Predicates.newPredicateBuilder().getEntryObject();
+    return e.get("discussionGroup.users").any(
+        Predicates.and(
+            Predicates.equal("id", userId),
+            Predicates.equal("ticketRead", false)
+        )
+    );
+}
+public static Predicate<Object, Ticket> discussionGroupsReadCustomer(String userId) {
+    PredicateBuilder.EntryObject e = Predicates.newPredicateBuilder().getEntryObject();
+    return e.get("discussionGroup.users").any(
+        Predicates.and(
+            Predicates.equal("id", userId),
+            Predicates.equal("ticketRead", false)
+        )
+    );
+}
+Predicate<Object, Ticket> predicate = switch (cardTypeConfig) {
+    case REQUESTS -> TicketCriteria.requests(filters.getCustomer().getId());
+    case REQUESTS_READ_CUSTOMER -> TicketCriteria.requestsReadCustomer(filters.getCustomer().getId());
+    case CLAIMS -> TicketCriteria.claims(filters.getCustomer().getId());
+    case CLAIMS_READ_CUSTOMER -> TicketCriteria.claimsReadCustomer(filters.getCustomer().getId());
+    case APPROVALS -> TicketCriteria.approvals(filters.getCustomer().getId());
+    case DISCUSSION_GROUPS -> TicketCriteria.discussionGroups(user.getId());
+    case DISCUSSION_GROUPS_READ_CUSTOMER -> TicketCriteria.discussionGroupsReadCustomer(user.getId());
+    default -> null;
+};
+public static Predicate<Object, Ticket> discussionGroupsReadCustomer(String userId) {
+    PredicateBuilder.EntryObject e = Predicates.newPredicateBuilder().getEntryObject();
+    return e.get("discussionGroup.users").any(
+        Predicates.and(
+            Predicates.equal("id", userId),
+            Predicates.equal("ticketRead", false)
+        )
     );
 }
 
-public static PredicateObject<Object, Ticket> claimsReadCustomer(String customerId) {
-    return Predicates.and(
-        Predicates.in("claimType.code", "RC"),
-        Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-        Predicates.equal("customer_id", customerId),
-        Predicates.equal("readCustomer", false)
-    );
-}
