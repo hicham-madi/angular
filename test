@@ -1,21 +1,38 @@
-@Output() badgeClicked = new EventEmitter<DashboardCardBadge>();
-if (badge.clickable && badge.onClick && badge.count > 0) {
-  badge.active = !badge.active;
-  badge.onClick();
+activeCardType?: FilterCardType;
+activeBadgeType?: FilterCardType;
 
-  this.badgeClicked.emit(badge); // ← ici, on notifie le parent
+onCardClicked(type: FilterCardType) {
+  this.activeCardType = type;
+  this.activeBadgeType = undefined; // reset badge when card clicked
+  // autres traitements si besoin
+}
 
-  return; // très important : on ne passe pas à l’activation de la carte
+onBadgeClicked(type: FilterCardType) {
+  this.activeBadgeType = type;
+  this.activeCardType = undefined; // reset card when badge clicked
+  // autres traitements si besoin
 }
 <metabot-dashboard-card
-  class="card"
   [card]="card"
-  [class]="card.variant"
-  [activeType]="activeCard"
+  [activeType]="activeCardType"
   (cardClicked)="onCardClicked(card.type)"
-  (badgeClicked)="onBadgeClicked($event)">
-</metabot-dashboard-card>
-protected onBadgeClicked(badge: DashboardCardBadge): void {
-  console.log('Badge cliqué :', badge);
-  // Implémente ici ta logique de filtrage ou traitement
-}
+></metabot-dashboard-card>
+
+...
+
+<metabot-dashboard-card
+  [card]="card"
+  [activeType]="activeBadgeType"
+  (cardClicked)="onCardClicked(card.type)"
+  (badgeClicked)="onBadgeClicked($event)"
+></metabot-dashboard-card>
+<!-- Appliquer la classe 'active' uniquement si activeType === card.type -->
+<div class="card"
+  [class.active]="activeType === card.type"
+  (click)="onClick()"
+>
+<div
+  class="badge"
+  [class.active]="badge.active && badge.count > 0"
+  ...
+>
