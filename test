@@ -1,7 +1,14 @@
-if (cardTypeConfig == CardTypeConfig.REQUESTS) {
-    tickets = hazelcastRepository.findMatchingTickets(
-        user.getOrg(),
-        filters.getCustomer().getId(),
-        TicketCriteria.requests(filters.getCustomer().getId()) // <- Hazelcast Predicate OK
+public List<Ticket> findByPredicate(String envId, Predicate<Object, Ticket> predicate) {
+    List<Ticket> allTickets = new ArrayList<>(
+        this.filterByViewsTypeAndPredicate(
+            envId,
+            Arrays.asList(InMemoryViewEnum.ON_GOING, InMemoryViewEnum.TO_PROCESS),
+            predicate
+        )
     );
+    return allTickets.stream().distinct().toList();
 }
+tickets = hazelcastRepository.findByPredicate(
+    user.getOrg(),
+    TicketCriteria.requests(filters.getCustomer().getId())
+);
