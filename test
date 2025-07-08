@@ -1,80 +1,11 @@
-public List<Ticket> findMatchingTickets(String envId, String customerId) throws JsonProcessingException {
-    List<Ticket> allTickets = new ArrayList<>();
-
-    Predicate<Object, Ticket> p1 = getPredicateDiscussionGroup(customerId);
-    Predicate<Object, Ticket> p2 = getPredicateClaimTypeDCR(customerId);
-    Predicate<Object, Ticket> p3 = getPredicateClaimTypeDS();
-    Predicate<Object, Ticket> p4 = getPredicateCustomerEDS(customerId);
-
-    Predicate<Object, Ticket> predicate = Predicates.or(p1, p2, p3, p4);
-
-    allTickets.addAll(this.filterByViewsTypeAndPredicate(
-        envId,
-        Arrays.asList(InMemoryViewEnum.ON_GOING, InMemoryViewEnum.TO_PROCESS),
-        predicate
-    ));
-
-    return allTickets.stream().distinct().toList();
-}
-
-
-private Predicate<Object, Ticket> getPredicateDiscussionGroup(String customerId) {
-    return Predicates.or(
-        Predicates.equal("discussionGroup.users_id", customerId),
-        Predicates.and(
-            Predicates.equal("approval.manager", customerId),
-            Predicates.or(
-                Predicates.equal("status", "APPROVAL_PENDING"),
-                Predicates.equal("status", "APPROVAL_REFUSED"),
-                Predicates.equal("approval.discussion", true) // ⚠️ null-safe uniquement si champ toujours présent
-            )
-        )
-    );
-}
-
-private Predicate<Object, Ticket> getPredicateClaimTypeDCR(String customerId) {
-    return Predicates.and(
-        Predicates.in("claimType.code", "D", "DC", "RC"),
+public List<Ticket> getTicketsForClaimTypeD_DC(String envId, String customerId) {
+    Predicate<Object, Ticket> predicate = Predicates.and(
+        Predicates.in("claimType.code", "D", "DC"),
         Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
         Predicates.equal("customer._id", customerId)
     );
-}
 
-private Predicate<Object, Ticket> getPredicateClaimTypeDS() {
-    return Predicates.and(
-        Predicates.equal("claimType.code", "DS"),
-        Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-        Predicates.or(
-            Predicates.equal("ds.collabTreatmentDone", false),
-            Predicates.and(
-                Predicates.equal("ds.collabTreatmentDone", true),
-                Predicates.equal("readCustomer", false)
-            )
-        )
-    );
-}
-
-private Predicate<Object, Ticket> getPredicateCustomerEDS(String customerId) {
-    return Predicates.or(
-        Predicates.equal("customer._id", customerId),
-        Predicates.and(
-            Predicates.equal("customer.eds", true),
-            Predicates.equal("customer.edsId", "88200-00501")
-        )
-    );
-}
-
-for (Map.Entry<Object, Ticket> entry : ticketMap.entrySet()) {
-    Ticket t = entry.getValue();
-    boolean match = predicate.apply(entry.getKey(), t);
-    if (!match) {
-        logger.debug("Ticket exclu: id={} | status={} | claimType.code={} | eds={} | edsId={} | approvalDiscussion={}",
-            t.getId(),
-            t.getStatus(),
-            t.getClaimType() != null ? t.getClaimType().getCode() : null,
-            t.getCustomer() != null ? t.getCustomer().getEds() : null,
-            t.getCustomer() != null ? t.getCustomer().getEdsId() : null,
-            t.getApproval() != null ? t.getApproval().getDiscussion() : null
-        );
-    }
+    IMap<Object, Ticket> map = client.getMap("tickets_" + envId);
+    Collection<Ticket> results = map.values(predicate);
+    return new ArrayList<>(results);
 }
