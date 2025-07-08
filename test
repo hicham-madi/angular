@@ -1,84 +1,43 @@
-@Injectable({
-  providedIn: 'root',
-})
-export class DashboardCardConfigFactory {
-  constructor(
-    private readonly listService: ListService,
-    private readonly mbotService: MbotService
-  ) {}
+public Page<Ticket> findAllRelevantTickets(Pageable pageable, String customerId) {
+    Predicate<?, ?> predicate = Predicates.or(
+        // Condition 1 : Status is APPROVAL_PENDING or APPROVAL_REFUSED and approval.discussion = true
+        Predicates.and(
+            Predicates.in("status", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+            Predicates.equal("approval.discussion", true)
+        ),
 
-  public loadTicketsByCard(type: FilterCardType): Observable<MbotListV2> {
-    const params = { ...this.listService.getCurrentParams() };
+        // Condition 2 : claimType.code in D and status in NEW, PROCESSING, etc.
+        Predicates.and(
+            Predicates.equal("claimType.code", "D"),
+            Predicates.in("status", "NEW", "PROCESSING", "APPROVAL_PENDING", "APPROVAL_REFUSED")
+        ),
 
-    // Envoyer le nom de l'enum en majuscules, comme attendu côté Java
-    params.cardType = FilterCardType[type];
+        // Condition 3 : readCustomer is false and customer_id is X
+        Predicates.and(
+            Predicates.equal("readCustomer", false),
+            Predicates.equal("customer.id", customerId)
+        ),
 
-    return this.mbotService.getTicketsForCard(params).pipe(
-      map((response) => {
-        console.log('method ok', response);
-        return response;
-      }),
-      catchError((err) => {
-        console.error('Erreur lors du chargement des tickets pour la carte sélectionnée :', err);
-        return of({ tickets: { content: [], totalElements: 0, totalPages: 0, number: 0 } } as MbotListV2);
-      })
+        // Condition 4 : customer.eds = true and customer.id = X
+        Predicates.and(
+            Predicates.equal("customer.eds", true),
+            Predicates.equal("customer.id", customerId)
+        )
     );
-  }
 
-  public extractTicketsFromResponse(response: MbotListV2, card: FilterCardType): { tickets: Ticket[]; ticketsCount: number } {
-    let tickets: Ticket[] = [];
-    let ticketsCount = 0;
+    IMap<String, Ticket> map = hazelcastInstance.getMap("tickets");
 
-    switch (card) {
-      case FilterCardType.APPROVALS:
-        tickets = response.approvals?.content ?? [];
-        ticketsCount = response.approvals?.totalElements ?? 0;
-        break;
+    Collection<Ticket> allMatching = map.values(predicate);
 
-      case FilterCardType.CLAIMS:
-        tickets = response.claims?.content ?? [];
-        ticketsCount = response.claims?.totalElements ?? 0;
-        break;
+    // Tri + pagination manuelle (Hazelcast ne supporte pas Pageable directement)
+    List<Ticket> sorted = allMatching.stream()
+        .sorted(Comparator.comparing(Ticket::getLastUpdateDate).reversed())
+        .toList();
 
-      case FilterCardType.DISCUSSION_GROUPS:
-        tickets = response.discussionGroups?.content ?? [];
-        ticketsCount = response.discussionGroups?.totalElements ?? 0;
-        break;
+    int total = sorted.size();
+    int start = (int) pageable.getOffset();
+    int end = Math.min(start + pageable.getPageSize(), total);
+    List<Ticket> paged = sorted.subList(start, end);
 
-      default:
-        tickets = response.tickets?.content ?? [];
-        ticketsCount = response.tickets?.totalElements ?? 0;
-        break;
-    }
-
-    return { tickets, ticketsCount };
-  }
-}
-protected onCardClicked(type: FilterCardType): void {
-  if (this.activeCard === type) {
-    // Si on clique sur la carte déjà active → désélectionner et recharger tous les tickets
-    this.activeCard = FilterCardType.NONE;
-    this.currentPage = 0;
-    this.scrollCompleted = false;
-
-    this.loadFullTicketList();
-    return;
-  }
-
-  // Nouvelle sélection → charger les tickets filtrés
-  this.activeCard = type;
-  this.currentPage = 0;
-  this.scrollCompleted = false;
-
-  this.cardConfigFactory.loadTicketsByCard(type).subscribe({
-    next: (response) => this.handleTicketResponse(response),
-    error: (err) => console.error('Erreur lors du chargement des tickets pour la carte sélectionnée :', err),
-  });
-}
-
-private loadFullTicketList(): void {
-  this.cardConfigFactory.loadTicketsByCard(FilterCardType.NONE).subscribe({
-    next: (response) => this.handleTicketResponse(response),
-    error: (err) => console.error('Erreur lors du chargement de la liste complète des tickets :', err),
-  });
+    return new PageImpl<>(paged, pageable, total);
 }
