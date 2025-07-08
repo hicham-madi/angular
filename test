@@ -1,19 +1,17 @@
-public static Predicate<Object, Ticket> requestsReadCustomer(String customerId) {
-    return Predicates.and(
-        Predicates.in("claimType.code", Arrays.asList("D", "DC")),
-        Predicates.in("status", Arrays.asList("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED")),
-        Predicates.equal("customer_id", customerId),
-        Predicates.equal("readCustomer", false)
-    );
-}
-if (cardTypeConfig == CardTypeConfig.REQUESTS || cardTypeConfig == CardTypeConfig.REQUESTS_READ_CUSTOMER) {
-    Predicate<Object, Ticket> predicate = (cardTypeConfig == CardTypeConfig.REQUESTS)
-        ? TicketCriteria.requests(filters.getCustomer().getId())
-        : TicketCriteria.requestsReadCustomer(filters.getCustomer().getId());
+String cardType = Optional.ofNullable(mbotRequestData.getCardType()).orElse("NONE");
 
-    tickets = hazelcastRepository.findByPredicate(
-        user.getOrg(),
-        filters.getCustomer().getId(),
-        predicate
-    );
+PredicateObject<Object, Ticket> predicate;
+
+switch (cardType) {
+    case "requests":
+        predicate = TicketCriteria.requests(filters.getCustomer().getId());
+        break;
+    case "requestsReadCustomer":
+        predicate = TicketCriteria.requestsReadCustomer(filters.getCustomer().getId());
+        break;
+    // ajoute les autres types ici
+    default:
+        predicate = ticket -> true; // fallback
+        break;
 }
+List<Ticket> tickets = hazelCastRepository.findByPredicate(user.getOrg(), predicate);
