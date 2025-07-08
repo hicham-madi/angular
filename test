@@ -1,47 +1,54 @@
-public List<Ticket> findMatchingTickets(String userId, String edsId) {
-    PredicateBuilder builder = new PredicateBuilder();
-    EntryObject e = builder.getEntryObject();
+public List<Ticket> findMatchingTickets(String envId, String customerId, String edsId) {
+    Predicate<?, ?> predicate = Predicates.or(
+        // Groupe de discussion
+        Predicates.equal("discussionGroup.users._id", customerId),
 
-    Predicate discussionGroupPredicate = e.get("discussionGroup.users").equal(userId);
-
-    Predicate approvalManagerPredicate = builder.getEntryObject()
-        .get("approval.manager").equal(userId)
-        .and(
-            builder.getEntryObject()
-                .get("status").equal("APPROVAL_PENDING")
-                .or(
-                    builder.getEntryObject()
-                        .get("status").equal("APPROVAL_REFUSED")
-                        .and(builder.getEntryObject().get("approval.discussion").is(true))
+        // Approbation
+        Predicates.and(
+            Predicates.equal("approval.manager", customerId),
+            Predicates.or(
+                Predicates.equal("status", "APPROVAL_PENDING"),
+                Predicates.and(
+                    Predicates.equal("status", "APPROVAL_REFUSED"),
+                    Predicates.equal("approval.discussion", true)
                 )
-        );
+            )
+        ),
 
-    Predicate classicClaimsPredicate = e.get("claimType.code").in("D", "DC", "RC")
-        .and(e.get("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"))
-        .and(e.get("customer.id").equal(userId));
+        // Sollicitations classiques
+        Predicates.and(
+            Predicates.in("claimType.code", "D", "DC", "RC"),
+            Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+            Predicates.equal("customer.id", customerId)
+        ),
 
-    Predicate dsClaimsPredicate = e.get("claimType.code").in("DS")
-        .and(e.get("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"))
-        .and(
-            e.get("ds.collabTreatmentDone").isFalse()
-                .or(
-                    e.get("ds.collabTreatmentDone").isTrue()
-                        .and(e.get("readCustomer").isFalse())
+        // DS avec sous-conditions complexes
+        Predicates.and(
+            Predicates.equal("claimType.code", "DS"),
+            Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+            Predicates.or(
+                Predicates.equal("ds.collabTreatmentDone", false),
+                Predicates.and(
+                    Predicates.equal("ds.collabTreatmentDone", true),
+                    Predicates.equal("readCustomer", false)
                 )
+            ),
+            Predicates.or(
+                Predicates.equal("customer.id", customerId),
+                Predicates.and(
+                    Predicates.equal("customer.eds", true),
+                    Predicates.equal("customer.edsId", edsId)
+                )
+            )
         )
-        .and(
-            e.get("customer.id").equal(userId)
-                .or(
-                    e.get("customer.eds").isTrue()
-                        .and(e.get("customer.edsId").equal(edsId))
-                )
-        );
+    );
 
-    Predicate finalPredicate = discussionGroupPredicate
-        .or(approvalManagerPredicate)
-        .or(classicClaimsPredicate)
-        .or(dsClaimsPredicate);
+    List<Ticket> allTickets = new ArrayList<>();
+    allTickets.addAll(this.filterByViewsTypeAndPredicate(
+        envId,
+        Arrays.asList(InMemoryViewEnum.ON_GOING, InMemoryViewEnum.TO_PROCESS),
+        predicate
+    ));
 
-    // Supposons que "tickets" est votre IMap<String, Ticket>
-    return new ArrayList<>(tickets.values(finalPredicate));
+    return allTickets.stream().distinct().toList();
 }
