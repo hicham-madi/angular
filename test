@@ -1,14 +1,19 @@
-public List<Ticket> findByPredicate(String envId, Predicate<Object, Ticket> predicate) {
-    List<Ticket> allTickets = new ArrayList<>(
-        this.filterByViewsTypeAndPredicate(
-            envId,
-            Arrays.asList(InMemoryViewEnum.ON_GOING, InMemoryViewEnum.TO_PROCESS),
-            predicate
-        )
+public static Predicate<Object, Ticket> requestsReadCustomer(String customerId) {
+    return Predicates.and(
+        Predicates.in("claimType.code", Arrays.asList("D", "DC")),
+        Predicates.in("status", Arrays.asList("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED")),
+        Predicates.equal("customer_id", customerId),
+        Predicates.equal("readCustomer", false)
     );
-    return allTickets.stream().distinct().toList();
 }
-tickets = hazelcastRepository.findByPredicate(
-    user.getOrg(),
-    TicketCriteria.requests(filters.getCustomer().getId())
-);
+if (cardTypeConfig == CardTypeConfig.REQUESTS || cardTypeConfig == CardTypeConfig.REQUESTS_READ_CUSTOMER) {
+    Predicate<Object, Ticket> predicate = (cardTypeConfig == CardTypeConfig.REQUESTS)
+        ? TicketCriteria.requests(filters.getCustomer().getId())
+        : TicketCriteria.requestsReadCustomer(filters.getCustomer().getId());
+
+    tickets = hazelcastRepository.findByPredicate(
+        user.getOrg(),
+        filters.getCustomer().getId(),
+        predicate
+    );
+}
