@@ -1,17 +1,25 @@
-String cardType = Optional.ofNullable(mbotRequestData.getCardType()).orElse("NONE");
-
-PredicateObject<Object, Ticket> predicate;
-
 switch (cardType) {
-    case "requests":
-        predicate = TicketCriteria.requests(filters.getCustomer().getId());
+    case "claims":
+        predicate = TicketCriteria.claims(filters.getCustomer().getId());
         break;
-    case "requestsReadCustomer":
-        predicate = TicketCriteria.requestsReadCustomer(filters.getCustomer().getId());
+    case "claimsReadCustomer":
+        predicate = TicketCriteria.claimsReadCustomer(filters.getCustomer().getId());
         break;
-    // ajoute les autres types ici
-    default:
-        predicate = ticket -> true; // fallback
-        break;
+    // autres cas…
 }
-List<Ticket> tickets = hazelCastRepository.findByPredicate(user.getOrg(), predicate);
+public static PredicateObject<Object, Ticket> claims(String customerId) {
+    return Predicates.and(
+        Predicates.in("claimType.code", "RC"),
+        Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+        Predicates.equal("customer_id", customerId)
+    );
+}
+
+public static PredicateObject<Object, Ticket> claimsReadCustomer(String customerId) {
+    return Predicates.and(
+        Predicates.in("claimType.code", "RC"),
+        Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+        Predicates.equal("customer_id", customerId),
+        Predicates.equal("readCustomer", false)
+    );
+}
