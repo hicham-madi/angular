@@ -1,64 +1,47 @@
-public List<Ticket> findAllMatchingTickets(String customerId) {
-    Predicate<?, ?> predicate = Predicates.or(
-        // 1. Groupes de discussion dont customerId est dans discussionGroup.users
-        Predicates.equal("discussionGroup.users", customerId),
+public List<Ticket> findMatchingTickets(String userId, String edsId) {
+    PredicateBuilder builder = new PredicateBuilder();
+    EntryObject e = builder.getEntryObject();
 
-        // 2. Approbations où customerId est manager
-        Predicates.and(
-            Predicates.equal("approval.managers", customerId),
-            Predicates.or(
-                Predicates.equal("status", "APPROVAL_PENDING"),
-                Predicates.and(
-                    Predicates.equal("status", "APPROVAL_REFUSED"),
-                    Predicates.equal("approval.discussion", true)
+    Predicate discussionGroupPredicate = e.get("discussionGroup.users").equal(userId);
+
+    Predicate approvalManagerPredicate = builder.getEntryObject()
+        .get("approval.manager").equal(userId)
+        .and(
+            builder.getEntryObject()
+                .get("status").equal("APPROVAL_PENDING")
+                .or(
+                    builder.getEntryObject()
+                        .get("status").equal("APPROVAL_REFUSED")
+                        .and(builder.getEntryObject().get("approval.discussion").is(true))
                 )
-            )
-        ),
+        );
 
-        // 3. Sollicitations DC/RC où customerId est manager
-        Predicates.and(
-            Predicates.equal("domain.manager", customerId),
-            Predicates.in("status", "APPROVAL_PENDING", "APPROVAL_REFUSED")
-        ),
+    Predicate classicClaimsPredicate = e.get("claimType.code").in("D", "DC", "RC")
+        .and(e.get("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"))
+        .and(e.get("customer.id").equal(userId));
 
-        // 4. Sollicitations DC/RC en tant que ORS3655
-        Predicates.and(
-            Predicates.equal("claimType.code", "D"),
-            Predicates.in("status", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-            Predicates.equal("customer.id", customerId)
-        ),
-
-        // 5. Sollicitations DS de type D en tant que ORS3655
-        Predicates.and(
-            Predicates.equal("claimType.code", "D"),
-            Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-            Predicates.equal("customer.id", customerId)
-        ),
-
-        // 6. Sollicitations DS de type R en tant que ORS3655
-        Predicates.and(
-            Predicates.equal("claimType.code", "R"),
-            Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-            Predicates.equal("customer.id", customerId)
-        ),
-
-        // 7. Tickets non lus
-        Predicates.and(
-            Predicates.equal("customer.id", customerId),
-            Predicates.equal("readCustomer", false),
-            Predicates.or(
-                Predicates.notEqual("ds.colaTreatmentDone", true),
-                Predicates.equal("ds.colaTreatmentDone", null)
-            )
-        ),
-
-        // 8. Tickets EDS
-        Predicates.and(
-            Predicates.equal("customer.eds", true),
-            Predicates.equal("customer.id", customerId)
+    Predicate dsClaimsPredicate = e.get("claimType.code").in("DS")
+        .and(e.get("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"))
+        .and(
+            e.get("ds.collabTreatmentDone").isFalse()
+                .or(
+                    e.get("ds.collabTreatmentDone").isTrue()
+                        .and(e.get("readCustomer").isFalse())
+                )
         )
-    );
+        .and(
+            e.get("customer.id").equal(userId)
+                .or(
+                    e.get("customer.eds").isTrue()
+                        .and(e.get("customer.edsId").equal(edsId))
+                )
+        );
 
-    IMap<String, Ticket> ticketMap = hazelcastInstance.getMap("tickets");
-    return new ArrayList<>(ticketMap.values(predicate));
+    Predicate finalPredicate = discussionGroupPredicate
+        .or(approvalManagerPredicate)
+        .or(classicClaimsPredicate)
+        .or(dsClaimsPredicate);
+
+    // Supposons que "tickets" est votre IMap<String, Ticket>
+    return new ArrayList<>(tickets.values(finalPredicate));
 }
