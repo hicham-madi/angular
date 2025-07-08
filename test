@@ -1,53 +1,7 @@
-public class TicketCriteria {
-
-    public static Predicate<Ticket> requests(String customerId) {
-        return ticket ->
-            ticket.getClaimType() != null &&
-            ("D".equals(ticket.getClaimType().getCode()) || "DC".equals(ticket.getClaimType().getCode())) &&
-            ticket.getStatus() != null &&
-            Arrays.asList("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED").contains(ticket.getStatus()) &&
-            ticket.getCustomer() != null &&
-            customerId.equals(ticket.getCustomer().getId());
-    }
-}
-public MbotPageDtoV2 getTicketsByCard(MbotRequestDataDto mbotRequestData) {
-    User user = securityService.getAuthUser();
-    Customer customer = this.getCustomer(user) != null ? this.getCustomer(user) : Customer.builder().build();
-
-    TicketFiltersDto filters = ticketBuilderService.buildTicketFilterFromMbotRequestData(customer, mbotRequestData);
-    Pageable pageable = FiltersHelper.getPageable(filters);
-
-    CardTypeConfig cardTypeConfig = Optional.ofNullable(mbotRequestData.getCardType())
-        .map(String::toUpperCase)
-        .map(CardTypeConfig::valueOf)
-        .orElse(CardTypeConfig.NONE);
-
-    List<Ticket> tickets;
-    if (cardTypeConfig == CardTypeConfig.REQUESTS) {
-        tickets = hazelcastRepository.findMatchingTickets(
-            user.getOrg(),
-            filters.getCustomer().getId(),
-            TicketCriteria.requests(filters.getCustomer().getId())
-        );
-    } else {
-        // fallback : tous les tickets si aucune carte sélectionnée
-        tickets = hazelcastRepository.findMatchingTickets(
-            user.getOrg(),
-            filters.getCustomer().getId(),
-            ticket -> true
-        );
-    }
-
-    long totalElements = tickets.size();
-
-    List<Ticket> paginatedTickets = tickets.stream()
-        .skip((long) pageable.getPageNumber() * pageable.getPageSize())
-        .limit(pageable.getPageSize())
-        .toList();
-
-    List<MbotTicketLightDto> ticketLightDtos = IMapperTicket.INSTANCE.listTicketToMbotTicketDto(paginatedTickets);
-
-    return MbotPageDtoV2.builder()
-        .tickets(new PageImpl<>(ticketLightDtos, pageable, totalElements))
-        .build();
+public static Predicate<Object, Ticket> requests(String customerId) {
+    return Predicates.and(
+        Predicates.in("claimType.code", "D", "DC"),
+        Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+        Predicates.equal("customer.id", customerId)
+    );
 }
