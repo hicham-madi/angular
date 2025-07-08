@@ -1,57 +1,26 @@
-public List<Ticket> findMatchingTickets(String envId, String customerId) throws JsonProcessingException {
-    // 1. Tickets liés aux groupes de discussion OU aux validations en tant que manager
-    Predicate<?, ?> predicateDiscussionOrApproval = Predicates.or(
-        Predicates.equal("discussionGroup.users._id", customerId),
-        Predicates.and(
-            Predicates.equal("approval.manager", customerId),
-            Predicates.or(
-                Predicates.equal("status", "APPROVAL_PENDING"),
-                Predicates.equal("status", "APPROVAL_REFUSED"),
-                Predicates.equal("approval.discussion", true)
-            )
-        )
-    );
+loadTicketsByCard(type: FilterCardType, page: number = 0): Observable<MbotListV2<Ticket>> {
+  const params = this.buildParamsForCardType(type);
+  params.currentPage = page; // 👈 injecte la pagination ici
 
-    // 2. Tickets D / DC / RC en tant que customer
-    Predicate<?, ?> predicateD_Dc_Rc = Predicates.and(
-        Predicates.in("claimType.code", "D", "DC", "RC"),
-        Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-        Predicates.equal("customer._id", customerId)
-    );
-
-    // 3. Tickets DS en tant que customer ou EDS
-    Predicate<?, ?> predicateDS = Predicates.and(
-        Predicates.equal("claimType.code", "DS"),
-        Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-        Predicates.or(
-            Predicates.equal("ds.collabTreatmentDone", false),
-            Predicates.and(
-                Predicates.equal("ds.collabTreatmentDone", true),
-                Predicates.equal("readCustomer", false)
-            )
-        ),
-        Predicates.or(
-            Predicates.equal("customer._id", customerId),
-            Predicates.and(
-                Predicates.equal("customer.eds", true),
-                Predicates.equal("customer.edsId", "88200-00501")
-            )
-        )
-    );
-
-    List<Ticket> allTickets = new ArrayList<>();
-
-    allTickets.addAll(this.filterByViewsTypeAndPredicate(
-        envId, Arrays.asList(InMemoryViewEnum.ON_GOING, InMemoryViewEnum.TO_PROCESS), predicateDiscussionOrApproval
-    ));
-
-    allTickets.addAll(this.filterByViewsTypeAndPredicate(
-        envId, Arrays.asList(InMemoryViewEnum.ON_GOING, InMemoryViewEnum.TO_PROCESS), predicateD_Dc_Rc
-    ));
-
-    allTickets.addAll(this.filterByViewsTypeAndPredicate(
-        envId, Arrays.asList(InMemoryViewEnum.ON_GOING, InMemoryViewEnum.TO_PROCESS), predicateDS
-    ));
-
-    return allTickets.stream().distinct().toList();
+  return this.ticketService.getTicketListV2(params);
 }
+
+const page = this.currentPage + 1;
+const params = this.listService.getCurrentParams(); // ne sera utilisé que si aucune carte active
+params.currentPage = page;
+
+const observable = this.activeCard && this.activeCard !== FilterCardType.NONE
+  ? this.cardConfigFactory.loadTicketsByCard(this.activeCard, page)
+  : this.mbotService.getTicketListV2(params);
+
+observable.subscribe({
+  next: (response) => {
+    this.handleTicketResponse(response);
+  },
+  error: (err) => {
+    console.error('Erreur lors du scroll :', err);
+  },
+  complete: () => {
+    this.isLoading = false;
+  }
+});
