@@ -1,9 +1,9 @@
 public List<Ticket> findMatchingTickets(String envId, String customerId) {
     Predicate<?, ?> predicate = Predicates.or(
-        // Groupe de discussion
+        // Bloc 1 : discussionGroup
         Predicates.equal("discussionGroup.users._id", customerId),
 
-        // Approbation
+        // Bloc 2 : approvals
         Predicates.and(
             Predicates.equal("approval.manager", customerId),
             Predicates.or(
@@ -15,14 +15,14 @@ public List<Ticket> findMatchingTickets(String envId, String customerId) {
             )
         ),
 
-        // Sollicitations classiques
+        // Bloc 3 : codes D, DC, RC
         Predicates.and(
             Predicates.in("claimType.code", "D", "DC", "RC"),
             Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-            Predicates.equal("customer.id", customerId)
+            Predicates.equal("customer._id", customerId)
         ),
 
-        // DS : bloc complet avec OR en dernier niveau
+        // Bloc 4 : code DS
         Predicates.and(
             Predicates.equal("claimType.code", "DS"),
             Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
@@ -34,7 +34,7 @@ public List<Ticket> findMatchingTickets(String envId, String customerId) {
                 )
             ),
             Predicates.or(
-                Predicates.equal("customer.id", customerId),
+                Predicates.equal("customer._id", customerId),
                 Predicates.and(
                     Predicates.equal("customer.eds", true),
                     Predicates.equal("customer.edsId", "88200-005Q1")
