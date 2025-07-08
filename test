@@ -1,28 +1,26 @@
 public List<Ticket> findMatchingTickets(String envId, String customerId) {
     Predicate<?, ?> predicate = Predicates.or(
-        // Bloc 1 : discussionGroup
+        // 1. discussionGroup.users._id == customerId
         Predicates.equal("discussionGroup.users._id", customerId),
 
-        // Bloc 2 : approvals
+        // 2. approval.manager == customerId && (status == APPROVAL_PENDING || status == APPROVAL_REFUSED || approval.discussion == true)
         Predicates.and(
             Predicates.equal("approval.manager", customerId),
             Predicates.or(
                 Predicates.equal("status", "APPROVAL_PENDING"),
-                Predicates.and(
-                    Predicates.equal("status", "APPROVAL_REFUSED"),
-                    Predicates.equal("approval.discussion", true)
-                )
+                Predicates.equal("status", "APPROVAL_REFUSED"),
+                Predicates.equal("approval.discussion", true)
             )
         ),
 
-        // Bloc 3 : codes D, DC, RC
+        // 3. (claimType.code in ["D", "DC", "RC"] && status in [...] && customer._id == customerId)
         Predicates.and(
             Predicates.in("claimType.code", "D", "DC", "RC"),
             Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
             Predicates.equal("customer._id", customerId)
         ),
 
-        // Bloc 4 : code DS
+        // 4. (claimType.code == "DS" && status in [...] && (collab=false || (collab=true && readCustomer=false)))
         Predicates.and(
             Predicates.equal("claimType.code", "DS"),
             Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
@@ -32,13 +30,15 @@ public List<Ticket> findMatchingTickets(String envId, String customerId) {
                     Predicates.equal("ds.collabTreatmentDone", true),
                     Predicates.equal("readCustomer", false)
                 )
-            ),
-            Predicates.or(
-                Predicates.equal("customer._id", customerId),
-                Predicates.and(
-                    Predicates.equal("customer.eds", true),
-                    Predicates.equal("customer.edsId", "88200-005Q1")
-                )
+            )
+        ),
+
+        // 5. customer._id == customerId || (customer.eds == true && customer.edsId == "88200-00501")
+        Predicates.or(
+            Predicates.equal("customer._id", customerId),
+            Predicates.and(
+                Predicates.equal("customer.eds", true),
+                Predicates.equal("customer.edsId", "88200-00501")
             )
         )
     );
@@ -50,5 +50,7 @@ public List<Ticket> findMatchingTickets(String envId, String customerId) {
         predicate
     ));
 
-    return allTickets.stream().distinct().toList();
+    return allTickets.stream()
+        .distinct()
+        .toList();
 }
