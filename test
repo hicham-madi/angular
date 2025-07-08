@@ -1,56 +1,59 @@
-public List<Ticket> findMatchingTickets(String envId, String customerId) {
-    Predicate<?, ?> predicate = Predicates.or(
-        // 1. discussionGroup.users._id == customerId
-        Predicates.equal("discussionGroup.users._id", customerId),
+public void debugEachPredicate(String envId, String customerId) {
+    List<Predicate<?, ?>> predicates = new ArrayList<>();
 
-        // 2. approval.manager == customerId && (status == APPROVAL_PENDING || status == APPROVAL_REFUSED || approval.discussion == true)
-        Predicates.and(
-            Predicates.equal("approval.manager", customerId),
-            Predicates.or(
-                Predicates.equal("status", "APPROVAL_PENDING"),
-                Predicates.equal("status", "APPROVAL_REFUSED"),
-                Predicates.equal("approval.discussion", true)
-            )
-        ),
+    // Clause 1 : discussionGroup.users._id
+    predicates.add(Predicates.equal("discussionGroup.users._id", customerId));
 
-        // 3. (claimType.code in ["D", "DC", "RC"] && status in [...] && customer._id == customerId)
-        Predicates.and(
-            Predicates.in("claimType.code", "D", "DC", "RC"),
-            Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-            Predicates.equal("customer._id", customerId)
-        ),
-
-        // 4. (claimType.code == "DS" && status in [...] && (collab=false || (collab=true && readCustomer=false)))
-        Predicates.and(
-            Predicates.equal("claimType.code", "DS"),
-            Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-            Predicates.or(
-                Predicates.equal("ds.collabTreatmentDone", false),
-                Predicates.and(
-                    Predicates.equal("ds.collabTreatmentDone", true),
-                    Predicates.equal("readCustomer", false)
-                )
-            )
-        ),
-
-        // 5. customer._id == customerId || (customer.eds == true && customer.edsId == "88200-00501")
-        Predicates.or(
-            Predicates.equal("customer._id", customerId),
-            Predicates.and(
-                Predicates.equal("customer.eds", true),
-                Predicates.equal("customer.edsId", "88200-00501")
-            )
-        )
-    );
-
-    List<Ticket> allTickets = new ArrayList<>();
-    allTickets.addAll(this.filterByViewsTypeAndPredicate(
-        envId,
-        Arrays.asList(InMemoryViewEnum.ON_GOING, InMemoryViewEnum.TO_PROCESS),
-        predicate
+    // Clause 2 : approval.manager + status = APPROVAL_PENDING
+    predicates.add(Predicates.and(
+        Predicates.equal("approval.manager", customerId),
+        Predicates.equal("status", "APPROVAL_PENDING")
     ));
 
-    return allTickets.stream()
-        .distinct()
-        .toList();
+    // Clause 3 : approval.manager + (status = APPROVAL_REFUSED + discussion = true)
+    predicates.add(Predicates.and(
+        Predicates.equal("approval.manager", customerId),
+        Predicates.and(
+            Predicates.equal("status", "APPROVAL_REFUSED"),
+            Predicates.equal("approval.discussion", true)
+        )
+    ));
+
+    // Clause 4 : claimType D/DC/RC + status in... + customer._id
+    predicates.add(Predicates.and(
+        Predicates.in("claimType.code", "D", "DC", "RC"),
+        Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+        Predicates.equal("customer._id", customerId)
+    ));
+
+    // Clause 5 : claimType = DS + status... + (collab = false || (collab = true && readCustomer = false))
+    predicates.add(Predicates.and(
+        Predicates.equal("claimType.code", "DS"),
+        Predicates.in("status", "NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+        Predicates.or(
+            Predicates.equal("ds.collabTreatmentDone", false),
+            Predicates.and(
+                Predicates.equal("ds.collabTreatmentDone", true),
+                Predicates.equal("readCustomer", false)
+            )
+        )
+    ));
+
+    // Clause 6 : eds = true + edsId = '88200-00501'
+    predicates.add(Predicates.and(
+        Predicates.equal("customer.eds", true),
+        Predicates.equal("customer.edsId", "88200-00501")
+    ));
+
+    // Exécution des tests un par un
+    for (int i = 0; i < predicates.size(); i++) {
+        Predicate<Object, Ticket> casted = (Predicate<Object, Ticket>) predicates.get(i);
+        List<Ticket> results = hazelcastService.findByEnvAndPredicate(envId, casted);
+        logger.info("Résultat clause #{} → {} ticket(s)", i + 1, results.size());
+
+        // Afficher les IDs
+        for (Ticket t : results) {
+            logger.info(" - {}", t.get_id());
+        }
+    }
 }
