@@ -1,34 +1,8 @@
-public static Predicate<Object, Ticket> discussionGroups(String userId) {
-    return entry -> {
-        if (!(entry.getValue() instanceof Ticket ticket)) return false;
-
-        DiscussionGroup group = ticket.getDiscussionGroup();
-        if (group == null || group.getUsers() == null) return false;
-
-        return group.getUsers().stream()
-                .anyMatch(user -> userId.equals(user.getId()));
-    };
-}
-
-public static Predicate<Object, Ticket> discussionGroups(String userId) {
-    return entry -> {
-        if (!(entry.getValue() instanceof Ticket ticket)) return false;
-
-        DiscussionGroup group = ticket.getDiscussionGroup();
-        if (group == null || group.getUsers() == null) return false;
-
-        return group.getUsers().stream()
-                .anyMatch(user -> userId.equals(user.getId()));
-    };
-}
-public static Predicate<Object, Ticket> discussionGroups(String userId) {
-    return entry -> {
-        if (!(entry.getValue() instanceof Ticket ticket)) return false;
-
-        DiscussionGroup group = ticket.getDiscussionGroup();
-        if (group == null || group.getUsers() == null) return false;
-
-        return group.getUsers().stream()
-                .anyMatch(user -> userId.equals(user.getId()));
-    };
+public static Predicate<Object, Ticket> readCustomer(String userId) {
+    return Predicates.or(
+        requestsReadCustomer(userId),
+        claimsReadCustomer(userId),
+        discussionGroupsReadCustomer(userId),
+        requestsExpertServiceReadCustomer(userId)
+    );
 }
