@@ -24,3 +24,57 @@ public static com.hazelcast.query.Predicate<Object, Ticket> readCustomer(String 
         )
     );
 }
+db.getCollection("tickets_CR882").find({
+  $or: [
+    // 🔹 Mes sollicitations non lues en tant que OW80700
+    {
+      $and: [
+        { "claimType.code": { $in: ["D", "DC", "RC"] } },
+        { "status": { $in: ["NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"] } },
+        { "customer._id": "OW80700" },
+        { "readCustomer": false }
+      ]
+    },
+
+    // 🔹 Mes groupes de discussion non lus en tant que manager OW80700
+    {
+      "discussionGroup.users": {
+        $elemMatch: {
+          "_id": "OW80700",
+          "ticketRead": false
+        }
+      }
+    },
+
+    // 🔹 Mes DS non lues en tant que OW80700
+    {
+      $and: [
+        { "readCustomer": false },
+        { "claimType.code": { $in: ["DS"] } },
+        { "status": { $in: ["NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"] } },
+        {
+          $or: [
+            { "ds.collabTreatmentDone": false },
+            {
+              $and: [
+                { "ds.collabTreatmentDone": true },
+                { "readCustomer": false }
+              ]
+            }
+          ]
+        },
+        {
+          $or: [
+            { "customer._id": "OW80700" },
+            {
+              $and: [
+                { "customer.eds": true },
+                { "customer.edsId": "88200-00501" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+});
