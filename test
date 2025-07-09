@@ -1,60 +1,33 @@
-public MbotPageDtoV2 filterTickets(MbotRequestDataDtoV2 mbotRequestData) {
-    User user = securityService.getAuthUser();
-    Customer customer = this.getCustomer(user) != null ? this.getCustomer(user) : Customer.builder().build();
+public boolean ticketMatchesCardTypeConfig(Ticket ticket, FilterCardType config, String userId) {
+    switch (config) {
+        case READ_CUSTOMER:
+            return TicketCriteria.readCustomer(userId, ticket.getCustomer().getEdsId()).apply(ticket);
 
-    TicketFiltersDto filters = ticketBuilderService.buildTicketFilterFromMbotRequestData(customer, mbotRequestData);
-    Pageable pageable = FiltersHelper.getPageable(filters);
+        case CLAIMS:
+            return TicketCriteria.claims(userId).apply(ticket);
 
-    List<Ticket> tickets = hazelcastRepository.findMatchingTickets(
-        user.getOrg(), filters.getCustomer().getId(), filters.getCustomer().getEdsId());
+        case CLAIMS_READ_CUSTOMER:
+            return TicketCriteria.claimsReadCustomer(userId).apply(ticket);
 
-    List<Ticket> paginatedTickets = tickets.stream()
-        .filter(ticket -> matchesSearchTerm(ticket, mbotRequestData.getSearchTerm()))
-        .filter(ticket -> matchesStatus(ticket, mbotRequestData.getStatusFilter()))
-        .filter(ticket -> matchesAgency(ticket, mbotRequestData.getAgencyFilter()))
-        .filter(ticket -> matchesCollaborator(ticket, mbotRequestData.getCollaboratorFilter()))
-        .filter(ticket -> matchesCampaign(ticket, mbotRequestData.getCampaignFilter()))
-        .toList();
+        case REQUESTS:
+            return TicketCriteria.requests(userId).apply(ticket);
 
-    long totalElements = paginatedTickets.size();
-    List<MbotTicketLightDto> ticketLightDtos = IMapperTicket.INSTANCE
-        .listTicketToListMbotTicketDto(paginatedTickets);
+        case REQUESTS_READ_CUSTOMER:
+            return TicketCriteria.requestsReadCustomer(userId).apply(ticket);
 
-    return MbotPageDtoV2.builder()
-        .tickets(new PageImpl<>(ticketLightDtos, pageable, totalElements))
-        .build();
-}
+        case DISCUSSION_GROUPS_READ_CUSTOMER:
+            return TicketCriteria.discussionGroupsReadCustomer(userId).apply(ticket);
 
-private boolean matchesSearchTerm(Ticket ticket, String searchTerm) {
-    if (StringUtils.isEmpty(searchTerm)) return true;
+        case REQUESTS_EXPERT_SERVICE_READ_CUSTOMER:
+            return TicketCriteria.requestsExpertServiceReadCustomer(userId, "88200-00501").apply(ticket);
 
-    return (ticket.getPart() != null && StringUtils.isNotEmpty(ticket.getPart().getLabel())
-                && containsIgnoreCase(ticket.getPart().getLabel(), searchTerm))
-        || (ticket.getDomain() != null && StringUtils.isNotEmpty(ticket.getDomain().getLabel())
-                && containsIgnoreCase(ticket.getDomain().getLabel(), searchTerm))
-        || (ticket.getSubDomain() != null && StringUtils.isNotEmpty(ticket.getSubDomain().getLabel())
-                && containsIgnoreCase(ticket.getSubDomain().getLabel(), searchTerm))
-        || (ticket.getObject() != null && StringUtils.isNotEmpty(ticket.getObject().getLabel())
-                && containsIgnoreCase(ticket.getObject().getLabel(), searchTerm));
-}
+        case CUSTOMER_EDS_DS:
+            return TicketCriteria.customerEdsDs("88200-00501").apply(ticket);
 
-private boolean matchesStatus(Ticket ticket, String statusFilter) {
-    return StringUtils.isEmpty(statusFilter)
-        || StringUtils.equalsIgnoreCase(ticket.getStatus(), statusFilter);
-}
+        case TREATMENT_IS_LATE_DS:
+            return TicketCriteria.treatmentIsLateDs(userId, "88200-00501").apply(ticket);
 
-private boolean matchesAgency(Ticket ticket, String agencyFilter) {
-    return StringUtils.isEmpty(agencyFilter)
-        || (ticket.getCustomer() != null && containsIgnoreCase(ticket.getCustomer().getEdsName(), agencyFilter));
-}
-
-private boolean matchesCollaborator(Ticket ticket, String collaboratorFilter) {
-    return StringUtils.isEmpty(collaboratorFilter)
-        || (ticket.getCustomer() != null && containsIgnoreCase(ticket.getCustomer().getName(), collaboratorFilter));
-}
-
-private boolean matchesCampaign(Ticket ticket, String campaignFilter) {
-    return StringUtils.isEmpty(campaignFilter)
-        || (ticket.getG() != null && ticket.getG().getCampaign() != null &&
-            containsIgnoreCase(ticket.getG().getCampaign().getLabel(), campaignFilter));
+        default:
+            return false;
+    }
 }
