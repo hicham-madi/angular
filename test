@@ -1,106 +1,97 @@
-private boolean treatmentIsLateDs(Ticket ticket, String userId) {
-    String edsId = ticket.getCustomer() != null ? ticket.getCustomer().getEdsId() : null;
-
-    boolean isLateTreatment = ticket.getDs() != null && ticket.getDs().isTreatmentIsLate();
-    boolean isDsClaimType = ticket.getClaimType() != null 
-                            && ClaimTypeCode.DS.equals(ticket.getClaimType().getCode());
-
-    boolean hasCorrectStatus = ticket.getStatus() != null && List.of(
-        StatusTicket.NEW,
-        StatusTicket.PROCESSING,
-        StatusTicket.PENDING,
-        StatusTicket.APPROVAL_PENDING,
-        StatusTicket.APPROVAL_REFUSED
-    ).contains(ticket.getStatus());
-
-    boolean isMatchingCustomer = userId.equals(ticket.getCustomerId()) &&
-                                 ticket.getCustomer() != null &&
-                                 Boolean.TRUE.equals(ticket.getCustomer().isEds()) &&
-                                 "88200-00501".equals(edsId);
-
-    return isLateTreatment && isDsClaimType && hasCorrectStatus && isMatchingCustomer;
+private boolean discussionGroups(Ticket ticket, String userId) {
+    List<String> groupUserIds = ticket.getDiscussionGroupUserIds(); // Supposé getter
+    return groupUserIds != null && groupUserIds.contains(userId);
 }
+private boolean discussionGroupsReadCustomer(Ticket ticket, String userId) {
+    List<String> groupUserIds = ticket.getDiscussionGroupUserIds(); // Supposé getter
+    Boolean read = ticket.getDiscussionGroupRead(); // Supposé getter
 
-private boolean customerEdsDs(Ticket ticket) {
-    String edsId = ticket.getCustomer() != null ? ticket.getCustomer().getEdsId() : null;
-    String claimCode = ticket.getClaimType() != null ? ticket.getClaimType().getCode() : null;
-
-    return ticket.getCustomer() != null &&
-           Boolean.TRUE.equals(ticket.getCustomer().isEds()) &&
-           "88200-00501".equals(edsId) &&
-           ClaimTypeCode.DS.toString().equals(claimCode);
+    return groupUserIds != null &&
+           groupUserIds.contains(userId) &&
+           Boolean.FALSE.equals(read);
 }
-private boolean requests(Ticket ticket, String customerId) {
+private boolean requestsExpertService(Ticket ticket, String userId, String edsId) {
     String claimCode = ticket.getClaimType() != null ? ticket.getClaimType().getCode() : null;
     StatusTicket status = ticket.getStatus();
-
-    return List.of(ClaimTypeCode.DD.toString(), ClaimTypeCode.DC.toString()).contains(claimCode) &&
-           List.of(
-               StatusTicket.NEW, 
-               StatusTicket.PROCESSING, 
-               StatusTicket.PENDING, 
-               StatusTicket.APPROVAL_PENDING, 
-               StatusTicket.APPROVAL_REFUSED
-           ).contains(status) &&
-           customerId.equals(ticket.getCustomerId());
-}
-private boolean requestsReadCustomer(Ticket ticket, String customerId) {
-    String claimCode = ticket.getClaimType() != null ? ticket.getClaimType().getCode() : null;
-    StatusTicket status = ticket.getStatus();
+    Boolean collabDone = ticket.getDsCollabTreatmentDoneField();
     Boolean readCustomer = ticket.getReadCustomer();
+    Boolean isCustomerEds = ticket.getCustomerEds();
+    String customerEdsId = ticket.getCustomerEdsId();
 
-    return List.of(ClaimTypeCode.DD.toString(), ClaimTypeCode.DC.toString()).contains(claimCode) &&
-           List.of(
-               StatusTicket.NEW, 
-               StatusTicket.PROCESSING, 
-               StatusTicket.PENDING, 
-               StatusTicket.APPROVAL_PENDING, 
-               StatusTicket.APPROVAL_REFUSED
-           ).contains(status) &&
-           customerId.equals(ticket.getCustomerId()) &&
-           Boolean.TRUE.equals(readCustomer);
+    boolean baseCondition =
+            ClaimTypeCode.DS.toString().equals(claimCode) &&
+            List.of(
+                StatusTicket.NEW,
+                StatusTicket.PROCESSING,
+                StatusTicket.PENDING,
+                StatusTicket.APPROVAL_REFUSED
+            ).contains(status) &&
+            (
+                Boolean.FALSE.equals(collabDone) ||
+                (Boolean.TRUE.equals(collabDone) && Boolean.TRUE.equals(readCustomer))
+            );
+
+    boolean ownership =
+            userId.equals(ticket.getCustomerId()) ||
+            (Boolean.TRUE.equals(isCustomerEds) && edsId != null && edsId.equals(customerEdsId));
+
+    return baseCondition && ownership;
 }
-private boolean claims(Ticket ticket, String customerId) {
+private boolean requestsExpertServiceReadCustomer(Ticket ticket, String userId, String edsId) {
     String claimCode = ticket.getClaimType() != null ? ticket.getClaimType().getCode() : null;
     StatusTicket status = ticket.getStatus();
-
-    return ClaimTypeCode.RC.toString().equals(claimCode) &&
-           List.of(
-               StatusTicket.NEW, 
-               StatusTicket.PROCESSING, 
-               StatusTicket.PENDING, 
-               StatusTicket.APPROVAL_PENDING, 
-               StatusTicket.APPROVAL_REFUSED
-           ).contains(status) &&
-           customerId.equals(ticket.getCustomerId());
-}
-
-private boolean claimsReadCustomer(Ticket ticket, String customerId) {
-    String claimCode = ticket.getClaimType() != null ? ticket.getClaimType().getCode() : null;
-    StatusTicket status = ticket.getStatus();
+    Boolean collabDone = ticket.getDsCollabTreatmentDoneField();
     Boolean readCustomer = ticket.getReadCustomer();
+    Boolean isCustomerEds = ticket.getCustomerEds();
+    String customerEdsId = ticket.getCustomerEdsId();
 
-    return ClaimTypeCode.RC.toString().equals(claimCode) &&
-           List.of(
-               StatusTicket.NEW,
-               StatusTicket.PROCESSING,
-               StatusTicket.PENDING,
-               StatusTicket.APPROVAL_PENDING,
-               StatusTicket.APPROVAL_REFUSED
-           ).contains(status) &&
-           customerId.equals(ticket.getCustomerId()) &&
-           Boolean.TRUE.equals(readCustomer);
+    boolean baseCondition =
+            Boolean.TRUE.equals(readCustomer) &&
+            ClaimTypeCode.DS.toString().equals(claimCode) &&
+            List.of(
+                StatusTicket.NEW,
+                StatusTicket.PROCESSING,
+                StatusTicket.PENDING,
+                StatusTicket.APPROVAL_REFUSED
+            ).contains(status) &&
+            (
+                Boolean.FALSE.equals(collabDone) ||
+                (Boolean.TRUE.equals(collabDone) && Boolean.FALSE.equals(readCustomer))
+            );
+
+    boolean ownership =
+            userId.equals(ticket.getCustomerId()) ||
+            (Boolean.TRUE.equals(isCustomerEds) && edsId != null && edsId.equals(customerEdsId));
+
+    return baseCondition && ownership;
 }
-
-private boolean approvals(Ticket ticket, String managerId) {
+private boolean requestsExpertServiceTreatmentIsLate(Ticket ticket, String userId, String edsId) {
+    String claimCode = ticket.getClaimType() != null ? ticket.getClaimType().getCode() : null;
     StatusTicket status = ticket.getStatus();
-    Boolean discussionField = ticket.getApprovalDiscussionField();
+    Boolean isLate = ticket.getDsTreatmentIsLateField();
+    Boolean collabDone = ticket.getDsCollabTreatmentDoneField();
+    Boolean readCustomer = ticket.getReadCustomer();
+    Boolean isCustomerEds = ticket.getCustomerEds();
+    String customerEdsId = ticket.getCustomerEdsId();
 
-    return managerId.equals(ticket.getApprovalManager()) &&
-           (
-               StatusTicket.APPROVAL_PENDING.equals(status) ||
-               (StatusTicket.APPROVAL_REFUSED.equals(status) && Boolean.TRUE.equals(discussionField))
-           );
+    boolean baseCondition =
+            ClaimTypeCode.DS.toString().equals(claimCode) &&
+            List.of(
+                StatusTicket.NEW,
+                StatusTicket.PROCESSING,
+                StatusTicket.PENDING,
+                StatusTicket.APPROVAL_PENDING,
+                StatusTicket.APPROVAL_REFUSED
+            ).contains(status) &&
+            Boolean.TRUE.equals(isLate);
+
+    boolean collabCondition =
+            Boolean.FALSE.equals(collabDone) ||
+            (Boolean.TRUE.equals(collabDone) && Boolean.FALSE.equals(readCustomer));
+
+    boolean ownership =
+            userId.equals(ticket.getCustomerId()) ||
+            (Boolean.TRUE.equals(isCustomerEds) && edsId != null && edsId.equals(customerEdsId));
+
+    return baseCondition && collabCondition && ownership;
 }
-
-
