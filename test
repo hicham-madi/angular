@@ -1,13 +1,15 @@
 public boolean ticketMatchesCardTypeConfig(Ticket ticket, FilterCardType config, String userId) {
+    String edsId = ticket.getCustomer() != null ? ticket.getCustomer().getEdsId() : null;
+
     switch (config) {
         case READ_CUSTOMER:
-            return TicketCriteria.readCustomer(userId, ticket.getCustomer().getEdsId()).apply(ticket);
+            return TicketCriteria.readCustomer(userId, edsId).apply(ticket);
 
-        case CLAIMS:
-            return TicketCriteria.claims(userId).apply(ticket);
+        case TREATMENT_IS_LATE_DS:
+            return TicketCriteria.treatmentIsLateDs(userId, edsId).apply(ticket);
 
-        case CLAIMS_READ_CUSTOMER:
-            return TicketCriteria.claimsReadCustomer(userId).apply(ticket);
+        case CUSTOMER_EDS_DS:
+            return TicketCriteria.customerEdsDs(edsId).apply(ticket);
 
         case REQUESTS:
             return TicketCriteria.requests(userId).apply(ticket);
@@ -15,19 +17,35 @@ public boolean ticketMatchesCardTypeConfig(Ticket ticket, FilterCardType config,
         case REQUESTS_READ_CUSTOMER:
             return TicketCriteria.requestsReadCustomer(userId).apply(ticket);
 
+        case CLAIMS:
+            return TicketCriteria.claims(userId).apply(ticket);
+
+        case CLAIMS_READ_CUSTOMER:
+            return TicketCriteria.claimsReadCustomer(userId).apply(ticket);
+
         case DISCUSSION_GROUPS_READ_CUSTOMER:
             return TicketCriteria.discussionGroupsReadCustomer(userId).apply(ticket);
 
         case REQUESTS_EXPERT_SERVICE_READ_CUSTOMER:
-            return TicketCriteria.requestsExpertServiceReadCustomer(userId, "88200-00501").apply(ticket);
+            return TicketCriteria.requestsExpertServiceReadCustomer(userId, edsId).apply(ticket);
 
-        case CUSTOMER_EDS_DS:
-            return TicketCriteria.customerEdsDs("88200-00501").apply(ticket);
+        case REQUESTS_EXPERT_SERVICE_TREATMENT_IS_LATE:
+            return TicketCriteria.requestsExpertServiceTreatmentIsLate(userId, edsId).apply(ticket);
 
-        case TREATMENT_IS_LATE_DS:
-            return TicketCriteria.treatmentIsLateDs(userId, "88200-00501").apply(ticket);
+        case REQUESTS_EXPERT_SERVICE_EDS:
+            return TicketCriteria.requestsExpertServiceEds(edsId).apply(ticket);
+
+        case APPROVALS:
+            return TicketCriteria.approvals(userId).apply(ticket);
+
+        case DISCUSSION_GROUPS:
+            return TicketCriteria.discussionGroups(userId).apply(ticket);
 
         default:
             return false;
     }
+}
+
+private Predicate<Ticket> fromHazelcastPredicate(com.hazelcast.query.Predicate<Object, Ticket> predicate) {
+    return ticket -> predicate.apply(new AbstractMap.SimpleEntry<>(null, ticket));
 }
