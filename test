@@ -1,51 +1,44 @@
-public boolean ticketMatchesCardTypeConfig(Ticket ticket, FilterCardType config, String userId) {
+private boolean ticketMatchesCardTypeConfig(Ticket ticket, FilterCardType config, String userId) {
     String edsId = ticket.getCustomer() != null ? ticket.getCustomer().getEdsId() : null;
 
     switch (config) {
         case READ_CUSTOMER:
-            return TicketCriteria.readCustomer(userId, edsId).apply(ticket);
-
-        case TREATMENT_IS_LATE_DS:
-            return TicketCriteria.treatmentIsLateDs(userId, edsId).apply(ticket);
-
-        case CUSTOMER_EDS_DS:
-            return TicketCriteria.customerEdsDs(edsId).apply(ticket);
-
-        case REQUESTS:
-            return TicketCriteria.requests(userId).apply(ticket);
-
-        case REQUESTS_READ_CUSTOMER:
-            return TicketCriteria.requestsReadCustomer(userId).apply(ticket);
+            return fromHazelcastPredicate(TicketCriteria.readCustomer(userId, edsId)).test(ticket);
 
         case CLAIMS:
-            return TicketCriteria.claims(userId).apply(ticket);
+            return fromHazelcastPredicate(TicketCriteria.claims(userId)).test(ticket);
 
         case CLAIMS_READ_CUSTOMER:
-            return TicketCriteria.claimsReadCustomer(userId).apply(ticket);
+            return fromHazelcastPredicate(TicketCriteria.claimsReadCustomer(userId)).test(ticket);
+
+        case REQUESTS:
+            return fromHazelcastPredicate(TicketCriteria.requests(userId)).test(ticket);
+
+        case REQUESTS_READ_CUSTOMER:
+            return fromHazelcastPredicate(TicketCriteria.requestsReadCustomer(userId)).test(ticket);
 
         case DISCUSSION_GROUPS_READ_CUSTOMER:
-            return TicketCriteria.discussionGroupsReadCustomer(userId).apply(ticket);
+            return fromHazelcastPredicate(TicketCriteria.discussionGroupsReadCustomer(userId)).test(ticket);
+
+        case REQUESTS_EXPERT_SERVICE:
+            return fromHazelcastPredicate(TicketCriteria.requestsExpertService(userId)).test(ticket);
 
         case REQUESTS_EXPERT_SERVICE_READ_CUSTOMER:
-            return TicketCriteria.requestsExpertServiceReadCustomer(userId, edsId).apply(ticket);
+            return fromHazelcastPredicate(TicketCriteria.requestsExpertServiceReadCustomer(userId)).test(ticket);
 
         case REQUESTS_EXPERT_SERVICE_TREATMENT_IS_LATE:
-            return TicketCriteria.requestsExpertServiceTreatmentIsLate(userId, edsId).apply(ticket);
+            return fromHazelcastPredicate(TicketCriteria.requestsExpertServiceTreatmentIsLate(userId)).test(ticket);
 
         case REQUESTS_EXPERT_SERVICE_EDS:
-            return TicketCriteria.requestsExpertServiceEds(edsId).apply(ticket);
+            return fromHazelcastPredicate(TicketCriteria.requestsExpertServiceEds(userId)).test(ticket);
 
-        case APPROVALS:
-            return TicketCriteria.approvals(userId).apply(ticket);
+        case TREATMENT_IS_LATE_DS:
+            return fromHazelcastPredicate(TicketCriteria.treatmentIsLateDs(userId, edsId)).test(ticket);
 
-        case DISCUSSION_GROUPS:
-            return TicketCriteria.discussionGroups(userId).apply(ticket);
+        case CUSTOMER_EDS_DS:
+            return fromHazelcastPredicate(TicketCriteria.customerEdsDs(edsId)).test(ticket);
 
         default:
             return false;
     }
-}
-
-private Predicate<Ticket> fromHazelcastPredicate(com.hazelcast.query.Predicate<Object, Ticket> predicate) {
-    return ticket -> predicate.apply(new AbstractMap.SimpleEntry<>(null, ticket));
 }
