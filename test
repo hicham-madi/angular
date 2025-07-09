@@ -1,7 +1,8 @@
-public static Predicate<Object, Ticket> requestsServiceExpert(String userId, String edsId) {
+public static Predicate<Object, Ticket> requestsExpertServiceReadCustomer(String userId, String edsId) {
     PredicateBuilder.EntryObject e = Predicates.newPredicateBuilder().getEntryObject();
 
     return Predicates.and(
+        e.get("readCustomer").equal(false),
         e.get("claimType.code").equal("DS"),
         e.get("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
         Predicates.or(
