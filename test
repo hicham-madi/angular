@@ -1,11 +1,12 @@
-public static Predicate<Object, Ticket> requestsExpertServiceEds(String edsId) {
-    EntryObject e = Predicates.newPredicateBuilder().getEntryObject();
-
+case REQUESTS_EXPERT_SERVICE_EDS -> TicketCriteria.requestsExpertServiceEds(edsId);
+case REQUESTS_EXPERT_SERVICE_EDS -> TicketCriteria.requestsExpertServiceEds(edsId);
+case "customerEdsDs":
+    predicate = TicketCriteria.customerEdsDs(filters.getEdsID());
+    break;
+public static com.hazelcast.query.Predicate<Object, Ticket> customerEdsDs(String edsId) {
     return Predicates.and(
-        e.get("customer.eds").equal(true),
-        e.get("customer.edsId").equal(edsId),
-        e.get("claimType.code").equal("DS")
+        Predicates.equal(CUSTOMER_EDS_FIELD, true),
+        Predicates.equal(CUSTOMER_EDS_ID_FIELD, edsId),
+        Predicates.equal(CLAIM_TYPE_CODE_FIELD, ClaimTypeCode.DS.toString())
     );
 }
-
-case REQUESTS_EXPERT_SERVICE_EDS -> TicketCriteria.requestsExpertServiceEds(edsId);
