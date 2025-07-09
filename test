@@ -1,22 +1,3 @@
-public static Predicate<Object, Ticket> discussionGroupsReadCustomer(String userId) {
-    PredicateBuilder.EntryObject e = Predicates.newPredicateBuilder().getEntryObject();
-    return e.get("discussionGroup.users").any(
-        Predicates.and(
-            Predicates.equal("id", userId),
-            Predicates.equal("ticketRead", false)
-        )
-    );
-}
-public static Predicate<Object, Ticket> discussionGroupsReadCustomer(String userId) {
-    PredicateBuilder.EntryObject e = Predicates.newPredicateBuilder().getEntryObject();
-    return e.get("discussionGroup.users").any(
-        Predicates.and(
-            Predicates.equal("id", userId),
-            Predicates.equal("ticketRead", false)
-        )
-    );
-}
-case DISCUSSION_GROUPS_READ_CUSTOMER -> TicketCriteria.discussionGroupsReadCustomer(customer.getId());
 public static Predicate<Object> discussionGroupsReadCustomer(String userId) {
     return ticket -> {
         if (!(ticket instanceof Ticket)) return false;
@@ -29,3 +10,5 @@ public static Predicate<Object> discussionGroupsReadCustomer(String userId) {
             .anyMatch(user -> userId.equals(user.getId()) && !user.isTicketRead());
     };
 }
+case REQUESTS_SERVICE_EXPERT:
+    return requestsServiceExpert(userId); // ou edsId si vous le passez différemment
