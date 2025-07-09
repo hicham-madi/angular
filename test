@@ -86,3 +86,11 @@ private Customer resolveCustomer() {
     User user = securityService.getAuthUser();
     return getCustomer(user) != null ? getCustomer(user) : Customer.builder().build();
 }
+private boolean matchesSearchTerm(Ticket ticket, String searchTerm) {
+    if (!isNotEmpty(searchTerm)) return true;
+
+    return (ticket.getPart() != null && containsIgnoreCase(ticket.getPart().getPartLabel(), searchTerm))
+        || (ticket.getDomain() != null && containsIgnoreCase(ticket.getDomain().getLabel(), searchTerm))
+        || (ticket.getSubDomain() != null && containsIgnoreCase(ticket.getSubDomain().getLabel(), searchTerm))
+        || (ticket.getObject() != null && containsIgnoreCase(ticket.getObject().getLabel(), searchTerm));
+}
