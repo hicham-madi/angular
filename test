@@ -1,23 +1,26 @@
-public static Predicate<Object, Ticket> requestsExpertServiceReadCustomer(String userId, String edsId) {
-    PredicateBuilder.EntryObject e = Predicates.newPredicateBuilder().getEntryObject();
-
-    return Predicates.and(
-        e.get("readCustomer").equal(false),
-        e.get("claimType.code").equal("DS"),
-        e.get("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-        Predicates.or(
-            e.get("ds.collabTreatmentDone").equal(false),
-            Predicates.and(
-                e.get("ds.collabTreatmentDone").equal(true),
-                e.get("readCustomer").equal(false)
-            )
-        ),
-        Predicates.or(
-            e.get("customer._id").equal(userId),
-            Predicates.and(
-                e.get("customer.eds").equal(true),
-                e.get("customer.edsId").equal(edsId)
+public static Predicate<Object, Ticket> requestsServiceExpertTreatmentIsLate(String userId, String edsId) {
+    EntryObject e = Predicates.newPredicateBuilder().getEntryObject();
+    
+    return e.get("claimType.code").equal("DS")
+        .and(e.get("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"))
+        .and(e.get("ds.treatmentIsLate").equal(true))
+        .and(
+            Predicates.or(
+                e.get("ds.collabTreatmentDone").equal(false),
+                Predicates.and(
+                    e.get("ds.collabTreatmentDone").equal(true),
+                    e.get("readCustomer").equal(false)
+                )
             )
         )
-    );
+        .and(
+            Predicates.or(
+                e.get("customer.id").equal(userId),
+                Predicates.and(
+                    e.get("customer.eds").equal(true),
+                    e.get("customer.edsId").equal(edsId)
+                )
+            )
+        );
 }
+        case "REQUESTS_EXPERT_SERVICE_TREATMENT_IS_LATE" -> requestsServiceExpertTreatmentIsLate(userId, edsId);
