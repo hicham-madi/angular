@@ -1,29 +1,3 @@
-public static com.hazelcast.query.Predicate<Object, Ticket> readCustomer(String userId, String edsId) {
-    return Predicates.and(
-        Predicates.equal(CLAIM_TYPE_CODE_FIELD, ClaimTypeCode.DS.toString()),
-        Predicates.in(STATUS_FIELD,
-            StatusTicket.NEW.toString(),
-            StatusTicket.PROCESSING.toString(),
-            StatusTicket.PENDING.toString(),
-            StatusTicket.APPROVAL_PENDING.toString(),
-            StatusTicket.APPROVAL_REFUSED.toString()
-        ),
-        Predicates.or(
-            Predicates.equal(DS_COLLAB_TREATMENT_DONE_FIELD, false),
-            Predicates.and(
-                Predicates.equal(DS_COLLAB_TREATMENT_DONE_FIELD, true),
-                Predicates.equal(READ_CUSTOMER_FIELD, false)
-            )
-        ),
-        Predicates.or(
-            Predicates.equal(CUSTOMER_ID_FIELD, userId),
-            Predicates.and(
-                Predicates.equal(CUSTOMER_EDS_FIELD, true),
-                Predicates.equal(CUSTOMER_EDS_ID_FIELD, edsId)
-            )
-        )
-    );
-}
 db.getCollection("tickets_CR882").find({
   $or: [
     // 🔹 Mes sollicitations non lues en tant que OW80700
@@ -78,3 +52,16 @@ db.getCollection("tickets_CR882").find({
     }
   ]
 });
+public static Predicate<Object, Ticket> discussionGroups(String userId) {
+    return entry -> {
+        if (!(entry.getValue() instanceof Ticket ticket)) return false;
+
+        DiscussionGroup group = ticket.getDiscussionGroup();
+        if (group == null || group.getUsers() == null) return false;
+
+        return group.getUsers().stream()
+            .anyMatch(user -> userId.equals(user.getId()));
+    };
+}
+case "DISCUSSION_GROUP_USERS":
+    return TicketCriteria.discussionGroups(userId);
