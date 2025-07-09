@@ -1,67 +1,46 @@
-db.getCollection("tickets_CR882").find({
-  $or: [
-    // 🔹 Mes sollicitations non lues en tant que OW80700
-    {
-      $and: [
-        { "claimType.code": { $in: ["D", "DC", "RC"] } },
-        { "status": { $in: ["NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"] } },
-        { "customer._id": "OW80700" },
-        { "readCustomer": false }
-      ]
-    },
-
-    // 🔹 Mes groupes de discussion non lus en tant que manager OW80700
-    {
-      "discussionGroup.users": {
-        $elemMatch: {
-          "_id": "OW80700",
-          "ticketRead": false
-        }
-      }
-    },
-
-    // 🔹 Mes DS non lues en tant que OW80700
-    {
-      $and: [
-        { "readCustomer": false },
-        { "claimType.code": { $in: ["DS"] } },
-        { "status": { $in: ["NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"] } },
-        {
-          $or: [
-            { "ds.collabTreatmentDone": false },
-            {
-              $and: [
-                { "ds.collabTreatmentDone": true },
-                { "readCustomer": false }
-              ]
-            }
-          ]
-        },
-        {
-          $or: [
-            { "customer._id": "OW80700" },
-            {
-              $and: [
-                { "customer.eds": true },
-                { "customer.edsId": "88200-00501" }
-              ]
-            }
-          ]
-        }
-      ]
-    }
-  ]
-});
-public static Predicate<Object, Ticket> discussionGroups(String userId) {
-    return entry -> {
-        if (!(entry.getValue() instanceof Ticket ticket)) return false;
-
-        DiscussionGroup group = ticket.getDiscussionGroup();
-        if (group == null || group.getUsers() == null) return false;
-
-        return group.getUsers().stream()
-            .anyMatch(user -> userId.equals(user.getId()));
-    };
-}
 case "DISCUSSION_GROUP_USERS":
     return TicketCriteria.discussionGroups(userId);
+case "DISCUSSION_GROUP_USERS":
+    return TicketCriteria.discussionGroups(userId);
+public class DiscussionGroupUserIdPredicate implements Predicate<Object, Ticket>, Serializable {
+
+    private final String userId;
+
+    public DiscussionGroupUserIdPredicate(String userId) {
+        this.userId = userId;
+    }
+
+    @Override
+    public boolean apply(Map.Entry<Object, Ticket> entry) {
+        Ticket ticket = entry.getValue();
+        if (ticket == null) return false;
+
+        DiscussionGroup discussionGroup = ticket.getDiscussionGroup();
+        if (discussionGroup == null || discussionGroup.getUsers() == null) return false;
+
+        for (UserGroup user : discussionGroup.getUsers()) {
+            if (userId.equals(user.getId())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof DiscussionGroupUserIdPredicate)) return false;
+        DiscussionGroupUserIdPredicate that = (DiscussionGroupUserIdPredicate) obj;
+        return Objects.equals(userId, that.userId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(userId);
+    }
+}
+public static Predicate<Object, Ticket> discussionGroups(String userId) {
+    return new DiscussionGroupUserIdPredicate(userId);
+}
+TicketCriteria.discussionGroups(userId)
