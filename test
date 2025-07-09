@@ -1,14 +1,13 @@
-public static Predicate<Object, Ticket> requestsServiceExpert(String edsId) {
+public static Predicate<Object, Ticket> requestsServiceExpert(String userId, String edsId) {
     PredicateBuilder.EntryObject e = Predicates.newPredicateBuilder().getEntryObject();
+
+    PredicateBuilder predicateBuilder = Predicates.newPredicateBuilder();
 
     return e.get("claimType.code").equal("DS")
         .and(e.get("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"))
         .and(
             Predicates.or(
-                // ds.collabTreatmentDone = false
-                Predicates.and(e.get("ds.collabTreatmentDone").equal(false)),
-
-                // OU ds.collabTreatmentDone = true ET readCustomer = false
+                e.get("ds.collabTreatmentDone").equal(false),
                 Predicates.and(
                     e.get("ds.collabTreatmentDone").equal(true),
                     e.get("readCustomer").equal(false)
@@ -17,10 +16,7 @@ public static Predicate<Object, Ticket> requestsServiceExpert(String edsId) {
         )
         .and(
             Predicates.or(
-                // customer._id = OR53655
-                e.get("customer._id").equal("OR53655"),
-
-                // OU customer.eds = true ET customer.edsId = edsId
+                e.get("customer._id").equal(userId),
                 Predicates.and(
                     e.get("customer.eds").equal(true),
                     e.get("customer.edsId").equal(edsId)
@@ -28,6 +24,3 @@ public static Predicate<Object, Ticket> requestsServiceExpert(String edsId) {
             )
         );
 }
-
-case REQUESTS_SERVICE_EXPERT:
-    return requestsServiceExpert(userId); // ou edsId si vous le passez différemment
