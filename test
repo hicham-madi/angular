@@ -1,14 +1,33 @@
-public static Predicate<Object> discussionGroupsReadCustomer(String userId) {
-    return ticket -> {
-        if (!(ticket instanceof Ticket)) return false;
+public static Predicate<Object, Ticket> requestsServiceExpert(String edsId) {
+    PredicateBuilder.EntryObject e = Predicates.newPredicateBuilder().getEntryObject();
 
-        Ticket t = (Ticket) ticket;
-        DiscussionGroup discussionGroup = t.getDiscussionGroup();
-        if (discussionGroup == null || discussionGroup.getUsers() == null) return false;
+    return e.get("claimType.code").equal("DS")
+        .and(e.get("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"))
+        .and(
+            Predicates.or(
+                // ds.collabTreatmentDone = false
+                Predicates.and(e.get("ds.collabTreatmentDone").equal(false)),
 
-        return discussionGroup.getUsers().stream()
-            .anyMatch(user -> userId.equals(user.getId()) && !user.isTicketRead());
-    };
+                // OU ds.collabTreatmentDone = true ET readCustomer = false
+                Predicates.and(
+                    e.get("ds.collabTreatmentDone").equal(true),
+                    e.get("readCustomer").equal(false)
+                )
+            )
+        )
+        .and(
+            Predicates.or(
+                // customer._id = OR53655
+                e.get("customer._id").equal("OR53655"),
+
+                // OU customer.eds = true ET customer.edsId = edsId
+                Predicates.and(
+                    e.get("customer.eds").equal(true),
+                    e.get("customer.edsId").equal(edsId)
+                )
+            )
+        );
 }
+
 case REQUESTS_SERVICE_EXPERT:
     return requestsServiceExpert(userId); // ou edsId si vous le passez différemment
