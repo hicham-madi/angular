@@ -1,8 +1,35 @@
-public static Predicate<Object, Ticket> readCustomer(String userId) {
-    return Predicates.or(
-        requestsReadCustomer(userId),
-        claimsReadCustomer(userId),
-        discussionGroupsReadCustomer(userId),
-        requestsExpertServiceReadCustomer(userId)
-    );
+@Getter
+public enum TicketPredicateType {
+
+    NONE("none"),
+
+    // Statuts et délais
+    TREATMENT_IS_LATE_DS("treatmentIsLateDs"),
+
+    // Filtres client simples
+    CUSTOMER_EDS_DS("customerEdsDs"),
+
+    // Approbations
+    APPROVALS("approvals"),
+
+    // Demandes
+    REQUESTS_READ_CUSTOMER("requestsReadCustomer"),
+    REQUESTS_EXPERT_SERVICE("requestsExpertService"),
+
+    // Réclamations
+    CLAIMS("claims"),
+    CLAIMS_READ_CUSTOMER("claimsReadCustomer"),
+
+    // Groupes de discussion
+    DISCUSSION_GROUPS("discussionGroups"),
+    DISCUSSION_GROUPS_READ_CUSTOMER("discussionGroupsReadCustomer"),
+
+    // Vue agrégée
+    READ_CUSTOMER("readCustomer");
+
+    private final String code;
+
+    TicketPredicateType(String code) {
+        this.code = code;
+    }
 }
