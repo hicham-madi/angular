@@ -1,48 +1,88 @@
-private boolean matchesSearchTerm(Ticket ticket, String searchTerm) {
-    return isNotEmpty(searchTerm) && (
-        containsIgnoreCase(ticket.getPart().getLabel(), searchTerm) ||
-        containsIgnoreCase(ticket.getDomain().getLabel(), searchTerm) ||
-        containsIgnoreCase(ticket.getSubDomain().getLabel(), searchTerm) ||
-        containsIgnoreCase(ticket.getObject(), searchTerm)
+public MbotPageDtoV2 getMyTickets(MbotRequestDataDto mbotRequestData) {
+    Customer customer = resolveCustomer();
+    TicketFiltersDto filters = ticketBuilderService.buildTicketFilterFromMbotRequestData(customer, mbotRequestData);
+    Pageable pageable = FiltersHelper.getPageable(filters);
+
+    List<Ticket> tickets = ticketRepository.findMatchingTickets(
+        securityService.getAuthUser().getOrg().getId(),
+        filters.getCustomer().getId(),
+        filters.getCustomer().getEdsId()
     );
+
+    long totalElements = tickets.size();
+    List<TicketLightDto> ticketLightDto = IMapperTicket.INSTANCE.listTicketToLightDto(tickets);
+
+    return MbotPageDtoV2.builder()
+        .tickets(new PageImpl<>(ticketLightDto, pageable, totalElements))
+        .statusList(statsService.extractStatusList(tickets))
+        .build();
 }
 
-private boolean matchesStatus(Ticket ticket, String statusFilter) {
-    return isNotEmpty(statusFilter) && equalsIgnoreCase(ticket.getStatus(), statusFilter);
+public MbotPageDtoV2 getTicketsByCard(MbotRequestDataDto mbotRequestData) {
+    Customer customer = resolveCustomer();
+    TicketFiltersDto filters = ticketBuilderService.buildTicketFilterFromMbotRequestData(customer, mbotRequestData);
+    Pageable pageable = FiltersHelper.getPageable(filters);
+
+    String cardType = Optional.ofNullable(mbotRequestData.getCardType())
+        .map(FilterCardType::getCode)
+        .orElse(FilterCardType.NONE.getCode());
+
+    Predicate<Object> predicate = switch (cardType) {
+        case "readCustomer" -> TicketCriteria.readCustomer(filters.getCustomer().getId(), filters.getCustomer().getEdsId());
+        case "treatmentIsLateDs" -> TicketCriteria.treatmentIsLateDs(filters.getCustomer().getId(), filters.getCustomer().getEdsId());
+        case "customerEdsDs" -> TicketCriteria.customerEdsDs(filters.getCustomer().getId(), filters.getCustomer().getEdsId());
+        case "requests" -> TicketCriteria.requests(filters.getCustomer().getId());
+        case "requestsReadCustomer" -> TicketCriteria.requestsReadCustomer(filters.getCustomer().getId());
+        case "claims" -> TicketCriteria.claims(filters.getCustomer().getId());
+        case "claimsReadCustomer" -> TicketCriteria.claimsReadCustomer(filters.getCustomer().getId());
+        case "discussionGroups" -> TicketCriteria.discussionGroups(filters.getCustomer().getId());
+        case "discussionGroupsReadCustomer" -> TicketCriteria.discussionGroupsReadCustomer(filters.getCustomer().getId());
+        case "requestsExpertService" -> TicketCriteria.requestsExpertService(filters.getCustomer().getId());
+        case "requestsExpertServiceReadCustomer" -> TicketCriteria.requestsExpertServiceReadCustomer(filters.getCustomer().getId());
+        case "requestsExpertServiceTreatmentIsLate" -> TicketCriteria.requestsExpertServiceTreatmentIsLate(filters.getCustomer().getId());
+        case "requestsExpertServiceEds" -> TicketCriteria.requestsExpertServiceEds(filters.getCustomer().getId());
+        default -> ticket -> true;
+    };
+
+    List<Ticket> tickets = ticketRepository.findAll(predicate);
+    long totalElements = tickets.size();
+    List<TicketLightDto> ticketLightDto = IMapperTicket.INSTANCE.listTicketToLightDto(tickets);
+
+    return MbotPageDtoV2.builder()
+        .tickets(new PageImpl<>(ticketLightDto, pageable, totalElements))
+        .statusList(statsService.extractStatusList(tickets))
+        .build();
 }
 
-private boolean matchesAgency(Ticket ticket, String agencyFilter) {
-    return isNotEmpty(agencyFilter) &&
-        containsIgnoreCase(ticket.getCustomer().getEdsName(), agencyFilter);
+public MbotPageDtoV2 filterTickets(MbotRequestDataDto mbotRequestData) {
+    Customer customer = resolveCustomer();
+    TicketFiltersDto filters = ticketBuilderService.buildTicketFilterFromMbotRequestData(customer, mbotRequestData);
+    Pageable pageable = FiltersHelper.getPageable(filters);
+
+    List<Ticket> tickets = ticketRepository.findMatchingTickets(
+        securityService.getAuthUser().getOrg().getId(),
+        filters.getCustomer().getId(),
+        filters.getCustomer().getEdsId()
+    );
+
+    List<Ticket> filtered = tickets.stream()
+        .filter(t -> matchesSearchTerm(t, mbotRequestData.getSearchTerm()))
+        .filter(t -> matchesStatus(t, mbotRequestData.getStatusFilter()))
+        .filter(t -> matchesAgency(t, mbotRequestData.getAgencyFilter()))
+        .filter(t -> matchesCollaborator(t, mbotRequestData.getCollaboratorFilter()))
+        .filter(t -> matchesCampaign(t, mbotRequestData.getCampaignFilter()))
+        .toList();
+
+    long totalElements = filtered.size();
+    List<TicketLightDto> ticketLightDto = IMapperTicket.INSTANCE.listTicketToLightDto(filtered);
+
+    return MbotPageDtoV2.builder()
+        .tickets(new PageImpl<>(ticketLightDto, pageable, totalElements))
+        .statusList(statsService.extractStatusList(filtered))
+        .build();
 }
 
-private boolean matchesCollaborator(Ticket ticket, String collaboratorFilter) {
-    return isNotEmpty(collaboratorFilter) &&
-        containsIgnoreCase(ticket.getCustomer().getName(), collaboratorFilter);
+private Customer resolveCustomer() {
+    User user = securityService.getAuthUser();
+    return getCustomer(user) != null ? getCustomer(user) : Customer.builder().build();
 }
-
-private boolean matchesCampaign(Ticket ticket, String campaignFilter) {
-    return isNotEmpty(campaignFilter) &&
-        containsIgnoreCase(ticket.getO().getCampaign().getLabel(), campaignFilter);
-}
-
-private boolean isNotEmpty(String str) {
-    return !StringUtils.isEmpty(str);
-}
-
-private boolean containsIgnoreCase(String source, String target) {
-    return source != null && target != null && StringUtils.containsIgnoreCase(source, target);
-}
-
-private boolean equalsIgnoreCase(String s1, String s2) {
-    return s1 != null && s1.equalsIgnoreCase(s2);
-}
-
-
-List<Ticket> paginatedTickets = tickets.stream()
-    .filter(ticket -> matchesSearchTerm(ticket, mbotRequestData.getSearchTerm()))
-    .filter(ticket -> matchesStatus(ticket, mbotRequestData.getStatusFilter()))
-    .filter(ticket -> matchesAgency(ticket, mbotRequestData.getAgencyFilter()))
-    .filter(ticket -> matchesCollaborator(ticket, mbotRequestData.getCollaboratorFilter()))
-    .filter(ticket -> matchesCampaign(ticket, mbotRequestData.getCampaignFilter()))
-    .toList();
