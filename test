@@ -1,7 +1,48 @@
-case REQUESTS:
-    return !StringUtils.isEmpty(ticket.getClaimType().getCode())
-        && ("D".equals(ticket.getClaimType().getCode()) || "DC".equals(ticket.getClaimType().getCode()));
+private boolean matchesSearchTerm(Ticket ticket, String searchTerm) {
+    return isNotEmpty(searchTerm) && (
+        containsIgnoreCase(ticket.getPart().getLabel(), searchTerm) ||
+        containsIgnoreCase(ticket.getDomain().getLabel(), searchTerm) ||
+        containsIgnoreCase(ticket.getSubDomain().getLabel(), searchTerm) ||
+        containsIgnoreCase(ticket.getObject(), searchTerm)
+    );
+}
 
-case CLAIMS:
-    return !StringUtils.isEmpty(ticket.getClaimType().getCode())
-        && "RC".equals(ticket.getClaimType().getCode());
+private boolean matchesStatus(Ticket ticket, String statusFilter) {
+    return isNotEmpty(statusFilter) && equalsIgnoreCase(ticket.getStatus(), statusFilter);
+}
+
+private boolean matchesAgency(Ticket ticket, String agencyFilter) {
+    return isNotEmpty(agencyFilter) &&
+        containsIgnoreCase(ticket.getCustomer().getEdsName(), agencyFilter);
+}
+
+private boolean matchesCollaborator(Ticket ticket, String collaboratorFilter) {
+    return isNotEmpty(collaboratorFilter) &&
+        containsIgnoreCase(ticket.getCustomer().getName(), collaboratorFilter);
+}
+
+private boolean matchesCampaign(Ticket ticket, String campaignFilter) {
+    return isNotEmpty(campaignFilter) &&
+        containsIgnoreCase(ticket.getO().getCampaign().getLabel(), campaignFilter);
+}
+
+private boolean isNotEmpty(String str) {
+    return !StringUtils.isEmpty(str);
+}
+
+private boolean containsIgnoreCase(String source, String target) {
+    return source != null && target != null && StringUtils.containsIgnoreCase(source, target);
+}
+
+private boolean equalsIgnoreCase(String s1, String s2) {
+    return s1 != null && s1.equalsIgnoreCase(s2);
+}
+
+
+List<Ticket> paginatedTickets = tickets.stream()
+    .filter(ticket -> matchesSearchTerm(ticket, mbotRequestData.getSearchTerm()))
+    .filter(ticket -> matchesStatus(ticket, mbotRequestData.getStatusFilter()))
+    .filter(ticket -> matchesAgency(ticket, mbotRequestData.getAgencyFilter()))
+    .filter(ticket -> matchesCollaborator(ticket, mbotRequestData.getCollaboratorFilter()))
+    .filter(ticket -> matchesCampaign(ticket, mbotRequestData.getCampaignFilter()))
+    .toList();
