@@ -1,26 +1,22 @@
 public static Predicate<Object, Ticket> requestsServiceExpert(String userId, String edsId) {
     PredicateBuilder.EntryObject e = Predicates.newPredicateBuilder().getEntryObject();
 
-    PredicateBuilder predicateBuilder = Predicates.newPredicateBuilder();
-
-    return e.get("claimType.code").equal("DS")
-        .and(e.get("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"))
-        .and(
-            Predicates.or(
-                e.get("ds.collabTreatmentDone").equal(false),
-                Predicates.and(
-                    e.get("ds.collabTreatmentDone").equal(true),
-                    e.get("readCustomer").equal(false)
-                )
+    return Predicates.and(
+        e.get("claimType.code").equal("DS"),
+        e.get("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
+        Predicates.or(
+            e.get("ds.collabTreatmentDone").equal(false),
+            Predicates.and(
+                e.get("ds.collabTreatmentDone").equal(true),
+                e.get("readCustomer").equal(false)
+            )
+        ),
+        Predicates.or(
+            e.get("customer._id").equal(userId),
+            Predicates.and(
+                e.get("customer.eds").equal(true),
+                e.get("customer.edsId").equal(edsId)
             )
         )
-        .and(
-            Predicates.or(
-                e.get("customer._id").equal(userId),
-                Predicates.and(
-                    e.get("customer.eds").equal(true),
-                    e.get("customer.edsId").equal(edsId)
-                )
-            )
-        );
+    );
 }
