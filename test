@@ -1,6 +1,5 @@
-public static com.hazelcast.query.Predicate<Object, Ticket> treatmentIsLateDs(String userId, String edsId) {
+public static com.hazelcast.query.Predicate<Object, Ticket> readCustomerDs(String userId, String edsId) {
     return Predicates.and(
-        Predicates.equal("ds.treatmentIsLate", true),
         Predicates.equal(CLAIM_TYPE_CODE_FIELD, ClaimTypeCode.DS.toString()),
         Predicates.in(STATUS_FIELD,
             StatusTicket.NEW.toString(),
@@ -15,9 +14,10 @@ public static com.hazelcast.query.Predicate<Object, Ticket> treatmentIsLateDs(St
                 Predicates.equal(CUSTOMER_EDS_FIELD, true),
                 Predicates.equal(CUSTOMER_EDS_ID_FIELD, edsId)
             )
-        )
+        ),
+        Predicates.equal(READ_CUSTOMER_FIELD, false)
     );
 }
-case "treatmentIsLateDs":
-    predicate = TicketCriteria.treatmentIsLateDs(filters.getCustomer().getId(), filters.getEdsID());
+case "readCustomerDs":
+    predicate = TicketCriteria.readCustomerDs(filters.getCustomer().getId(), filters.getEdsID());
     break;
