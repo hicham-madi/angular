@@ -1,24 +1,11 @@
-        case "REQUESTS_EXPERT_SERVICE_TREATMENT_IS_LATE" -> requestsServiceExpertTreatmentIsLate(userId, edsId);
-public static Predicate<Object, Ticket> requestsServiceExpertTreatmentIsLate(String userId, String edsId) {
+public static Predicate<Object, Ticket> requestsExpertServiceEds(String edsId) {
     EntryObject e = Predicates.newPredicateBuilder().getEntryObject();
 
     return Predicates.and(
-        e.get("claimType.code").equal("DS"),
-        e.get("status").in("NEW", "PROCESSING", "PENDING", "APPROVAL_PENDING", "APPROVAL_REFUSED"),
-        e.get("ds.treatmentIsLate").equal(true),
-        Predicates.or(
-            e.get("ds.collabTreatmentDone").equal(false),
-            Predicates.and(
-                e.get("ds.collabTreatmentDone").equal(true),
-                e.get("readCustomer").equal(false)
-            )
-        ),
-        Predicates.or(
-            e.get("customer.id").equal(userId),
-            Predicates.and(
-                e.get("customer.eds").equal(true),
-                e.get("customer.edsId").equal(edsId)
-            )
-        )
+        e.get("customer.eds").equal(true),
+        e.get("customer.edsId").equal(edsId),
+        e.get("claimType.code").equal("DS")
     );
 }
+
+case REQUESTS_EXPERT_SERVICE_EDS -> TicketCriteria.requestsExpertServiceEds(edsId);
