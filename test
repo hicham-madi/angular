@@ -1,21 +1,106 @@
-private boolean ticketMatchesCardTypeConfig(Ticket ticket, FilterCardType config, String userId) {
+private boolean treatmentIsLateDs(Ticket ticket, String userId) {
     String edsId = ticket.getCustomer() != null ? ticket.getCustomer().getEdsId() : null;
 
-    return switch (config) {
-        case READ_CUSTOMER -> fromHazelcastPredicate(TicketCriteria.readCustomer(userId, edsId)).test(ticket);
-        case TREATMENT_IS_LATE_DS -> fromHazelcastPredicate(TicketCriteria.treatmentIsLateDs(userId, edsId)).test(ticket);
-        case CUSTOMER_EDS_DS -> fromHazelcastPredicate(TicketCriteria.customerEdsDs(edsId)).test(ticket);
-        case REQUESTS -> fromHazelcastPredicate(TicketCriteria.requests(userId)).test(ticket);
-        case REQUESTS_READ_CUSTOMER -> fromHazelcastPredicate(TicketCriteria.requestsReadCustomer(userId)).test(ticket);
-        case CLAIMS -> fromHazelcastPredicate(TicketCriteria.claims(userId)).test(ticket);
-        case CLAIMS_READ_CUSTOMER -> fromHazelcastPredicate(TicketCriteria.claimsReadCustomer(userId)).test(ticket);
-        case APPROVALS -> fromHazelcastPredicate(TicketCriteria.approvals(userId)).test(ticket);
-        case DISCUSSION_GROUPS -> fromHazelcastPredicate(TicketCriteria.discussionGroups(userId)).test(ticket);
-        case DISCUSSION_GROUPS_READ_CUSTOMER -> fromHazelcastPredicate(TicketCriteria.discussionGroupsReadCustomer(userId)).test(ticket);
-        case REQUESTS_EXPERT_SERVICE -> fromHazelcastPredicate(TicketCriteria.requestsExpertService(userId, edsId)).test(ticket);
-        case REQUESTS_EXPERT_SERVICE_READ_CUSTOMER -> fromHazelcastPredicate(TicketCriteria.requestsExpertServiceReadCustomer(userId, edsId)).test(ticket);
-        case REQUESTS_EXPERT_SERVICE_TREATMENT_IS_LATE -> fromHazelcastPredicate(TicketCriteria.requestsExpertServiceTreatmentIsLate(userId, edsId)).test(ticket);
-        case REQUESTS_EXPERT_SERVICE_EDS -> fromHazelcastPredicate(TicketCriteria.requestsExpertServiceEds(userId, edsId)).test(ticket);
-        default -> false;
-    };
+    boolean isLateTreatment = ticket.getDs() != null && ticket.getDs().isTreatmentIsLate();
+    boolean isDsClaimType = ticket.getClaimType() != null 
+                            && ClaimTypeCode.DS.equals(ticket.getClaimType().getCode());
+
+    boolean hasCorrectStatus = ticket.getStatus() != null && List.of(
+        StatusTicket.NEW,
+        StatusTicket.PROCESSING,
+        StatusTicket.PENDING,
+        StatusTicket.APPROVAL_PENDING,
+        StatusTicket.APPROVAL_REFUSED
+    ).contains(ticket.getStatus());
+
+    boolean isMatchingCustomer = userId.equals(ticket.getCustomerId()) &&
+                                 ticket.getCustomer() != null &&
+                                 Boolean.TRUE.equals(ticket.getCustomer().isEds()) &&
+                                 "88200-00501".equals(edsId);
+
+    return isLateTreatment && isDsClaimType && hasCorrectStatus && isMatchingCustomer;
 }
+
+private boolean customerEdsDs(Ticket ticket) {
+    String edsId = ticket.getCustomer() != null ? ticket.getCustomer().getEdsId() : null;
+    String claimCode = ticket.getClaimType() != null ? ticket.getClaimType().getCode() : null;
+
+    return ticket.getCustomer() != null &&
+           Boolean.TRUE.equals(ticket.getCustomer().isEds()) &&
+           "88200-00501".equals(edsId) &&
+           ClaimTypeCode.DS.toString().equals(claimCode);
+}
+private boolean requests(Ticket ticket, String customerId) {
+    String claimCode = ticket.getClaimType() != null ? ticket.getClaimType().getCode() : null;
+    StatusTicket status = ticket.getStatus();
+
+    return List.of(ClaimTypeCode.DD.toString(), ClaimTypeCode.DC.toString()).contains(claimCode) &&
+           List.of(
+               StatusTicket.NEW, 
+               StatusTicket.PROCESSING, 
+               StatusTicket.PENDING, 
+               StatusTicket.APPROVAL_PENDING, 
+               StatusTicket.APPROVAL_REFUSED
+           ).contains(status) &&
+           customerId.equals(ticket.getCustomerId());
+}
+private boolean requestsReadCustomer(Ticket ticket, String customerId) {
+    String claimCode = ticket.getClaimType() != null ? ticket.getClaimType().getCode() : null;
+    StatusTicket status = ticket.getStatus();
+    Boolean readCustomer = ticket.getReadCustomer();
+
+    return List.of(ClaimTypeCode.DD.toString(), ClaimTypeCode.DC.toString()).contains(claimCode) &&
+           List.of(
+               StatusTicket.NEW, 
+               StatusTicket.PROCESSING, 
+               StatusTicket.PENDING, 
+               StatusTicket.APPROVAL_PENDING, 
+               StatusTicket.APPROVAL_REFUSED
+           ).contains(status) &&
+           customerId.equals(ticket.getCustomerId()) &&
+           Boolean.TRUE.equals(readCustomer);
+}
+private boolean claims(Ticket ticket, String customerId) {
+    String claimCode = ticket.getClaimType() != null ? ticket.getClaimType().getCode() : null;
+    StatusTicket status = ticket.getStatus();
+
+    return ClaimTypeCode.RC.toString().equals(claimCode) &&
+           List.of(
+               StatusTicket.NEW, 
+               StatusTicket.PROCESSING, 
+               StatusTicket.PENDING, 
+               StatusTicket.APPROVAL_PENDING, 
+               StatusTicket.APPROVAL_REFUSED
+           ).contains(status) &&
+           customerId.equals(ticket.getCustomerId());
+}
+
+private boolean claimsReadCustomer(Ticket ticket, String customerId) {
+    String claimCode = ticket.getClaimType() != null ? ticket.getClaimType().getCode() : null;
+    StatusTicket status = ticket.getStatus();
+    Boolean readCustomer = ticket.getReadCustomer();
+
+    return ClaimTypeCode.RC.toString().equals(claimCode) &&
+           List.of(
+               StatusTicket.NEW,
+               StatusTicket.PROCESSING,
+               StatusTicket.PENDING,
+               StatusTicket.APPROVAL_PENDING,
+               StatusTicket.APPROVAL_REFUSED
+           ).contains(status) &&
+           customerId.equals(ticket.getCustomerId()) &&
+           Boolean.TRUE.equals(readCustomer);
+}
+
+private boolean approvals(Ticket ticket, String managerId) {
+    StatusTicket status = ticket.getStatus();
+    Boolean discussionField = ticket.getApprovalDiscussionField();
+
+    return managerId.equals(ticket.getApprovalManager()) &&
+           (
+               StatusTicket.APPROVAL_PENDING.equals(status) ||
+               (StatusTicket.APPROVAL_REFUSED.equals(status) && Boolean.TRUE.equals(discussionField))
+           );
+}
+
+
