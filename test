@@ -17,3 +17,15 @@ public static Predicate<Object, Ticket> discussionGroupsReadCustomer(String user
     );
 }
 case DISCUSSION_GROUPS_READ_CUSTOMER -> TicketCriteria.discussionGroupsReadCustomer(customer.getId());
+public static Predicate<Object> discussionGroupsReadCustomer(String userId) {
+    return ticket -> {
+        if (!(ticket instanceof Ticket)) return false;
+
+        Ticket t = (Ticket) ticket;
+        DiscussionGroup discussionGroup = t.getDiscussionGroup();
+        if (discussionGroup == null || discussionGroup.getUsers() == null) return false;
+
+        return discussionGroup.getUsers().stream()
+            .anyMatch(user -> userId.equals(user.getId()) && !user.isTicketRead());
+    };
+}
