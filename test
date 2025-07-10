@@ -1,27 +1,44 @@
+observable.subscribe({
+  next: (response) => {
+    this.handleTicketResponse(response);
+  },
+  error: (err) => {
+    console.error('Erreur lors du scroll :', err);
+    this.isLoading = false;
+  },
+  complete: () => {
+    this.isLoading = false;
+    scrolled.emit();
+  }
+});
+
 private handleTicketResponse(response: MbotListV2): void {
-  const content = response.tickets?.content ?? [];
-  const totalElements = response.tickets?.totalElements ?? 0;
-  const page = response.tickets?.number ?? 0;
-  const size = response.tickets?.size ?? 20;
-  const totalPages = Math.ceil(totalElements / size);
+  try {
+    const page = response.tickets?.number ?? 0;
+    const size = response.tickets?.size ?? 20;
+    const content = response.tickets?.content ?? [];
+    const totalElements = response.tickets?.totalElements ?? 0;
+    const totalPages = Math.ceil(totalElements / size);
 
-  this.currentPage = page;
-  this.totalPages = totalPages;
-  this.ticketsCount = totalElements;
+    this.currentPage = page;
+    this.totalPages = totalPages;
+    this.ticketsCount = totalElements;
 
-  if (page === 0) {
-    this.tickets = content;
-  } else {
-    this.tickets = [...this.tickets, ...content];
+    if (page === 0) {
+      this.tickets = content;
+    } else {
+      this.tickets = [...this.tickets, ...content];
+    }
+
+    const reachedLastPage = (page + 1 >= totalPages);
+    const noMoreData = content.length === 0;
+
+    if (reachedLastPage || noMoreData) {
+      this.scrollCompleted = true;
+      this.tickets.push({ _spacer: true } as any);
+    }
+
+  } catch (e) {
+    console.error('Erreur dans handleTicketResponse :', e);
   }
-
-  const reachedLastPage = (page + 1 >= totalPages);
-  const noMoreData = content.length === 0;
-
-  if (reachedLastPage || noMoreData) {
-    this.scrollCompleted = true;
-    this.tickets.push({ _spacer: true } as any);
-  }
-
-  this.isLoading = false;
 }
