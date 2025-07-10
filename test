@@ -1,40 +1,31 @@
-public MbotPageDtoV2 getMyTickets(MbotRequestDataDtoV2 request) {
-    // Récupère le client courant
-    Customer customer = resolveCustomer();
+protected handleTicketResponse(response: MbotPageDtoV2): void {
+  const page = response.tickets;
 
-    // Construit les filtres à partir de la requête entrante
-    TicketFiltersDto filters = ticketBuilderService.buildTicketFilterFromMbotRequestData(customer, request);
+  if (page.number === 0) {
+    this.tickets = [...page.content];
+  } else {
+    this.tickets = [...this.tickets, ...page.content];
+  }
 
-    // Construit le Pageable (page, size)
-    Pageable pageable = FiltersHelper.getPageable(filters);
+  this.currentPage = page.number;
+  this.totalPages = page.totalPages;
 
-    // Construit le prédicat déjà existant (selon ce que tu as déjà)
-    Predicate<Object, Ticket> predicate = TicketCriteria.fromFilters(filters);
+  this.scrollCompleted = (page.number + 1 >= page.totalPages) || page.content.length === 0;
+  this.isLoading = false;
 
-    // Appelle la méthode Hazelcast paginée
-    Page<Ticket> page = hazelcastRepository.findMatchingTickets(
-        customer.getOrg(),
-        filters.getCustomer().getId(),
-        filters.getCustomer().getEdsId(),
-        predicate,
-        pageable
-    );
+  // Optionnel : ajouter un spacer
+  if (this.scrollCompleted) {
+    this.tickets.push({ _spacer: true } as any);
+  }
+}
 
-    // Convertit en DTO
-    List<MbotTicketLightDto> ticketLightDto = IMapperTicket.INSTANCE.listTicketToListMbotTicketDto(page.getContent());
+protected override loadTicketsPage(page: number, size: number): void {
+  this.isLoading = true;
 
-    // Calcule les stats uniquement sur les éléments récupérés
-    TicketCardsDto stats = ticketStatsService.computeStats(page.getContent(), customer.getId(), customer.getEdsId());
+  const filters = this.getFilters(); // construis tes filtres ici
 
-    // Liste des statuts uniques dans la page
-    Set<String> statusList = page.getContent().stream()
-        .map(Ticket::getStatus)
-        .filter(Objects::nonNull)
-        .collect(Collectors.toSet());
-
-    return MbotPageDtoV2.builder()
-        .tickets(new PageImpl<>(ticketLightDto, pageable, page.getTotalElements()))
-        .stats(stats)
-        .statusList(statusList)
-        .build();
+  this.mySolicitingsService.getTicketsPaginated(filters, page, size).subscribe({
+    next: (res) => this.handleTicketResponse(res),
+    error: () => this.isLoading = false
+  });
 }
