@@ -1,31 +1,23 @@
-protected handleTicketResponse(response: MbotPageDtoV2): void {
-  const page = response.tickets;
+onScrollTriggered(): void {
+  if (this.scrollCompleted || this.isLoading) return;
 
-  if (page.number === 0) {
-    this.tickets = [...page.content];
-  } else {
-    this.tickets = [...this.tickets, ...page.content];
-  }
-
-  this.currentPage = page.number;
-  this.totalPages = page.totalPages;
-
-  this.scrollCompleted = (page.number + 1 >= page.totalPages) || page.content.length === 0;
-  this.isLoading = false;
-
-  // Optionnel : ajouter un spacer
-  if (this.scrollCompleted) {
-    this.tickets.push({ _spacer: true } as any);
-  }
-}
-
-protected override loadTicketsPage(page: number, size: number): void {
   this.isLoading = true;
+  this.currentPage++;
 
-  const filters = this.getFilters(); // construis tes filtres ici
+  this.mbotService.getTicketsPaginated(this.listService.getParam(), this.currentPage, this.pageSize).subscribe({
+    next: (response) => {
+      const content = response.tickets.content;
 
-  this.mySolicitingsService.getTicketsPaginated(filters, page, size).subscribe({
-    next: (res) => this.handleTicketResponse(res),
-    error: () => this.isLoading = false
+      if (content.length < this.pageSize) {
+        this.scrollCompleted = true;
+      }
+
+      this.tickets.push(...content);
+
+      this.isLoading = false;
+    },
+    error: () => {
+      this.isLoading = false;
+    }
   });
 }
