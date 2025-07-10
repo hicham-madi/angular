@@ -1,119 +1,61 @@
-public boolean ticketMatchesCardTypeConfig(Ticket ticket, FilterCardType cardType, String userId, String edsId) {
-    return switch (cardType) {
-        case READ_CUSTOMER -> isReadCustomer(ticket, userId);
-        case TREATMENT_IS_LATE_DS -> isLateTreatmentDs(ticket);
-        case CUSTOMER_EDS_DS -> isCustomerEdsDs(ticket, edsId);
-        case REQUESTS -> isRequest(ticket, userId);
-        case REQUESTS_READ_CUSTOMER -> isRequestReadCustomer(ticket, userId);
-        case REQUESTS_EXPERT_SERVICE -> isExpertService(ticket);
-        case REQUESTS_EXPERT_SERVICE_READ_CUSTOMER -> isExpertServiceReadCustomer(ticket);
-        case REQUESTS_EXPERT_SERVICE_TREATMENT_IS_LATE -> isExpertServiceTreatmentIsLate(ticket);
-        case REQUESTS_EXPERT_SERVICE_EDS -> isExpertServiceEds(ticket, edsId);
-        case CLAIMS -> isClaim(ticket, userId);
-        case CLAIMS_READ_CUSTOMER -> isClaimReadCustomer(ticket, userId);
-        case APPROVALS -> isApproval(ticket, userId);
-        case DISCUSSION_GROUPS -> isInDiscussionGroup(ticket, userId);
-        case DISCUSSION_GROUPS_READ_CUSTOMER -> isDiscussionGroupReadCustomer(ticket, userId);
-        default -> false;
-    };
+private handleTicketResponse(response: MbotListV2): void {
+  const receivedPage = response.tickets?.number ?? -1;
+  const totalPagesFromResponse = response.tickets?.totalPages ?? -1;
+
+  this.currentPage = receivedPage;
+
+  const newTickets = response.tickets?.content ?? [];
+  const totalElements = response.tickets?.totalElements ?? 0;
+
+  if (receivedPage === 0) {
+    this.tickets = newTickets;
+  } else if (receivedPage < totalPagesFromResponse) {
+    this.tickets = [...this.tickets, ...newTickets];
+  }
+
+  this.ticketsCount = totalElements;
+
+  if (
+    receivedPage + 1 >= totalPagesFromResponse ||
+    newTickets.length === 0
+  ) {
+    this.scrollCompleted = true;
+    this.tickets.push({ _spacer: true } as any);
+  }
+
+  this.isLoading = false;
 }
 
-private boolean isReadCustomer(Ticket ticket, String userId) {
-    return ticket.getReadCustomer() != null
-        || (ticket.getDiscussionGroup() != null
-            && !CollectionUtils.isEmpty(ticket.getDiscussionGroup().getUsers())
-            && ticket.getDiscussionGroup().getUsers().stream()
-                .anyMatch(user -> userId.equals(user.getId()) && user.isTicketRead()));
+fix(front): suppression de extractTicketsFromResponse et refactor du scroll infini pour utiliser une structure de réponse unifiée
+
+public loadTicketsByCard(type: FilterCardType, page: number = 0): Observable<MbotListV2> {
+  return this.mbotService.getTicketListByCard(type, page);
 }
 
-private boolean isLateTreatmentDs(Ticket ticket) {
-    return ticket.getDs() != null && ticket.getDs().isTreatmentIsLate();
-}
+private handleTicketResponse(response: MbotListV2): void {
+  const receivedPage = response.tickets?.number ?? -1;
+  const totalPagesFromResponse = response.tickets?.totalPages ?? -1;
 
-private boolean isCustomerEdsDs(Ticket ticket, String edsId) {
-    return ticket.getCustomer() != null
-        && ticket.getCustomer().isEds()
-        && !StringUtils.isEmpty(edsId)
-        && edsId.equals(ticket.getCustomer().getEdsId())
-        && !StringUtils.isEmpty(ticket.getClaimType().getCode())
-        && ClaimTypeCode.DS.equals(ClaimTypeCode.valueOf(ticket.getClaimType().getCode()));
-}
+  this.currentPage = receivedPage;
 
-private boolean isRequest(Ticket ticket, String userId) {
-    return !StringUtils.isEmpty(ticket.getClaimType().getCode())
-        && ("D".equals(ticket.getClaimType().getCode()) || "DC".equals(ticket.getClaimType().getCode()))
-        && userId.equals(ticket.getCustomer().getId());
-}
+  const newTickets = response.tickets?.content ?? [];
+  const totalElements = response.tickets?.totalElements ?? 0;
 
-private boolean isRequestReadCustomer(Ticket ticket, String userId) {
-    return !StringUtils.isEmpty(ticket.getClaimType().getCode())
-        && ("D".equals(ticket.getClaimType().getCode()) || "DC".equals(ticket.getClaimType().getCode()))
-        && userId.equals(ticket.getCustomer().getId())
-        && ticket.getReadCustomer() != null;
-}
+  if (receivedPage === 0) {
+    this.tickets = newTickets;
+  } else if (receivedPage < totalPagesFromResponse) {
+    this.tickets = [...this.tickets, ...newTickets];
+  }
 
-private boolean isExpertService(Ticket ticket) {
-    return !StringUtils.isEmpty(ticket.getClaimType().getCode())
-        && "DS".equals(ticket.getClaimType().getCode());
-}
+  this.ticketsCount = totalElements;
 
-private boolean isExpertServiceReadCustomer(Ticket ticket) {
-    return !StringUtils.isEmpty(ticket.getClaimType().getCode())
-        && "DS".equals(ticket.getClaimType().getCode())
-        && ticket.getReadCustomer() != null;
-}
+  if (
+    receivedPage + 1 >= totalPagesFromResponse ||
+    newTickets.length === 0
+  ) {
+    this.scrollCompleted = true;
+    this.tickets.push({ _spacer: true } as any);
+  }
 
-private boolean isExpertServiceTreatmentIsLate(Ticket ticket) {
-    return ticket.getIsExpertTicket() != null
-        && ticket.getIsExpertTicket()
-        && ticket.getDs() != null
-        && ticket.getDs().isTreatmentIsLate();
+  this.isLoading = false;
 }
-
-private boolean isExpertServiceEds(Ticket ticket, String edsId) {
-    return ticket.getIsExpertTicket() != null
-        && ticket.getIsExpertTicket()
-        && ticket.getCustomer() != null
-        && ticket.getCustomer().isEds()
-        && !StringUtils.isEmpty(edsId)
-        && edsId.equals(ticket.getCustomer().getEdsId())
-        && !StringUtils.isEmpty(ticket.getClaimType().getCode())
-        && ClaimTypeCode.DS.equals(ClaimTypeCode.valueOf(ticket.getClaimType().getCode()));
-}
-
-private boolean isClaim(Ticket ticket, String userId) {
-    return !StringUtils.isEmpty(ticket.getClaimType().getCode())
-        && "RC".equals(ticket.getClaimType().getCode())
-        && userId.equals(ticket.getCustomer().getId());
-}
-
-private boolean isClaimReadCustomer(Ticket ticket, String userId) {
-    return !StringUtils.isEmpty(ticket.getClaimType().getCode())
-        && "RC".equals(ticket.getClaimType().getCode())
-        && userId.equals(ticket.getCustomer().getId())
-        && ticket.getReadCustomer() != null;
-}
-
-private boolean isApproval(Ticket ticket, String userId) {
-    return ticket.getApproval() != null
-        && ((!StringUtils.isEmpty(ticket.getApproval().getManager())
-             && ticket.getApproval().getManager().equals(userId))
-            || (StatusTicket.APPROVAL_PENDING.equals(StatusTicket.valueOf(ticket.getStatus()))
-                || StatusTicket.APPROVAL_REFUSED.equals(StatusTicket.valueOf(ticket.getStatus())))
-                && ticket.getApproval().isDiscussion());
-}
-
-private boolean isInDiscussionGroup(Ticket ticket, String userId) {
-    return ticket.getDiscussionGroup() != null
-        && !CollectionUtils.isEmpty(ticket.getDiscussionGroup().getUsers())
-        && ticket.getDiscussionGroup().getUsers().stream()
-            .anyMatch(user -> userId.equals(user.getId()));
-}
-
-private boolean isDiscussionGroupReadCustomer(Ticket ticket, String userId) {
-    return ticket.getDiscussionGroup() != null
-        && !CollectionUtils.isEmpty(ticket.getDiscussionGroup().getUsers())
-        && ticket.getDiscussionGroup().getUsers().stream()
-            .anyMatch(user -> userId.equals(user.getId()) && user.isTicketRead());
-}
-
