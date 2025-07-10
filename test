@@ -1,27 +1,6 @@
-::ng-deep .mat-row,
-::ng-deep .mat-header-row {
-  height: 50px; // fixe la hauteur des lignes
+td.mat-mdc-cell,
+th.mat-mdc-header-cell {
+  min-width: 120px; // ajuste à ta convenance (100px, 150px…)
+  word-break: break-word;
+  white-space: normal;
 }
-
-::ng-deep .mat-cell,
-::ng-deep .mat-header-cell {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-::ng-deep td.mat-cell {
-  max-width: 300px; // ajuste selon ton besoin
-}
-
-.table-scroll-wrapper {
-  max-height: 70vh; // ou 600px si tu préfères une taille fixe
-  overflow-y: auto;
-}
-
-<div class="table-scroll-wrapper">
-  <table mat-table [dataSource]="tickets" class="mat-elevation-z8">
-    <!-- colonnes ici -->
-  </table>
-</div>
-
