@@ -1,23 +1,27 @@
-onScrollTriggered(): void {
-  if (this.scrollCompleted || this.isLoading) return;
-
-  this.isLoading = true;
-  this.currentPage++;
-
-  this.mbotService.getTicketsPaginated(this.listService.getParam(), this.currentPage, this.pageSize).subscribe({
-    next: (response) => {
-      const content = response.tickets.content;
-
-      if (content.length < this.pageSize) {
-        this.scrollCompleted = true;
-      }
-
-      this.tickets.push(...content);
-
-      this.isLoading = false;
-    },
-    error: () => {
-      this.isLoading = false;
-    }
-  });
+::ng-deep .mat-row,
+::ng-deep .mat-header-row {
+  height: 50px; // fixe la hauteur des lignes
 }
+
+::ng-deep .mat-cell,
+::ng-deep .mat-header-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+::ng-deep td.mat-cell {
+  max-width: 300px; // ajuste selon ton besoin
+}
+
+.table-scroll-wrapper {
+  max-height: 70vh; // ou 600px si tu préfères une taille fixe
+  overflow-y: auto;
+}
+
+<div class="table-scroll-wrapper">
+  <table mat-table [dataSource]="tickets" class="mat-elevation-z8">
+    <!-- colonnes ici -->
+  </table>
+</div>
+
