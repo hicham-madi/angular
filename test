@@ -1,53 +1,20 @@
-public Page<Ticket> findMatchingTickets(String envId, String customerId, String edsId, Pageable pageable) {
-    Predicate<Object, Ticket> p1 = TicketCriteria.getPredicateDiscussionGroup(customerId);
-    Predicate<Object, Ticket> p2 = TicketCriteria.getPredicateClaimTypeDCR(customerId);
-    Predicate<Object, Ticket> p3 = TicketCriteria.getPredicateClaimTypeDS(customerId);
-    Predicate<Object, Ticket> p4 = TicketCriteria.getPredicateCustomerEDS(customerId, edsId);
+public Page<Ticket> findMatchingTickets(String envId, String customerId, String edsId, Predicate<Object, Ticket> predicate, Pageable pageable) {
+    // 1. Récupération des tickets filtrés depuis Hazelcast
+    List<Ticket> allTickets = new ArrayList<>(
+        this.filterByViewsTypeAndPredicate(
+            envId,
+            List.of(InMemoryViewEnum.ON_GOING, InMemoryViewEnum.TO_PROCESS),
+            predicate
+        )
+    );
 
-    Predicate<Object, Ticket> predicate = Predicates.or(p1, p2, p3, p4);
-
-    List<Ticket> allTickets = new ArrayList<>(this.filterByViewsTypeAndPredicate(
-        envId, Arrays.asList(InMemoryViewEnum.ON_GOING, InMemoryViewEnum.TO_PROCESS), predicate));
-
+    // 2. Pagination en mémoire (limitée au strict nécessaire)
     int fromIndex = (int) pageable.getOffset();
     int toIndex = Math.min(fromIndex + pageable.getPageSize(), allTickets.size());
 
-    List<Ticket> pagedTickets = fromIndex >= toIndex ? Collections.emptyList() : allTickets.subList(fromIndex, toIndex);
+    List<Ticket> paginatedTickets = fromIndex >= toIndex
+        ? Collections.emptyList()
+        : allTickets.subList(fromIndex, toIndex);
 
-    return new PageImpl<>(pagedTickets, pageable, allTickets.size());
-}
-
-public MbotPageDtoV2 getMyTickets(MbotRequestDataDtoV2 mbotRequestData) {
-    Customer customer = resolveCustomer();
-    TicketFiltersDto filters = ticketBuilderService.buildTicketFilterFromMbotRequestData(customer, mbotRequestData);
-    Pageable pageable = FiltersHelper.getPageable(filters);
-
-    Page<Ticket> page = hazelcastRepository.findMatchingTickets(
-        customer.getOrg(),
-        filters.getCustomer().getId(),
-        filters.getCustomer().getEdsId(),
-        pageable
-    );
-
-    List<MbotTicketLightDto> ticketLightDto = IMapperTicket.INSTANCE.listTicketToListMbotTicketDto(page.getContent());
-
-    TicketCardsDto ticketStatsDto = ticketStatsService.computeStats(
-        page.getContent(), customer.getId(), customer.getEdsId());
-
-    Set<String> statusList = page.getContent().stream()
-        .map(Ticket::getStatus)
-        .filter(Objects::nonNull)
-        .collect(Collectors.toSet());
-
-    return MbotPageDtoV2.builder()
-        .tickets(new PageImpl<>(ticketLightDto, pageable, page.getTotalElements()))
-        .stats(ticketStatsDto)
-        .statusList(statusList)
-        .build();
-}
-
-@PostMapping("tck_getMyTickets")
-@PreAuthorize("@securityService.hasPermission(null, {'MBOT'})")
-public MbotPageDtoV2 getMyTickets(@RequestBody MbotRequestDataDtoV2 mbotRequestData) {
-    return mbotServiceV2.getMyTickets(mbotRequestData);
+    return new PageImpl<>(paginatedTickets, pageable, allTickets.size());
 }
