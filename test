@@ -1,37 +1,9 @@
-protected onScroll(scrolled: EventEmitter<void>): void {
-  if (!this.enableScroll || this.isLoading || this.scrollCompleted) return;
-
-  if (this.currentPage + 1 >= this.totalPages) {
-    this.scrollCompleted = true;
-    return;
-  }
-
-  this.isLoading = true;
-  const page = this.currentPage + 1;
-
-  const params = this.listService.getCurrentParams();
-  params.currentPages = page;
-
-  const observable = this.activeCard && this.activeCard !== FilterCardType.NONE
-    ? this.cardConfigFactory.loadTicketsByCard(this.activeCard, page)
-    : this.mbotService.getTicketListV2(params);
-
-  observable.subscribe({
-    next: (response) => this.handleTicketResponse(response),
-    error: (err) => {
-      console.error('Erreur lors du scroll :', err);
-      this.isLoading = false;
-    },
-    complete: () => {
-      scrolled.emit();
-    }
-  });
-}
 private handleTicketResponse(response: MbotListV2): void {
-  const page = response.tickets?.number ?? -1;
-  const totalPages = response.tickets?.totalPages ?? 0;
   const content = response.tickets?.content ?? [];
   const totalElements = response.tickets?.totalElements ?? 0;
+  const page = response.tickets?.number ?? 0;
+  const size = response.tickets?.size ?? 20;
+  const totalPages = Math.ceil(totalElements / size);
 
   this.currentPage = page;
   this.totalPages = totalPages;
@@ -53,11 +25,3 @@ private handleTicketResponse(response: MbotListV2): void {
 
   this.isLoading = false;
 }
-protected tickets: Ticket[] = [];
-protected ticketsCount = 0;
-protected currentPage = 0;
-protected totalPages = 0;
-protected scrollCompleted = false;
-protected isLoading = false;
-protected enableScroll = true;
-
