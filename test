@@ -1,6 +1,81 @@
-td.mat-mdc-cell,
-th.mat-mdc-header-cell {
-  min-width: 120px; // ajuste à ta convenance (100px, 150px…)
-  word-break: break-word;
-  white-space: normal;
+export abstract class TicketsPageBase {
+  protected smallCards: DashboardCardData[] = [];
+  protected largeCards: DashboardCardData[] = [];
+
+  protected activeCard: FilterCardType = FilterCardType.NONE;
+  protected tickets: Ticket[] = [];
+  protected displayedColumns: string[] = [];
+  protected columnConfig: Record<string, ColumnDefinition> = {};
+  protected columnTemplates: Record<string, TemplateRef<any>> = {};
+
+  protected ticketCardInfos!: TicketCardsInfos;
+  protected searchTerm = '';
+  protected selectedStatus!: string;
+  protected statusList: { label: string; value: string }[] = [];
+  protected statusTabs: Status[] = [];
+
+  protected totalPages = 0;
+  protected currentPage = 0;
+  protected isLoading = false;
+  protected scrollCompleted = false;
+
+  protected params!: TicketListParams;
+  protected page = 0;
+  protected pageSize = 20;
+  protected ticketsCount = 0;
+
+  constructor(
+    protected readonly listService: ListService,
+    protected readonly mbotService: MbotService,
+    protected readonly jwtService: JwtService,
+    protected readonly constantsService: ConstantsService,
+    protected readonly router: Router,
+    protected readonly cdr: ChangeDetectorRef,
+    protected readonly tableConfigFactory: TableConfigFactory,
+    protected readonly cardConfigFactory: DashboardCardConfigFactory
+  ) {
+    console.log('✅ TicketsPageBase initialized');
+  }
+
+  // ... autres méthodes de base
+}
+
+
+@Component({
+  selector: 'app-solicitings-page',
+  templateUrl: './solicitings-page.component.html',
+})
+export class SolicitingsPageComponent extends TicketsPageBase {
+  @ViewChild('actionTpl') protected actionTpl!: TemplateRef<any>;
+  @ViewChild('idTpl') protected idTpl!: TemplateRef<any>;
+  @ViewChild('lastActivityTimestampTpl') protected lastActivityTimestampTpl!: TemplateRef<any>;
+  @ViewChild('partLabelTpl') protected partLabelTpl!: TemplateRef<any>;
+  @ViewChild('domainLabelTpl') protected domainLabelTpl!: TemplateRef<any>;
+  @ViewChild('objectLabelTpl') protected objectLabelTpl!: TemplateRef<any>;
+  @ViewChild('claimTypeLabelTpl') protected claimTypeLabelTpl!: TemplateRef<any>;
+  @ViewChild('slaLabelTpl') protected slaLabelTpl!: TemplateRef<any>;
+  @ViewChild('statusTpl') protected statusTpl!: TemplateRef<any>;
+
+  @ContentChild('filterBarTpl') protected filterBarTpl!: TemplateRef<any>;
+
+  @Output() protected scrolled = new EventEmitter<void>();
+  @Output() protected cardClicked = new EventEmitter<FilterCardType>();
+
+  constructor() {
+    super(
+      inject(ListService),
+      inject(MbotService),
+      inject(JwtService),
+      inject(ConstantsService),
+      inject(Router),
+      inject(ChangeDetectorRef),
+      inject(TableConfigFactory),
+      inject(DashboardCardConfigFactory)
+    );
+  }
+
+  ngOnInit(): void {
+    console.log('✅ SolicitingsPageComponent ready');
+    // Initialisations propres au composant
+  }
 }
