@@ -1,90 +1,91 @@
-private boolean isValidTicket(Ticket ticket) {
-    return ticket != null
-        && ticket.getClaimType() != null
-        && ticket.getCustomer() != null
-        && ticket.getStatus() != null;
-}
-
-private boolean isSameUser(String userId, String edsId, Ticket ticket) {
-    if (ticket.getCustomer() == null) return false;
-
-    return (userId != null && userId.equals(ticket.getCustomer().getId()))
-        || (ticket.getCustomer().isEds() && edsId != null && edsId.equals(ticket.getCustomer().getEdsId()));
-}
-
-private boolean isClaimTypeDS(Ticket ticket) {
-    return ClaimTypeCode.DS.getCode().equals(ticket.getClaimType().getCode());
-}
-
-private boolean isMatchingStatus(Ticket ticket) {
-    return List.of(
-        StatusTicket.NEW,
-        StatusTicket.PROCESSING,
-        StatusTicket.PENDING,
-        StatusTicket.APPROVAL_PENDING,
-        StatusTicket.APPROVAL_REFUSED
-    ).contains(StatusTicket.valueOf(ticket.getStatus()));
-}
-
-
-
 package com.zef.wikjpg.service.service;
 
-import com.zef.wikjpg.service.model.mongo.primary.ticket.*; import org.apache.commons.collections4.CollectionUtils;
+import com.zef.wikjpg.service.model.mongo.primary.ticket.*;
+import org.apache.commons.collections4.CollectionUtils;
 
-import java.util.List; import java.util.Objects;
+import java.util.List;
+import java.util.Objects;
 
 public class TicketStatsService {
 
-public boolean ticketMatchesCardTypeConfig(Ticket ticket, FilterCardType cardType, String userId, String edsId) {
-    return switch (cardType) {
-        case READ_CUSTOMER -> isReadCustomer(ticket, userId, edsId);
-        case TREATMENT_IS_LATE_DS -> isLateTreatmentDs(ticket, userId, edsId);
-        case CUSTOMER_EDS_DS -> isCustomerEdsDs(ticket, edsId);
-        case REQUESTS -> isRequest(ticket);
-        case REQUESTS_READ_CUSTOMER -> isRequestReadCustomer(ticket, userId);
-        case CLAIMS_READ_CUSTOMER -> isClaimReadCustomer(ticket, userId);
-        case APPROVALS -> isApproval(ticket, userId);
-        case DISCUSSION_GROUPS -> isInDiscussionGroup(ticket, userId);
-        case DISCUSSION_GROUPS_READ_CUSTOMER -> isDiscussionGroupReadCustomer(ticket, userId);
-        case REQUESTS_EXPERT_SERVICE -> isExpertService(ticket, userId, edsId);
-        case REQUESTS_EXPERT_SERVICE_READ_CUSTOMER -> isExpertServiceReadCustomer(ticket, userId, edsId);
-        case REQUESTS_EXPERT_SERVICE_TREATMENT_IS_LATE -> isExpertServiceTreatmentIsLate(ticket, userId, edsId);
-        case REQUESTS_EXPERT_SERVICE_EDS -> isExpertServiceEds(ticket, edsId);
-        default -> false;
-    };
-}
+    public boolean ticketMatchesCardTypeConfig(Ticket ticket, FilterCardType cardType, String userId, String edsId) {
+        return switch (cardType) {
+            case READ_CUSTOMER -> isReadCustomer(ticket, userId, edsId);
+            case TREATMENT_IS_LATE_DS -> isLateTreatmentDs(ticket, userId, edsId);
+            case CUSTOMER_EDS_DS -> isCustomerEdsDs(ticket, edsId);
+            case REQUESTS -> isRequest(ticket);
+            case REQUESTS_READ_CUSTOMER -> isRequestReadCustomer(ticket, userId);
+            case CLAIMS_READ_CUSTOMER -> isClaimReadCustomer(ticket, userId);
+            case APPROVALS -> isApproval(ticket, userId);
+            case DISCUSSION_GROUPS -> isInDiscussionGroup(ticket, userId);
+            case DISCUSSION_GROUPS_READ_CUSTOMER -> isDiscussionGroupReadCustomer(ticket, userId);
+            case REQUESTS_EXPERT_SERVICE -> isExpertService(ticket, userId, edsId);
+            case REQUESTS_EXPERT_SERVICE_READ_CUSTOMER -> isExpertServiceReadCustomer(ticket, userId, edsId);
+            case REQUESTS_EXPERT_SERVICE_TREATMENT_IS_LATE -> isExpertServiceTreatmentIsLate(ticket, userId, edsId);
+            case REQUESTS_EXPERT_SERVICE_EDS -> isExpertServiceEds(ticket, edsId);
+            default -> false;
+        };
+    }
 
-private boolean isReadCustomer(Ticket ticket, String userId, String edsId) {
-    return isRequestReadCustomer(ticket, userId)
-            || isClaimReadCustomer(ticket, userId)
-            || isDiscussionGroupReadCustomer(ticket, userId)
-            || isExpertServiceReadCustomer(ticket, userId, edsId);
-}
+    private boolean isReadCustomer(Ticket ticket, String userId, String edsId) {
+        return isRequestReadCustomer(ticket, userId)
+                || isClaimReadCustomer(ticket, userId)
+                || isDiscussionGroupReadCustomer(ticket, userId)
+                || isExpertServiceReadCustomer(ticket, userId, edsId);
+    }
 
-private boolean isExpertServiceReadCustomer(Ticket ticket, String userId, String edsId) {
-    if (!hasRequiredFields(ticket, userId, edsId)) return false;
-    boolean isDS = isDsClaimType(ticket);
-    boolean statusMatch = matchesRelevantStatuses(ticket);
-    boolean readCustomerTrue = Boolean.TRUE.equals(ticket.getReadCustomer());
-    boolean collabDoneAndUnread = Boolean.FALSE.equals(ticket.getReadCustomer()) && Boolean.TRUE.equals(ticket.getDs().isCollabTreatmentDone());
-    return isDS && statusMatch && (readCustomerTrue || collabDoneAndUnread);
-}
+    private boolean isExpertServiceReadCustomer(Ticket ticket, String userId, String edsId) {
+        if (!hasRequiredFields(ticket, userId, edsId)) return false;
+        boolean isDS = isDsClaimType(ticket);
+        boolean statusMatch = matchesRelevantStatuses(ticket);
+        boolean readCustomerTrue = Boolean.TRUE.equals(ticket.getReadCustomer());
+        boolean collabDoneAndUnread = Boolean.FALSE.equals(ticket.getReadCustomer()) && Boolean.TRUE.equals(ticket.getDs().isCollabTreatmentDone());
+        return isDS && statusMatch && (readCustomerTrue || collabDoneAndUnread);
+    }
 
-private boolean isExpertServiceTreatmentIsLate(Ticket ticket, String userId, String edsId) {
-    if (!hasRequiredFields(ticket, userId, edsId)) return false;
-    boolean isDS = isDsClaimType(ticket);
-    boolean statusMatch = matchesRelevantStatuses(ticket);
-    boolean treatmentIsLate = Boolean.TRUE.equals(ticket.getDs().isTreatmentIsLate());
-    return isDS && statusMatch && treatmentIsLate;
-}
+    private boolean isExpertServiceTreatmentIsLate(Ticket ticket, String userId, String edsId) {
+        if (!hasRequiredFields(ticket, userId, edsId)) return false;
+        boolean isDS = isDsClaimType(ticket);
+        boolean statusMatch = matchesRelevantStatuses(ticket);
+        boolean treatmentIsLate = Boolean.TRUE.equals(ticket.getDs().isTreatmentIsLate());
+        return isDS && statusMatch && treatmentIsLate;
+    }
 
-private boolean isExpertService(Ticket ticket, String userId, String edsId) {
-    if (!hasRequiredFields(ticket, userId, edsId)) return false;
-    boolean isDS = isDsClaimType(ticket);
-    boolean statusMatch = matchesRelevantStatuses(ticket);
-    return isDS && statusMatch;
-}
+    private boolean isExpertService(Ticket ticket, String userId, String edsId) {
+        if (!hasRequiredFields(ticket, userId, edsId)) return false;
+        boolean isDS = isDsClaimType(ticket);
+        boolean statusMatch = matchesRelevantStatuses(ticket);
+        return isDS && statusMatch;
+    }
 
-private boolean isLateTreatmentDs(Ticket ticket, String userId
+    private boolean isLateTreatmentDs(Ticket ticket, String userId, String edsId) {
+        if (!hasRequiredFields(ticket, userId, edsId)) return false;
+        boolean isDS = isDsClaimType(ticket);
+        boolean statusMatch = matchesRelevantStatuses(ticket);
+        boolean treatmentIsLate = Boolean.TRUE.equals(ticket.getDs().isTreatmentIsLate());
+        return isDS && statusMatch && treatmentIsLate;
+    }
 
+    private boolean hasRequiredFields(Ticket ticket, String userId, String edsId) {
+        if (ticket == null || ticket.getClaimType() == null || ticket.getStatus() == null || ticket.getCustomer() == null) return false;
+        boolean isSameUser = Objects.equals(userId, ticket.getCustomer().getId()) || Boolean.TRUE.equals(ticket.getCustomer().isEds());
+        boolean edsMatches = edsId != null && edsId.equals(ticket.getCustomer().getEdsId());
+        return isSameUser && edsMatches;
+    }
+
+    private boolean isDsClaimType(Ticket ticket) {
+        return ClaimTypeCode.DS.getCode().equals(ticket.getClaimType().getCode());
+    }
+
+    private boolean matchesRelevantStatuses(Ticket ticket) {
+        return List.of(
+                StatusTicket.NEW,
+                StatusTicket.PROCESSING,
+                StatusTicket.PENDING,
+                StatusTicket.APPROVAL_PENDING,
+                StatusTicket.APPROVAL_REFUSED
+        ).contains(StatusTicket.valueOf(ticket.getStatus()));
+    }
+
+    // ... autres méthodes existantes comme isRequestReadCustomer, isClaimReadCustomer etc.
+} 
