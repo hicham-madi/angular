@@ -1,5 +1,5 @@
-private boolean isExpertService(Ticket ticket, String userId, String edsId) {
-    if (ticket == null || ticket.getClaimType() == null || ticket.getStatus() == null || ticket.getCustomer() == null) {
+private boolean isExpertServiceTreatmentIsLate(Ticket ticket, String userId, String edsId) {
+    if (ticket == null || ticket.getClaimType() == null || ticket.getStatus() == null || ticket.getCustomer() == null || ticket.getDs() == null) {
         return false;
     }
 
@@ -21,25 +21,5 @@ private boolean isExpertService(Ticket ticket, String userId, String edsId) {
         StatusTicket.APPROVAL_REFUSED
     ).contains(StatusTicket.valueOf(ticket.getStatus()));
 
-    return isSameUser && isDS && statusMatch;
-}
-
-public static com.hazelcast.query.Predicate<Object, Ticket> requestExpertService(String userId, String edsId) {
-    return Predicates.and(
-        Predicates.equal(CLAIM_TYPE_CODE_FIELD, ClaimTypeCode.DS.toString()),
-        Predicates.in(STATUS_FIELD,
-            StatusTicket.NEW.toString(),
-            StatusTicket.PROCESSING.toString(),
-            StatusTicket.PENDING.toString(),
-            StatusTicket.APPROVAL_PENDING.toString(),
-            StatusTicket.APPROVAL_REFUSED.toString()
-        ),
-        Predicates.or(
-            Predicates.equal(CUSTOMER_ID, userId),
-            Predicates.and(
-                Predicates.equal(CUSTOMER_EDS_FIELD, true),
-                Predicates.equal(CUSTOMER_EDS_ID_FIELD, edsId)
-            )
-        )
-    );
+    return isSameUser && isDS && statusMatch && ticket.getDs().isTreatmentIsLate();
 }
