@@ -1,18 +1,3 @@
-Function<String, String> statusLabelFn = status -> {
-    return switch (status) {
-        case "NEW" -> "nouvelle";
-        case "APPROVAL_PENDING" -> "en approbation";
-        case "APPROVAL_REFUSED" -> "approbation refusée";
-        case "PROCESSING", "PENDING" -> "en cours";
-        case "SOLVED", "CLOSED" -> "résolue";
-        case "TO_BE_CLOSED" -> "à clôturer";
-        default -> "";
-    };
-};
 
-case STATUS -> Comparator.comparing(
-    ticket -> statusLabelFn.apply(ticket.getStatus()),
-    Comparator.nullsLast(String::compareToIgnoreCase)
-);
 
 fix: tri des statuts basé sur les libellés affichés dans l'interface
