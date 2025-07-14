@@ -1,23 +1,40 @@
 protected sortData(column: string): void {
   if (this.sort.active !== column) {
+    this.sort.active = column;
     this.currentSortDirection = 'asc';
   } else {
-    this.currentSortDirection =
-      this.currentSortDirection === null ? 'asc' :
-      this.currentSortDirection === 'asc' ? 'desc' :
-      null;
+    switch (this.currentSortDirection) {
+      case 'asc':
+        this.currentSortDirection = 'desc';
+        break;
+      case 'desc':
+        this.currentSortDirection = null;
+        break;
+      default:
+        this.currentSortDirection = 'asc';
+    }
   }
 
-  this.sort.active = column;
-  this.sort.direction = this.currentSortDirection ?? ''; // affichage icône tri
-  this.fetchTickets(column, this.currentSortDirection);
+  this.sort.direction = this.currentSortDirection ?? '';
+  this.fetchTickets(
+    this.currentSortDirection ? column : null,
+    this.currentSortDirection
+  );
 }
-private fetchTickets(sortBy: string, sortDirection: 'asc' | 'desc' | null) {
+protected getSortIcon(column: string): string {
+  if (this.sort.active !== column || !this.currentSortDirection) {
+    return 'unfold_more';
+  }
+  return this.currentSortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward';
+}
+private fetchTickets(sortBy: string | null, sortDirection: 'asc' | 'desc' | null): void {
   const request = {
     page: 0,
-    totalItems: this.totalItems,
-    sortKey: sortDirection ? sortBy : null,     // Ne pas envoyer de tri
-    isAsc: sortDirection === 'asc',
+    totalItems: this.tickets.length,
+    ...(sortBy && sortDirection ? {
+      sortKey: sortBy,
+      isAsc: sortDirection === 'asc',
+    } : {})
   };
 
   this.mbotService.getTicketListV2(request).subscribe(response => {
