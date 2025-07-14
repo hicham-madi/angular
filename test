@@ -5,16 +5,23 @@ private boolean isExpertServiceReadCustomer(Ticket ticket) {
     boolean readCustomerTrue = Boolean.TRUE.equals(ticket.getReadCustomer());
     boolean readCustomerFalse = Boolean.FALSE.equals(ticket.getReadCustomer());
 
+    StatusTicket status;
+    try {
+        status = StatusTicket.valueOf(ticket.getStatus());
+    } catch (IllegalArgumentException | NullPointerException e) {
+        return false; // statut inconnu ou null, on ignore ce ticket
+    }
+
     boolean statusMatch = List.of(
         StatusTicket.NEW,
         StatusTicket.PROCESSING,
         StatusTicket.PENDING,
         StatusTicket.APPROVAL_PENDING,
         StatusTicket.APPROVAL_REFUSED
-    ).contains(ticket.getStatus());
+    ).contains(status);
 
-    boolean collabDoneAndUnread = Boolean.TRUE.equals(ticket.getDsCollabTreatmentDone())
-        && readCustomerFalse;
+    boolean collabDoneAndUnread =
+        Boolean.TRUE.equals(ticket.getDsCollabTreatmentDone()) && readCustomerFalse;
 
     return isDS && statusMatch && (readCustomerTrue || collabDoneAndUnread);
 }
