@@ -1,27 +1,6 @@
-private boolean isLateTreatmentDs(Ticket ticket, String userId, String edsId) {
-    if (ticket == null || ticket.getClaimType() == null || ticket.getStatus() == null || ticket.getCustomer() == null || ticket.getDs() == null) {
-        return false;
-    }
-
-    boolean isSameUser =
-        userId != null && userId.equals(ticket.getCustomerId()) ||
-        (Boolean.TRUE.equals(ticket.getCustomer().isEds()) && edsId != null && edsId.equals(ticket.getCustomer().getEdsId()));
-
-    if (!isSameUser) {
-        return false;
-    }
-
-    boolean isDS = ClaimTypeCode.DS.getCode().equals(ticket.getClaimType().getCode());
-
-    boolean statusMatch = List.of(
-        StatusTicket.NEW,
-        StatusTicket.PROCESSING,
-        StatusTicket.PENDING,
-        StatusTicket.APPROVAL_PENDING,
-        StatusTicket.APPROVAL_REFUSED
-    ).contains(StatusTicket.valueOf(ticket.getStatus()));
-
-    boolean treatmentIsLate = ticket.getDs().isTreatmentIsLate();
-
-    return isSameUser && isDS && statusMatch && treatmentIsLate;
+private boolean isReadCustomer(Ticket ticket, String userId, String edsId) {
+    return isRequest(ticket, userId)
+        || isClaimReadCustomer(ticket, userId)
+        || isDiscussionGroupReadCustomer(ticket, userId)
+        || isExpertServiceReadCustomer(ticket, userId, edsId);
 }
