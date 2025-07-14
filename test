@@ -1,20 +1,33 @@
-public static Predicate<Object, Ticket> requestsExpertServiceReadCustomer() {
-    return Predicates.and(
-        Predicates.equal(READ_CUSTOMER_FIELD, true),
-        Predicates.equal(CLAIM_TYPE_CODE_FIELD, ClaimTypeCode.DS.toString()),
-        Predicates.in(STATUS_FIELD,
-            StatusTicket.NEW.toString(),
-            StatusTicket.PROCESSING.toString(),
-            StatusTicket.PENDING.toString(),
-            StatusTicket.APPROVAL_PENDING.toString(),
-            StatusTicket.APPROVAL_REFUSED.toString()
-        ),
-        Predicates.or(
-            Predicates.equal(DS_COLLAB_TREATMENT_DONE_FIELD, false),
-            Predicates.and(
-                Predicates.equal(DS_COLLAB_TREATMENT_DONE_FIELD, true),
-                Predicates.equal(READ_CUSTOMER_FIELD, false)
-            )
-        )
-    );
+private boolean isExpertServiceReadCustomer(Ticket ticket, String userId, String edsId) {
+    if (ticket == null || ticket.getClaimType() == null || ticket.getStatus() == null || ticket.getCustomer() == null) {
+        return false;
+    }
+
+    // 🔐 Vérifie que le ticket appartient à l'utilisateur
+    boolean isSameUser =
+        userId != null && userId.equals(ticket.getCustomerId()) ||
+        (Boolean.TRUE.equals(ticket.getCustomer().isEds()) && edsId != null && edsId.equals(ticket.getCustomer().getEdsId()));
+
+    if (!isSameUser) {
+        return false;
+    }
+
+    boolean isDS = ClaimTypeCode.DS.getCode().equals(ticket.getClaimType().getCode());
+
+    boolean statusMatch = List.of(
+        StatusTicket.NEW,
+        StatusTicket.PROCESSING,
+        StatusTicket.PENDING,
+        StatusTicket.APPROVAL_PENDING,
+        StatusTicket.APPROVAL_REFUSED
+    ).contains(StatusTicket.valueOf(ticket.getStatus()));
+
+    boolean readCustomerTrue = Boolean.TRUE.equals(ticket.getReadCustomer());
+
+    boolean collabDoneAndUnread =
+        ticket.getDs() != null &&
+        Boolean.TRUE.equals(ticket.getDs().isCollabTreatmentDone()) &&
+        Boolean.FALSE.equals(ticket.getReadCustomer());
+
+    return isSameUser && isDS && statusMatch && (readCustomerTrue || collabDoneAndUnread);
 }
