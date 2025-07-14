@@ -1,36 +1,27 @@
-.icon-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
-
-  mat-icon {
-    font-size: 18px;
-    color: #c0392b; // rouge par défaut
-    transition: color 0.2s ease;
+protected sortData(column: string): void {
+  if (this.sort.active !== column) {
+    this.currentSortDirection = 'asc';
+  } else {
+    this.currentSortDirection =
+      this.currentSortDirection === null ? 'asc' :
+      this.currentSortDirection === 'asc' ? 'desc' :
+      null;
   }
 
-  &:hover {
-    mat-icon {
-      color: #e74c3c; // rouge plus vif au hover
-    }
-  }
+  this.sort.active = column;
+  this.sort.direction = this.currentSortDirection ?? ''; // affichage icône tri
+  this.fetchTickets(column, this.currentSortDirection);
 }
-public class TicketSortUtils {
+private fetchTickets(sortBy: string, sortDirection: 'asc' | 'desc' | null) {
+  const request = {
+    page: 0,
+    totalItems: this.totalItems,
+    sortKey: sortDirection ? sortBy : null,     // Ne pas envoyer de tri
+    isAsc: sortDirection === 'asc',
+  };
 
-    public static Comparator<Ticket> getComparator(String sortKey, boolean isAsc) {
-        Comparator<Ticket> comparator = switch (sortKey) {
-            case "id" -> Comparator.comparing(Ticket::getId);
-            case "lastUpdate" -> Comparator.comparing(Ticket::getLastUpdate);
-            case "customerName" -> Comparator.comparing(ticket -> ticket.getCustomer().getName(), Comparator.nullsLast(String::compareToIgnoreCase));
-            case "subject" -> Comparator.comparing(Ticket::getSubject, Comparator.nullsLast(String::compareToIgnoreCase));
-            case "status" -> Comparator.comparing(Ticket::getStatus, Comparator.nullsLast(String::compareToIgnoreCase));
-            case "type" -> Comparator.comparing(Ticket::getType, Comparator.nullsLast(String::compareToIgnoreCase));
-            default -> null;
-        };
-
-        return (comparator != null && !isAsc) ? comparator.reversed() : comparator;
-    }
+  this.mbotService.getTicketListV2(request).subscribe(response => {
+    this.tickets = response.tickets?.content ?? [];
+    this.detectChanges();
+  });
 }
