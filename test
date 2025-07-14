@@ -1,44 +1,18 @@
-protected sortData(column: string): void {
-  if (this.sort.active !== column) {
-    this.sort.active = column;
-    this.currentSortDirection = 'asc';
-  } else {
-    switch (this.currentSortDirection) {
-      case 'asc':
-        this.currentSortDirection = 'desc';
-        break;
-      case 'desc':
-        this.currentSortDirection = null;
-        break;
-      default:
-        this.currentSortDirection = 'asc';
-    }
-  }
+Function<String, String> statusLabelFn = status -> {
+    return switch (status) {
+        case "NEW" -> "nouvelle";
+        case "APPROVAL_PENDING" -> "en approbation";
+        case "APPROVAL_REFUSED" -> "approbation refusée";
+        case "PROCESSING", "PENDING" -> "en cours";
+        case "SOLVED", "CLOSED" -> "résolue";
+        case "TO_BE_CLOSED" -> "à clôturer";
+        default -> "";
+    };
+};
 
-  this.sort.direction = this.currentSortDirection ?? '';
-  this.fetchTickets(
-    this.currentSortDirection ? column : null,
-    this.currentSortDirection
-  );
-}
-protected getSortIcon(column: string): string {
-  if (this.sort.active !== column || !this.currentSortDirection) {
-    return 'unfold_more';
-  }
-  return this.currentSortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward';
-}
-private fetchTickets(sortBy: string | null, sortDirection: 'asc' | 'desc' | null): void {
-  const request = {
-    page: 0,
-    totalItems: this.tickets.length,
-    ...(sortBy && sortDirection ? {
-      sortKey: sortBy,
-      isAsc: sortDirection === 'asc',
-    } : {})
-  };
+case STATUS -> Comparator.comparing(
+    ticket -> statusLabelFn.apply(ticket.getStatus()),
+    Comparator.nullsLast(String::compareToIgnoreCase)
+);
 
-  this.mbotService.getTicketListV2(request).subscribe(response => {
-    this.tickets = response.tickets?.content ?? [];
-    this.detectChanges();
-  });
-}
+fix: tri des statuts basé sur les libellés affichés dans l'interface
