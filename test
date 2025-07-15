@@ -1,91 +1,172 @@
-package com.zef.wikjpg.service.service;
+<div class="card"
+     [class.clickable]="card.clickable"
+     [class.active]="activeType === card.type"
+     [ngClass]="[
+        card.variant || 'default',
+        card.wide ? 'wide' : '',
+        card.small ? 'small' : '',
+        card.count === 0 ? 'read' : ''
+     ]"
+     (click)="onClick()">
 
-import com.zef.wikjpg.service.model.mongo.primary.ticket.*;
-import org.apache.commons.collections4.CollectionUtils;
+  <div class="card-header">
+    <div class="top">
+      @if (card.icon) {
+        <mat-icon fontSet="material-icons-outlined"
+                  alt="icon"
+                  [ngClass]="{ 'icon': true, 'icon-read': card.count === 0 }">
+          {{ card.icon }}
+        </mat-icon>
+      }
+      <span class="count">{{ card.count }}</span>
+    </div>
+  </div>
 
-import java.util.List;
-import java.util.Objects;
+  @if (card.badges?.length) {
+    <div class="badge-group">
+      @for (badge of card.badges; track badge) {
+        <div class="badge"
+             [ngClass]="[
+               'badge--' + (badge.type || 'default'),
+               badge.count === 0 ? 'badge--empty' : '',
+               badge.clickable ? 'clickable' : '',
+               activeType === badge.type ? 'active' : ''
+             ]"
+             (click)="onClick(badge, $event)">
+          <mat-icon fontSet="material-icons-outlined"
+                    alt="icon"
+                    [ngClass]="{ 'icon': true, 'icon-read': badge.count === 0 }">
+            {{ badge.icon }}
+          </mat-icon>
+          <div class="badge-value">{{ badge.count }}</div>
+        </div>
+      }
+    </div>
+  }
 
-public class TicketStatsService {
+  <div class="label">{{ card.label }}</div>
+</div>
 
-    public boolean ticketMatchesCardTypeConfig(Ticket ticket, FilterCardType cardType, String userId, String edsId) {
-        return switch (cardType) {
-            case READ_CUSTOMER -> isReadCustomer(ticket, userId, edsId);
-            case TREATMENT_IS_LATE_DS -> isLateTreatmentDs(ticket, userId, edsId);
-            case CUSTOMER_EDS_DS -> isCustomerEdsDs(ticket, edsId);
-            case REQUESTS -> isRequest(ticket);
-            case REQUESTS_READ_CUSTOMER -> isRequestReadCustomer(ticket, userId);
-            case CLAIMS_READ_CUSTOMER -> isClaimReadCustomer(ticket, userId);
-            case APPROVALS -> isApproval(ticket, userId);
-            case DISCUSSION_GROUPS -> isInDiscussionGroup(ticket, userId);
-            case DISCUSSION_GROUPS_READ_CUSTOMER -> isDiscussionGroupReadCustomer(ticket, userId);
-            case REQUESTS_EXPERT_SERVICE -> isExpertService(ticket, userId, edsId);
-            case REQUESTS_EXPERT_SERVICE_READ_CUSTOMER -> isExpertServiceReadCustomer(ticket, userId, edsId);
-            case REQUESTS_EXPERT_SERVICE_TREATMENT_IS_LATE -> isExpertServiceTreatmentIsLate(ticket, userId, edsId);
-            case REQUESTS_EXPERT_SERVICE_EDS -> isExpertServiceEds(ticket, edsId);
-            default -> false;
-        };
+@import 'colors';
+
+.card {
+  position: relative;
+  width: 100%;
+  padding: 12px;
+  font-family: 'Montserrat', serif;
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  &.clickable {
+    cursor: pointer;
+    transition: transform 0.1s ease;
+  }
+
+  &.clickable:hover {
+    transform: scale(1.08);
+  }
+
+  &.active {
+    border: 2px solid $danger-border;
+    box-shadow: 0 0 1px $danger-background;
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+    width: 100%;
+
+    .top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    private boolean isReadCustomer(Ticket ticket, String userId, String edsId) {
-        return isRequestReadCustomer(ticket, userId)
-                || isClaimReadCustomer(ticket, userId)
-                || isDiscussionGroupReadCustomer(ticket, userId)
-                || isExpertServiceReadCustomer(ticket, userId, edsId);
+    .icon {
+      font-size: 18px;
+      color: $danger;
+      opacity: 0.5;
+
+      &.icon-read {
+        opacity: 0.1;
+      }
     }
 
-    private boolean isExpertServiceReadCustomer(Ticket ticket, String userId, String edsId) {
-        if (!hasRequiredFields(ticket, userId, edsId)) return false;
-        boolean isDS = isDsClaimType(ticket);
-        boolean statusMatch = matchesRelevantStatuses(ticket);
-        boolean readCustomerTrue = Boolean.TRUE.equals(ticket.getReadCustomer());
-        boolean collabDoneAndUnread = Boolean.FALSE.equals(ticket.getReadCustomer()) && Boolean.TRUE.equals(ticket.getDs().isCollabTreatmentDone());
-        return isDS && statusMatch && (readCustomerTrue || collabDoneAndUnread);
+    .count {
+      font-size: 20px;
+      line-height: 100%;
+      opacity: 0.8;
+    }
+  }
+
+  .label {
+    height: 12px;
+    font-size: 10px;
+    line-height: 100%;
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .badge-group {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: bold;
+    width: 35px;
+    height: 35px;
+    color: white;
+    box-shadow: 0 0 1px rgba(0, 0, 0, 0.1);
+
+    &--unread {
+      background-color: $danger;
     }
 
-    private boolean isExpertServiceTreatmentIsLate(Ticket ticket, String userId, String edsId) {
-        if (!hasRequiredFields(ticket, userId, edsId)) return false;
-        boolean isDS = isDsClaimType(ticket);
-        boolean statusMatch = matchesRelevantStatuses(ticket);
-        boolean treatmentIsLate = Boolean.TRUE.equals(ticket.getDs().isTreatmentIsLate());
-        return isDS && statusMatch && treatmentIsLate;
+    &--read {
+      background-color: $neutral-light !important;
+      color: $neutral-dark !important;
     }
 
-    private boolean isExpertService(Ticket ticket, String userId, String edsId) {
-        if (!hasRequiredFields(ticket, userId, edsId)) return false;
-        boolean isDS = isDsClaimType(ticket);
-        boolean statusMatch = matchesRelevantStatuses(ticket);
-        return isDS && statusMatch;
+    &--claim {
+      background-color: $canard-fonce;
     }
 
-    private boolean isLateTreatmentDs(Ticket ticket, String userId, String edsId) {
-        if (!hasRequiredFields(ticket, userId, edsId)) return false;
-        boolean isDS = isDsClaimType(ticket);
-        boolean statusMatch = matchesRelevantStatuses(ticket);
-        boolean treatmentIsLate = Boolean.TRUE.equals(ticket.getDs().isTreatmentIsLate());
-        return isDS && statusMatch && treatmentIsLate;
+    &--request {
+      background-color: $vert-prairie;
     }
 
-    private boolean hasRequiredFields(Ticket ticket, String userId, String edsId) {
-        if (ticket == null || ticket.getClaimType() == null || ticket.getStatus() == null || ticket.getCustomer() == null) return false;
-        boolean isSameUser = Objects.equals(userId, ticket.getCustomer().getId()) || Boolean.TRUE.equals(ticket.getCustomer().isEds());
-        boolean edsMatches = edsId != null && edsId.equals(ticket.getCustomer().getEdsId());
-        return isSameUser && edsMatches;
+    &--default {
+      background-color: $neutral;
     }
 
-    private boolean isDsClaimType(Ticket ticket) {
-        return ClaimTypeCode.DS.getCode().equals(ticket.getClaimType().getCode());
+    &--empty {
+      opacity: 0.4;
     }
 
-    private boolean matchesRelevantStatuses(Ticket ticket) {
-        return List.of(
-                StatusTicket.NEW,
-                StatusTicket.PROCESSING,
-                StatusTicket.PENDING,
-                StatusTicket.APPROVAL_PENDING,
-                StatusTicket.APPROVAL_REFUSED
-        ).contains(StatusTicket.valueOf(ticket.getStatus()));
+    .badge-value {
+      font-size: 12px;
     }
+  }
+}
 
-    // ... autres méthodes existantes comme isRequestReadCustomer, isClaimReadCustomer etc.
-} 
+badge = {
+  type: 'unread' | 'read' | 'claim' | 'request' | 'default',
+  count: 5,
+  icon: 'chat',
+  clickable: true
+}
