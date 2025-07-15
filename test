@@ -1,23 +1,6 @@
-
-protected getLabelClasses(): string[] {
-  const classes = [];
-
-  const label = this.getLabel();
-  const isFinished = label.includes(this.textFinish) || this.countDay <= 0;
-
-  if (isFinished) {
-    classes.push('bar-label--white');
-  }
-
-  return classes;
-}
-
-<div [ngClass]="getLabelClasses()" class="bar-label">
-  {{ getLabel() }}
+<div
+  class="uk-card uk-card-default uk-padding-small uk-border-rounded uk-width-1-1 uk-flex uk-flex-column uk-flex-middle"
+  [ngClass]="{ 'clickable': clickable, 'active': active }"
+>
+  ...
 </div>
-
-.bar-label--white {
-  color: white;
-}
-
-refactor: suppression de getStyle et remplacement par getLabelClasses avec ngClass
