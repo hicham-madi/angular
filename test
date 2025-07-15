@@ -1,172 +1,19 @@
-<div class="card"
-     [class.clickable]="card.clickable"
-     [class.active]="activeType === card.type"
-     [ngClass]="[
-        card.variant || 'default',
-        card.wide ? 'wide' : '',
-        card.small ? 'small' : '',
-        card.count === 0 ? 'read' : ''
-     ]"
-     (click)="onClick()">
+export const IconColorMap = new Map<IconKey, string>([
+  [IconKey.REQUEST, '#B0D53A'],             // $vert-3-color
+  [IconKey.CLAIM, '#7BC043'],              // $vert-1-color
+  [IconKey.APPROVAL, '#A2C4FF'],           // $bleu-1-color
+  [IconKey.DISCUSSION, '#5B9BD5'],         // $bleu-2-color
+  [IconKey.REQUEST_EXPERT_SERVICE, '#6DC799'] // $vert-2-color
+]);
 
-  <div class="card-header">
-    <div class="top">
-      @if (card.icon) {
-        <mat-icon fontSet="material-icons-outlined"
-                  alt="icon"
-                  [ngClass]="{ 'icon': true, 'icon-read': card.count === 0 }">
-          {{ card.icon }}
-        </mat-icon>
-      }
-      <span class="count">{{ card.count }}</span>
-    </div>
-  </div>
+<mat-icon
+  class="icon"
+  fontSet="material-icons-outlined"
+  [ngStyle]="{ color: getIconColor(row) }">
+  {{ getIcon(row) }}
+</mat-icon>
 
-  @if (card.badges?.length) {
-    <div class="badge-group">
-      @for (badge of card.badges; track badge) {
-        <div class="badge"
-             [ngClass]="[
-               'badge--' + (badge.type || 'default'),
-               badge.count === 0 ? 'badge--empty' : '',
-               badge.clickable ? 'clickable' : '',
-               activeType === badge.type ? 'active' : ''
-             ]"
-             (click)="onClick(badge, $event)">
-          <mat-icon fontSet="material-icons-outlined"
-                    alt="icon"
-                    [ngClass]="{ 'icon': true, 'icon-read': badge.count === 0 }">
-            {{ badge.icon }}
-          </mat-icon>
-          <div class="badge-value">{{ badge.count }}</div>
-        </div>
-      }
-    </div>
-  }
-
-  <div class="label">{{ card.label }}</div>
-</div>
-
-@import 'colors';
-
-.card {
-  position: relative;
-  width: 100%;
-  padding: 12px;
-  font-family: 'Montserrat', serif;
-  border-radius: 5px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-
-  &.clickable {
-    cursor: pointer;
-    transition: transform 0.1s ease;
-  }
-
-  &.clickable:hover {
-    transform: scale(1.08);
-  }
-
-  &.active {
-    border: 2px solid $danger-border;
-    box-shadow: 0 0 1px $danger-background;
-  }
-
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 4px;
-    width: 100%;
-
-    .top {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .icon {
-      font-size: 18px;
-      color: $danger;
-      opacity: 0.5;
-
-      &.icon-read {
-        opacity: 0.1;
-      }
-    }
-
-    .count {
-      font-size: 20px;
-      line-height: 100%;
-      opacity: 0.8;
-    }
-  }
-
-  .label {
-    height: 12px;
-    font-size: 10px;
-    line-height: 100%;
-    text-align: center;
-    margin-top: 10px;
-  }
-
-  .badge-group {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .badge {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 4px 6px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: bold;
-    width: 35px;
-    height: 35px;
-    color: white;
-    box-shadow: 0 0 1px rgba(0, 0, 0, 0.1);
-
-    &--unread {
-      background-color: $danger;
-    }
-
-    &--read {
-      background-color: $neutral-light !important;
-      color: $neutral-dark !important;
-    }
-
-    &--claim {
-      background-color: $canard-fonce;
-    }
-
-    &--request {
-      background-color: $vert-prairie;
-    }
-
-    &--default {
-      background-color: $neutral;
-    }
-
-    &--empty {
-      opacity: 0.4;
-    }
-
-    .badge-value {
-      font-size: 12px;
-    }
-  }
-}
-
-badge = {
-  type: 'unread' | 'read' | 'claim' | 'request' | 'default',
-  count: 5,
-  icon: 'chat',
-  clickable: true
+protected getIconColor(ticket: Ticket): string {
+  const icon = this.getIcon(ticket);
+  return IconColorMap.get(icon) ?? '#888888'; // fallback par défaut
 }
