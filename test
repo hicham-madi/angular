@@ -1,12 +1,14 @@
 public onClick(badge?: DashboardCardBadge, event?: MouseEvent): void {
-  if (!badge) return;
+  if (badge) {
+    event?.stopPropagation();
 
-  event?.stopPropagation();
-
-  if (badge.clickable && badge.onClick && badge.count > 0) {
-    badge.active = !badge.active;
-    this.card.active = false;
-    badge.onClick();
-    this.cardClicked.emit();
+    if (badge.clickable && badge.onClick && badge.count > 0) {
+      this.card.active = false;
+      badge.onClick();
+      this.cardClicked.emit(badge.type);
+    }
+  } else if (this.card.clickable && this.card.onClick && this.card.count > 0) {
+    this.card.onClick();
+    this.cardClicked.emit(this.card.type);
   }
 }
