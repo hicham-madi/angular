@@ -1,14 +1,23 @@
-public onClick(badge?: DashboardCardBadge, event?: MouseEvent): void {
-  if (badge) {
-    event?.stopPropagation();
 
-    if (badge.clickable && badge.onClick && badge.count > 0) {
-      this.card.active = false;
-      badge.onClick();
-      this.cardClicked.emit(badge.type);
-    }
-  } else if (this.card.clickable && this.card.onClick && this.card.count > 0) {
-    this.card.onClick();
-    this.cardClicked.emit(this.card.type);
+protected getLabelClasses(): string[] {
+  const classes = [];
+
+  const label = this.getLabel();
+  const isFinished = label.includes(this.textFinish) || this.countDay <= 0;
+
+  if (isFinished) {
+    classes.push('bar-label--white');
   }
+
+  return classes;
 }
+
+<div [ngClass]="getLabelClasses()" class="bar-label">
+  {{ getLabel() }}
+</div>
+
+.bar-label--white {
+  color: white;
+}
+
+refactor: suppression de getStyle et remplacement par getLabelClasses avec ngClass
