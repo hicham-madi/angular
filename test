@@ -1,38 +1,9 @@
-export const IconCssClassMap = new Map<IconKey, string>([
-  [IconKey.REQUEST, 'icon-request'],
-  [IconKey.CLAIM, 'icon-claim'],
-  [IconKey.APPROVAL, 'icon-approval'],
-  [IconKey.DISCUSSION, 'icon-discussion'],
-  [IconKey.REQUEST_EXPERT_SERVICE, 'icon-request-expert']
-]);
-
-protected getIconClass(ticket: Ticket): string {
-  const icon = this.getIcon(ticket);
-  return IconCssClassMap.get(icon) ?? '';
-}
-
-<mat-icon
-  class="icon"
-  fontSet="material-icons-outlined"
-  [ngClass]="getIconClass(row)">
-  {{ getIcon(row) }}
-</mat-icon>
-.icon-request {
-  color: $vert-3-color;
-}
-
-.icon-claim {
-  color: $vert-1-color;
-}
-
-.icon-approval {
-  color: $bleu-1-color;
-}
-
-.icon-discussion {
-  color: $bleu-2-color;
-}
-
-.icon-request-expert {
-  color: $vert-2-color;
-}
+<!-- Après refactoring -->
+<div class="uk-flex uk-flex-wrap uk-flex-left uk-flex-middle uk-width-1-1 uk-gap-small">
+  <metabot-dashboard-card
+    class="uk-card uk-card-default uk-padding-small uk-border-rounded uk-width-small"
+    [variant]="card.variant"
+    [activetype]="activeCard"
+    (cardClicked)="onCardClicked($event)">
+  </metabot-dashboard-card>
+</div>
