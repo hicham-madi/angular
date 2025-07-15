@@ -1,19 +1,38 @@
-export const IconColorMap = new Map<IconKey, string>([
-  [IconKey.REQUEST, '#B0D53A'],             // $vert-3-color
-  [IconKey.CLAIM, '#7BC043'],              // $vert-1-color
-  [IconKey.APPROVAL, '#A2C4FF'],           // $bleu-1-color
-  [IconKey.DISCUSSION, '#5B9BD5'],         // $bleu-2-color
-  [IconKey.REQUEST_EXPERT_SERVICE, '#6DC799'] // $vert-2-color
+export const IconCssClassMap = new Map<IconKey, string>([
+  [IconKey.REQUEST, 'icon-request'],
+  [IconKey.CLAIM, 'icon-claim'],
+  [IconKey.APPROVAL, 'icon-approval'],
+  [IconKey.DISCUSSION, 'icon-discussion'],
+  [IconKey.REQUEST_EXPERT_SERVICE, 'icon-request-expert']
 ]);
+
+protected getIconClass(ticket: Ticket): string {
+  const icon = this.getIcon(ticket);
+  return IconCssClassMap.get(icon) ?? '';
+}
 
 <mat-icon
   class="icon"
   fontSet="material-icons-outlined"
-  [ngStyle]="{ color: getIconColor(row) }">
+  [ngClass]="getIconClass(row)">
   {{ getIcon(row) }}
 </mat-icon>
+.icon-request {
+  color: $vert-3-color;
+}
 
-protected getIconColor(ticket: Ticket): string {
-  const icon = this.getIcon(ticket);
-  return IconColorMap.get(icon) ?? '#888888'; // fallback par défaut
+.icon-claim {
+  color: $vert-1-color;
+}
+
+.icon-approval {
+  color: $bleu-1-color;
+}
+
+.icon-discussion {
+  color: $bleu-2-color;
+}
+
+.icon-request-expert {
+  color: $vert-2-color;
 }
