@@ -1,7 +1,13 @@
 <div class="uk-card uk-card-default uk-card-body uk-card-small stat-card card-demandes">
+  <!-- Badge global bien positionné -->
+  <div class="badge-global">
+    <span class="badge badge-alert">
+      <span uk-icon="icon: flag; ratio: 0.9"></span> 2
+    </span>
+  </div>
+
   <div class="stat-header">
     <div class="icon-wrapper" uk-icon="icon: commenting; ratio: 2"></div>
-    <span class="badge badge-alert">2</span>
     <div class="stat-number">28</div>
   </div>
   <div class="stat-label">demandes</div>
@@ -26,23 +32,7 @@
 }
 
 .icon-wrapper {
-  color: #f5a000; // jaune icône
-  position: relative;
-}
-
-.badge {
-  position: absolute;
-  top: -6px;
-  right: -10px;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 10px;
-}
-
-.badge-alert {
-  background-color: #fddede; // rouge très pâle
-  color: #b00020;
+  color: #f5a000;
 }
 
 .stat-number {
@@ -56,4 +46,28 @@
   margin-top: 4px;
   font-weight: 500;
   color: #333;
+}
+
+/* ✅ Badge global dans le coin */
+.badge-global {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+/* ✅ Badge stylisé comme dans la maquette */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.badge-alert {
+  background-color: #fddede;
+  color: #b00020;
 }
