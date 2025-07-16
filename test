@@ -1,46 +1,78 @@
 .card {
-  .icon-read {
-    filter: grayscale(100%) !important;
-    opacity: 0.3;
-    font-size: 16px;
+  &.yellow        { background: $vert-3-color; }
+  &.sea-salt-sherbet { background: $vert-1-color; }
+  &.cloud-break   { background: $bleu-1-color; align-items: center; }
+  &.calcareous-sinter { background: $bleu-2-color; }
+  &.coastal-breeze {
+    background: $vert-2-color;
+    width: 300px;
   }
 
-  .small-red {
-    width: 55px;
-    height: 60px;
-    padding: 4.8px 12.8px;
-    border-radius: 4.8px;
-    background: $danger-background;
-
-    .card-header {
-      justify-content: center;
-    }
+  &.yellow,
+  &.sea-salt-sherbet,
+  &.cloud-break,
+  &.calcareous-sinter {
+    width: 190px;
 
     .top {
       display: flex;
-      justify-content: center;
-      gap: 4px;
+      align-items: center;
+      gap: 12px;
+      margin-left: 60px;
 
       .icon {
         @extend .font-size-xxl;
-        width: 14.75px;
-        height: 14.75px;
+        width: 25.92px;
+        height: 25.92px;
+        font-size: 24px;
       }
 
-      .icon-read {
-        filter: brightness(0%) !important;
-        opacity: 0.1;
+      .count {
+        font-size: 20px;
+        width: 25px;
+        height: 24px;
+        line-height: 100%;
       }
     }
 
-    .count {
-      font-size: 20px;
-      width: 9px;
-      height: 15px;
+    .label {
+      margin-left: 60px;
     }
   }
 
-  .label {
-    width: 55px;
+  &.coastal-breeze {
+    .top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-left: 60px;
+
+      .icon {
+        font-size: 24px;
+        width: 25.92px;
+        height: 25.92px;
+      }
+
+      .count {
+        font-size: 20px;
+        width: 25px;
+        height: 24px;
+        line-height: 100%;
+      }
+    }
+
+    .badge-group {
+      display: flex;
+      flex-direction: row;
+    }
+
+    .badge {
+      margin-left: 3px;
+    }
+
+    .label {
+      width: 145px;
+      margin-right: 25px;
+    }
   }
 }
