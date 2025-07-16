@@ -1,68 +1,59 @@
-<div class="uk-card uk-card-default uk-card-body uk-card-small card card-demandes">
-  <!-- Badge en haut à droite -->
-  <div class="badge-group">
+<div class="uk-card uk-card-default uk-card-body uk-card-small stat-card card-demandes">
+  <div class="stat-header">
+    <div class="icon-wrapper" uk-icon="icon: commenting; ratio: 2"></div>
     <span class="badge badge-alert">2</span>
+    <div class="stat-number">28</div>
   </div>
-
-  <!-- Contenu principal -->
-  <div class="card-content">
-    <span class="icon-wrapper" uk-icon="icon: commenting; ratio: 2"></span>
-    <div class="card-number">28</div>
-    <div class="card-label">demandes</div>
-  </div>
+  <div class="stat-label">demandes</div>
 </div>
 
-.card {
-  position: relative;
-  border-radius: 8px;
-  background-color: #fff7e6; // jaune très pâle
-  width: 160px;
-  height: 130px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.stat-card {
+  background-color: #fff7e6;
+  border-radius: 10px;
+  width: 220px;
+  padding: 16px;
   text-align: center;
-  box-shadow: 0 0 3px rgba(0, 0, 0, 0.05);
+  position: relative;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.05);
 }
 
-.card-content {
+.stat-header {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 10px;
+  position: relative;
 }
 
 .icon-wrapper {
-  color: #f5a000; // jaune Figma
-}
-
-.card-number {
-  font-size: 26px;
-  font-weight: 700;
-  color: #111;
-  margin-top: 4px;
-}
-
-.card-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #222;
-}
-
-.badge-group {
-  position: absolute;
-  top: 6px;
-  right: 6px;
+  color: #f5a000; // jaune icône
+  position: relative;
 }
 
 .badge {
-  padding: 2px 6px;
+  position: absolute;
+  top: -6px;
+  right: -10px;
   font-size: 10px;
-  font-weight: 600;
-  border-radius: 6px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
 }
 
 .badge-alert {
-  background-color: #fadbd8;
-  color: #c0392b;
+  background-color: #fddede; // rouge très pâle
+  color: #b00020;
+}
+
+.stat-number {
+  font-size: 26px;
+  font-weight: bold;
+  color: #111;
+}
+
+.stat-label {
+  font-size: 14px;
+  margin-top: 4px;
+  font-weight: 500;
+  color: #333;
 }
