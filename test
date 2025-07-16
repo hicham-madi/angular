@@ -1,6 +1,10 @@
-<div
-  class="uk-card uk-card-default uk-padding-small uk-border-rounded uk-width-1-1 uk-flex uk-flex-column uk-flex-middle"
-  [ngClass]="{ 'clickable': clickable, 'active': active }"
->
-  ...
-</div>
+.card {
+  @extend .padding-xsmall;
+  @extend .border-radius-small;
+  position: relative;
+  flex: 0 0 auto;
+  font-family: $metabot-font-montserrat, serif;
+  align-content: center;
+  display: flex;
+  flex-direction: column;
+}
