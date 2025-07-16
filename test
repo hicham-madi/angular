@@ -1,63 +1,6 @@
-<div
-  class="card uk-card uk-card-default uk-padding-small uk-flex uk-flex-column uk-position-relative"
-  [ngClass]="[
-    card.clickable ? 'uk-transition-toggle clickable' : '',
-    card.active && activeType === card.type ? 'active' : '',
-    card.variant || 'default',
-    card.wide ? 'wide' : '',
-    card.small ? 'small' : '',
-    card.count === 0 ? 'read' : ''
-  ]"
-  (click)="onClick()"
->
-  <div class="card-header uk-flex uk-flex-between uk-flex-middle uk-margin-small-bottom">
-    <div class="top uk-flex uk-flex-middle uk-flex-center uk-gap-small">
-      @if (card.icon) {
-        <mat-icon
-          fontSet="material-icons-outlined"
-          alt="icon"
-          class="icon"
-          [ngClass]="{ icon: true, 'icon-read': card.count === 0 }"
-        >
-          {{ card.icon }}
-        </mat-icon>
-      }
-      <span class="count">{{ card.count }}</span>
-    </div>
-  </div>
-
-  @if (card.badges?.length) {
-    <div class="badge-group uk-position-absolute uk-flex uk-flex-column uk-flex-between" style="top: 10px; right: 10px; height: 50px">
-      @for (badge of card.badges; track badge) {
-        <div
-          class="badge uk-flex uk-flex-middle uk-padding-xsmall uk-border-rounded"
-          [ngClass]="{
-            unread: badge.count > 0,
-            clickable: true,
-            active: activeType === badge.type && badge.count > 0
-          }"
-          (click)="onClickBadge(badge, $event)"
-        >
-          @if (badge.icon) {
-            <mat-icon
-              fontSet="material-icons-outlined"
-              alt="icon"
-              class="badge-icon"
-              [ngClass]="{ icon: true, 'icon-read': badge.count === 0 }"
-            >
-              {{ badge.icon }}
-            </mat-icon>
-          }
-          <div
-            class="badge-value uk-text-bold uk-text-small"
-            [ngClass]="{ 'badge-read': badge.count === 0 }"
-          >
-            {{ badge.count }}
-          </div>
-        </div>
-      }
-    </div>
-  }
-
-  <div class="label uk-text-center uk-text-small">{{ card.label }}</div>
-</div>
+<input-control
+  [label]="'Rechercher...'"
+  [control]="searchControl"
+  [type]="'TEXT'"
+  (input)="onSearchChange()">
+</input-control>
