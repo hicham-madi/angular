@@ -1,63 +1,63 @@
-@import 'common';
-
 .card {
-  position: relative;
-  width: 100%;
-  flex-direction: column;
-  padding: 10px;
-  border-radius: 5px;
-  font-family: 'Montserrat', serif;
-  align-content: center;
-  flex: 0 0 auto;
+  // ... (autres styles déjà définis précédemment)
 
-  &.read {
-    background: #ffffff !important;
-    color: rgba(221, 221, 221, 1) !important;
-  }
-
-  &.clickable {
-    cursor: pointer;
-    transition: transform 0.1s ease;
-
-    &:hover {
-      transform: scale(1.08);
-    }
-  }
-
-  &.active {
-    border: 2px solid $danger-border;
-    box-shadow: $danger-background;
-  }
-
-  .card-header {
+  .badge-group {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    height: 50px;
     display: flex;
+    flex-direction: column;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 4px;
   }
 
-  .top {
+  .badge {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 4px;
-  }
+    height: 50px;
+    width: 35px;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.6);
 
-  .icon {
-    font-size: 24px;
-    object-fit: contain;
-  }
+    &.unread {
+      background: $danger-background; // ex: light red
+    }
 
-  .count {
-    font-size: 20px;
-    line-height: 100%;
-  }
+    &-icon {
+      width: 14.75px;
+      height: 14.75px;
+      object-fit: contain;
+      font-size: 16px;
+    }
 
-  .label {
-    @extend .font-size-small;
-    height: 12px;
-    line-height: 100%;
-    text-align: center;
-    width: 75.12px;
+    &-value {
+      width: 8px;
+      height: 15px;
+      font-weight: 700;
+      font-size: 12.29px;
+      margin-bottom: 4px;
+    }
+
+    &.clickable {
+      cursor: pointer;
+      transition: transform 0.1s ease;
+
+      &:hover {
+        transform: scale(1.08);
+      }
+    }
+
+    &.active {
+      border: 2px solid #e53935;
+      box-shadow: 0 0 8px rgba(229, 57, 53, 0.5);
+    }
+
+    &.read {
+      color: rgba(221, 221, 221, 1) !important;
+    }
   }
 }
