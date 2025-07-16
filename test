@@ -5,29 +5,36 @@
   justify-content: center;
   align-items: center;
   text-align: center;
+  min-height: 120px; // à ajuster selon le rendu
+  border: 1px solid transparent;
   transition: background-color 0.3s ease;
 
   &.danger {
     background-color: $danger-light;
-    border: 1px solid $danger;
+    border-color: $danger;
   }
 
   &.warning {
     background-color: $warning-light;
-    border: 1px solid $warning;
+    border-color: $warning;
   }
 
   &.success {
     background-color: $success-light;
-    border: 1px solid $success;
+    border-color: $success;
   }
 }
-
-<div class="uk-card uk-card-default uk-card-body uk-card-small card">
-  <!-- Contenu ici, par exemple une icône + texte -->
-  <span uk-icon="icon: warning; ratio: 2"></span>
-  <div class="uk-margin-small-top">
-    43<br><small>non lues au total</small>
+<div class="uk-grid uk-child-width-1-6@m uk-grid-small" uk-grid>
+  <div>
+    <div class="uk-card uk-card-default uk-card-body uk-card-small card danger">
+      <span uk-icon="icon: warning; ratio: 2"></span>
+      <div class="uk-margin-small-top">43<br><small>non lues</small></div>
+    </div>
   </div>
+  <div>
+    <div class="uk-card uk-card-default uk-card-body uk-card-small card warning">
+      ...
+    </div>
+  </div>
+  <!-- autres cards -->
 </div>
-
