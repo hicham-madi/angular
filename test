@@ -1,78 +1,63 @@
-.card {
-  &.yellow        { background: $vert-3-color; }
-  &.sea-salt-sherbet { background: $vert-1-color; }
-  &.cloud-break   { background: $bleu-1-color; align-items: center; }
-  &.calcareous-sinter { background: $bleu-2-color; }
-  &.coastal-breeze {
-    background: $vert-2-color;
-    width: 300px;
+<div
+  class="card uk-card uk-card-default uk-padding-small uk-flex uk-flex-column uk-position-relative"
+  [ngClass]="[
+    card.clickable ? 'uk-transition-toggle clickable' : '',
+    card.active && activeType === card.type ? 'active' : '',
+    card.variant || 'default',
+    card.wide ? 'wide' : '',
+    card.small ? 'small' : '',
+    card.count === 0 ? 'read' : ''
+  ]"
+  (click)="onClick()"
+>
+  <div class="card-header uk-flex uk-flex-between uk-flex-middle uk-margin-small-bottom">
+    <div class="top uk-flex uk-flex-middle uk-flex-center uk-gap-small">
+      @if (card.icon) {
+        <mat-icon
+          fontSet="material-icons-outlined"
+          alt="icon"
+          class="icon"
+          [ngClass]="{ icon: true, 'icon-read': card.count === 0 }"
+        >
+          {{ card.icon }}
+        </mat-icon>
+      }
+      <span class="count">{{ card.count }}</span>
+    </div>
+  </div>
+
+  @if (card.badges?.length) {
+    <div class="badge-group uk-position-absolute uk-flex uk-flex-column uk-flex-between" style="top: 10px; right: 10px; height: 50px">
+      @for (badge of card.badges; track badge) {
+        <div
+          class="badge uk-flex uk-flex-middle uk-padding-xsmall uk-border-rounded"
+          [ngClass]="{
+            unread: badge.count > 0,
+            clickable: true,
+            active: activeType === badge.type && badge.count > 0
+          }"
+          (click)="onClickBadge(badge, $event)"
+        >
+          @if (badge.icon) {
+            <mat-icon
+              fontSet="material-icons-outlined"
+              alt="icon"
+              class="badge-icon"
+              [ngClass]="{ icon: true, 'icon-read': badge.count === 0 }"
+            >
+              {{ badge.icon }}
+            </mat-icon>
+          }
+          <div
+            class="badge-value uk-text-bold uk-text-small"
+            [ngClass]="{ 'badge-read': badge.count === 0 }"
+          >
+            {{ badge.count }}
+          </div>
+        </div>
+      }
+    </div>
   }
 
-  &.yellow,
-  &.sea-salt-sherbet,
-  &.cloud-break,
-  &.calcareous-sinter {
-    width: 190px;
-
-    .top {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-left: 60px;
-
-      .icon {
-        @extend .font-size-xxl;
-        width: 25.92px;
-        height: 25.92px;
-        font-size: 24px;
-      }
-
-      .count {
-        font-size: 20px;
-        width: 25px;
-        height: 24px;
-        line-height: 100%;
-      }
-    }
-
-    .label {
-      margin-left: 60px;
-    }
-  }
-
-  &.coastal-breeze {
-    .top {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-left: 60px;
-
-      .icon {
-        font-size: 24px;
-        width: 25.92px;
-        height: 25.92px;
-      }
-
-      .count {
-        font-size: 20px;
-        width: 25px;
-        height: 24px;
-        line-height: 100%;
-      }
-    }
-
-    .badge-group {
-      display: flex;
-      flex-direction: row;
-    }
-
-    .badge {
-      margin-left: 3px;
-    }
-
-    .label {
-      width: 145px;
-      margin-right: 25px;
-    }
-  }
-}
+  <div class="label uk-text-center uk-text-small">{{ card.label }}</div>
+</div>
