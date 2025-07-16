@@ -1,15 +1,61 @@
-<ng-template #partLabelTpl let-row>
-  <div class="copy-wrapper" (mouseenter)="row.hovered = true; row.copiedName = false;" (mouseleave)="row.hovered = false">
-    <mat-icon class="account" fontSet="material-icons-outlined">account_circle</mat-icon>
-    @if (row?.part2?.partLabel) {
-      <copy-clipboard 
-        [value]="row.part2.partLabel"
-        [copied]="row.copiedName"
-        (copiedChange)="row.copiedName = $event"
-        [hovered]="row.hovered"
-        class="copy-btn">
-        {{ row.part2.partLabel }}
-      </copy-clipboard>
-    }
-  </div>
-</ng-template>
+<div #scrollableWrapper class="table-scroll-wrapper" (scroll)="syncHeaderScroll()">
+  <!-- HEADER SYNCHRONISÉ -->
+  <table #headerTable mat-table [dataSource]="[]" matSort class="mat-elevation-z8 mat-header-table">
+    <ng-container *ngFor="let column of displayedColumns" [matColumnDef]="column">
+      <th mat-header-cell *matHeaderCellDef [ngStyle]="columnConfig[column]?.style || {}">
+        <ng-container *ngIf="column === 'slaLabel' && column === 'domainLabel'">
+          {{ getColumnConfig[column]?.label || column }}
+        </ng-container>
+        <ng-container *ngIf="column !== 'slaLabel'">
+          <span class="column-label" [innerHTML]="columnConfig[column]?.label || column"></span>
+        </ng-container>
+      </th>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+  </table>
+
+  <!-- BODY SCROLLABLE -->
+  <cdk-virtual-scroll-viewport itemSize="40" class="cdk-height" (scrolledIndexChange)="onCdkScroll()">
+    <table mat-table [dataSource]="tickets" class="mat-elevation-z8 mat-body-table">
+      <ng-container *ngFor="let column of displayedColumns; trackBy: trackColumn">
+        <ng-container [matColumnDef]="column">
+          <td mat-cell *matCellDef="let row" [ngStyle]="columnConfig[column]?.style || {}">
+            <ng-container *ngIf="columnTemplates[column]">
+              <ng-container *ngTemplateOutlet="columnTemplates[column]; context: { $implicit: row }"></ng-container>
+            </ng-container>
+          </td>
+        </ng-container>
+      </ng-container>
+
+      <tr mat-row *matRowDef="let row; columns: displayedColumns" [class.readCustomer]="isReadCustomer(row)" (click)="rowClick?.(row)"></tr>
+    </table>
+  </cdk-virtual-scroll-viewport>
+</div>
+
+@ViewChild('scrollableWrapper', { static: true }) scrollableWrapper!: ElementRef<HTMLDivElement>;
+@ViewChild('headerTable', { static: true }) headerTable!: ElementRef<HTMLTableElement>;
+
+syncHeaderScroll(): void {
+  const scrollLeft = this.scrollableWrapper.nativeElement.scrollLeft;
+  this.headerTable.nativeElement.style.transform = `translateX(-${scrollLeft}px)`;
+}
+
+.table-scroll-wrapper {
+  overflow-x: auto;
+  position: relative;
+}
+
+.mat-header-table {
+  table-layout: fixed;
+  width: max-content;
+  background: white;
+  z-index: 2;
+  position: sticky;
+  top: 0;
+}
+
+.mat-body-table {
+  table-layout: fixed;
+  width: max-content;
+}
