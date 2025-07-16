@@ -1,68 +1,157 @@
-<div class="uk-card uk-card-default uk-card-body uk-card-small stat-card card-demandes">
+<div
+  class="card uk-card uk-card-default uk-card-body uk-card-small"
+  [ngClass]="[
+    'clickable': card.clickable,
+    'active': card.active,
+    card.variant || 'default',
+    card.wide ? 'wide' : '',
+    card.small ? 'small' : '',
+    card.count === 0 ? 'read' : ''
+  ]"
+  (click)="card.type ? onClick() : null"
+>
+  <div class="card-header">
+    <div class="top">
+      <mat-icon *ngIf="card.icon" fontSet="material-icons-outlined" [ngClass]="{ 'icon': true, 'icon-read': card.count === 0 }">
+        {{ card.icon }}
+      </mat-icon>
+      <span class="count">{{ card.count }}</span>
+    </div>
 
-  <!-- ✅ Badge bien positionné en haut à droite -->
-  <div class="badge-global">
-    <div class="badge badge-alert">2</div>
+    <div *ngIf="card.badges?.length" class="badge-group">
+      <ng-container *ngFor="let badge of card.badges; trackBy: trackBadge">
+        <div
+          class="badge"
+          [ngClass]="{
+            'unread': badge.count > 0,
+            'clickable': badge.clickable,
+            'active': activeType === badge.type && badge.count > 0
+          }"
+          (click)="onClickBadge($event)"
+        >
+          <mat-icon fontSet="material-icons-outlined" class="badge-icon" [ngClass]="{ 'icon': true, 'icon-read': badge.count === 0 }">
+            {{ badge.icon }}
+          </mat-icon>
+          <div class="badge-value" [ngClass]="{ 'badge-read': badge.count === 0 }">{{ badge.count }}</div>
+        </div>
+      </ng-container>
+    </div>
   </div>
 
-  <!-- Contenu principal -->
-  <div class="stat-header">
-    <span class="icon-wrapper" uk-icon="icon: commenting; ratio: 2"></span>
-    <div class="stat-number">28</div>
-  </div>
-  <div class="stat-label">demandes</div>
-
+  <div class="label">{{ card.label }}</div>
 </div>
-.stat-card {
+
+.card {
   position: relative;
-  background-color: #fff7e6;
-  border-radius: 10px;
-  padding: 16px;
-  width: 220px;
-  text-align: center;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.stat-header {
+  width: 100%;
+  flex-direction: column;
+  padding: 10px;
+  border-radius: 5px;
+  font-family: 'Montserrat', serif;
+  align-content: center;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
 
-.icon-wrapper {
-  color: #f5a000;
-}
+  &.clickable {
+    cursor: pointer;
+    transition: transform 0.1s ease;
+  }
 
-.stat-number {
-  font-size: 26px;
-  font-weight: bold;
-  color: #111;
-}
+  &.clickable:hover {
+    transform: scale(1.08);
+  }
 
-.stat-label {
-  font-size: 14px;
-  color: #333;
-  margin-top: 4px;
-}
+  &.active {
+    border: 2px solid $danger-border;
+    box-shadow: $danger-background;
+  }
 
-/* ✅ Position parfaite du badge */
-.badge-global {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-}
+  &.read {
+    background: #ffffff !important;
+    color: rgba(221, 221, 221, 1) !important;
+  }
 
-/* ✅ Style parfait du badge */
-.badge {
-  background-color: #fddede;
-  color: #b00020;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 8px;
-  border-radius: 12px;
-  line-height: 1;
-  display: inline-block;
-  min-width: 24px;
-  text-align: center;
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
+  .top {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    justify-content: center;
+
+    .icon {
+      font-size: 24px;
+      object-fit: contain;
+    }
+
+    .count {
+      font-size: 20px;
+      line-height: 100%;
+      width: 25px;
+      height: 24px;
+    }
+  }
+
+  .label {
+    @extend .font-size-small;
+    height: 12px;
+    line-height: 100%;
+    text-align: center;
+    width: 75.12px;
+  }
+
+  .badge-group {
+    position: absolute;
+    margin-top: 10px;
+    right: 10px;
+    height: 50px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .badge {
+    height: 25px;
+    width: 35px;
+    display: flex;
+    align-items: center;
+    padding: 3px 5px;
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.6);
+
+    &.unread {
+      background: linear-gradient(252.13deg, rgba(255, 166, 167, 0.6) -38.94%, rgba(255, 237, 238, 0.6));
+    }
+
+    .badge-value {
+      width: 8px;
+      height: 15px;
+      font-weight: 700;
+      font-size: 12.29px;
+      margin-left: 6px;
+
+      &.badge-read {
+        color: rgba(221, 221, 221, 1);
+      }
+    }
+
+    .badge-icon {
+      width: 14.75px;
+      height: 14.75px;
+      object-fit: contain;
+      font-size: 16px;
+    }
+  }
+
+  .icon-read {
+    filter: grayscale(100%) !important;
+    opacity: 0.3;
+    font-size: 16px;
+  }
 }
