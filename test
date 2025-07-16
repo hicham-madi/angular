@@ -1,28 +1,31 @@
-<span class="uk-badge badge unread">43</span>
+<div class="uk-grid uk-child-width-1-6@m uk-grid-small" uk-grid>
+  <div *ngFor="let card of cards">
+    <div class="uk-card uk-card-default uk-card-body uk-card-small card">
+      
+      <!-- Groupe de badges -->
+      <div class="badge-group">
+        <span *ngIf="card.badge1" class="uk-badge badge unread">{{ card.badge1 }}</span>
+        <span *ngIf="card.badge2" class="uk-badge badge warning">{{ card.badge2 }}</span>
+      </div>
 
-.badge {
-  @extend .uk-badge;
-  font-size: 10px;
-  font-weight: 600;
+      <!-- Icône + texte -->
+      <span [uk-icon]="'icon: ' + card.icon + '; ratio: 2'"></span>
+      <div class="uk-margin-small-top">
+        {{ card.value }}<br>
+        <small>{{ card.label }}</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+.card {
+  position: relative;
+  min-height: 130px;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
-  padding: 2px 6px;
-
-  &.unread {
-    background: linear-gradient(252.13deg, #ff6961, #ffa07a); // à ajuster
-    color: white;
-  }
-
-  &.success {
-    background-color: $success;
-    color: white;
-  }
-
-  &.warning {
-    background-color: $warning;
-    color: white;
-  }
+  align-items: center;
+  text-align: center;
 }
 
 .badge-group {
@@ -34,3 +37,27 @@
   gap: 6px;
 }
 
+.badge {
+  @extend .uk-badge;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &.unread {
+    background: linear-gradient(252.13deg, #ff6961, #ffa07a);
+    color: white;
+  }
+
+  &.warning {
+    background-color: #f6c344;
+    color: white;
+  }
+
+  &.success {
+    background-color: #32d296;
+    color: white;
+  }
+}
