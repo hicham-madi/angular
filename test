@@ -1,6 +1,15 @@
-<input-control
-  [label]="'Rechercher...'"
-  [control]="searchControl"
-  [type]="'TEXT'"
-  (input)="onSearchChange()">
-</input-control>
+<ng-template #partLabelTpl let-row>
+  <div class="copy-wrapper" (mouseenter)="row.hovered = true; row.copiedName = false;" (mouseleave)="row.hovered = false">
+    <mat-icon class="account" fontSet="material-icons-outlined">account_circle</mat-icon>
+    @if (row?.part2?.partLabel) {
+      <copy-clipboard 
+        [value]="row.part2.partLabel"
+        [copied]="row.copiedName"
+        (copiedChange)="row.copiedName = $event"
+        [hovered]="row.hovered"
+        class="copy-btn">
+        {{ row.part2.partLabel }}
+      </copy-clipboard>
+    }
+  </div>
+</ng-template>
