@@ -1,63 +1,46 @@
 .card {
-  // ... (autres styles déjà définis précédemment)
-
-  .badge-group {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    height: 50px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+  .icon-read {
+    filter: grayscale(100%) !important;
+    opacity: 0.3;
+    font-size: 16px;
   }
 
-  .badge {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    height: 50px;
-    width: 35px;
-    padding: 2px 6px;
-    font-size: 10px;
-    font-weight: 600;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.6);
+  .small-red {
+    width: 55px;
+    height: 60px;
+    padding: 4.8px 12.8px;
+    border-radius: 4.8px;
+    background: $danger-background;
 
-    &.unread {
-      background: $danger-background; // ex: light red
+    .card-header {
+      justify-content: center;
     }
 
-    &-icon {
-      width: 14.75px;
-      height: 14.75px;
-      object-fit: contain;
-      font-size: 16px;
-    }
+    .top {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
 
-    &-value {
-      width: 8px;
-      height: 15px;
-      font-weight: 700;
-      font-size: 12.29px;
-      margin-bottom: 4px;
-    }
+      .icon {
+        @extend .font-size-xxl;
+        width: 14.75px;
+        height: 14.75px;
+      }
 
-    &.clickable {
-      cursor: pointer;
-      transition: transform 0.1s ease;
-
-      &:hover {
-        transform: scale(1.08);
+      .icon-read {
+        filter: brightness(0%) !important;
+        opacity: 0.1;
       }
     }
 
-    &.active {
-      border: 2px solid #e53935;
-      box-shadow: 0 0 8px rgba(229, 57, 53, 0.5);
+    .count {
+      font-size: 20px;
+      width: 9px;
+      height: 15px;
     }
+  }
 
-    &.read {
-      color: rgba(221, 221, 221, 1) !important;
-    }
+  .label {
+    width: 55px;
   }
 }
