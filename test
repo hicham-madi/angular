@@ -1,26 +1,26 @@
 <div class="uk-card uk-card-default uk-card-body uk-card-small stat-card card-demandes">
-  <!-- Badge global bien positionné -->
+
+  <!-- ✅ Badge bien positionné en haut à droite -->
   <div class="badge-global">
-    <span class="badge badge-alert">
-      <span uk-icon="icon: flag; ratio: 0.9"></span> 2
-    </span>
+    <div class="badge badge-alert">2</div>
   </div>
 
+  <!-- Contenu principal -->
   <div class="stat-header">
-    <div class="icon-wrapper" uk-icon="icon: commenting; ratio: 2"></div>
+    <span class="icon-wrapper" uk-icon="icon: commenting; ratio: 2"></span>
     <div class="stat-number">28</div>
   </div>
   <div class="stat-label">demandes</div>
-</div>
 
+</div>
 .stat-card {
+  position: relative;
   background-color: #fff7e6;
   border-radius: 10px;
-  width: 220px;
   padding: 16px;
+  width: 220px;
   text-align: center;
-  position: relative;
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .stat-header {
@@ -28,7 +28,6 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  position: relative;
 }
 
 .icon-wrapper {
@@ -43,31 +42,27 @@
 
 .stat-label {
   font-size: 14px;
-  margin-top: 4px;
-  font-weight: 500;
   color: #333;
+  margin-top: 4px;
 }
 
-/* ✅ Badge global dans le coin */
+/* ✅ Position parfaite du badge */
 .badge-global {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 6px;
+  right: 6px;
 }
 
-/* ✅ Badge stylisé comme dans la maquette */
+/* ✅ Style parfait du badge */
 .badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1;
-}
-
-.badge-alert {
   background-color: #fddede;
   color: #b00020;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  line-height: 1;
+  display: inline-block;
+  min-width: 24px;
+  text-align: center;
 }
