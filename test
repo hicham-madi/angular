@@ -1,56 +1,8 @@
-<div class="card"
-     [ngClass]="[
-       card.variant || 'default',
-       card.wide ? 'wide' : '',
-       card.small ? 'small' : '',
-       card.count === 0 ? 'read' : '',
-       card.count > 0 ? 'clickable' : '',
-       activeType === card.type && card.count > 0 ? 'active' : ''
-     ]"
-     (click)="onClick()">
-
-  <div class="card-header">
-    <div class="top">
-      @if (card.icon) {
-        @if (card.icon.startsWith('assets/')) {
-          <img [src]="card.icon" alt="icon"
-               [ngClass]="{ 'icon': true, 'icon-read': card.count === 0 }" />
-        } @else {
-          <mat-icon fontSet="material-icons-outlined"
-                    [ngClass]="{ 'icon': true, 'icon-read': card.count === 0 }">
-            {{ card.icon }}
-          </mat-icon>
-        }
-      }
-
-      <span class="count">{{ card.count }}</span>
-    </div>
-  </div>
-
-  @if (card.badges?.length) {
-    <div class="badge-group">
-      @for (badge of card.badges; track badge) {
-        <div class="badge"
-             [class.clickable]="badge.clickable && badge.count > 0"
-             [class.active]="activeType === badge.type && badge.count > 0"
-             [ngClass]="{ 'unread': badge.count > 0 }"
-             (click)="onClick(badge, $event)">
-          @if (badge.icon) {
-            <mat-icon fontSet="material-icons-outlined"
-                      class="badge-icon"
-                      [ngClass]="{ 'icon': true, 'icon-read': badge.count === 0 }">
-              {{ badge.icon }}
-            </mat-icon>
-          }
-
-          <div class="badge-value"
-               [ngClass]="{ 'badge-read': badge.count === 0 }">
-            {{ badge.count }}
-          </div>
-        </div>
-      }
-    </div>
-  }
-
-  <div class="label">{{ card.label }}</div>
-</div>
+.card-center-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  gap: 6px; // espace vertical entre icône, count, label
+}
