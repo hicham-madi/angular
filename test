@@ -1,12 +1,155 @@
-@if (badge.icon) {
-  @if (badge.icon.startsWith('assets/')) {
-    <img [src]="badge.icon" alt="badge icon" class="badge-icon" />
-  } @else {
-    <mat-icon 
-      fontSet="material-icons-outlined" 
-      class="badge-icon" 
-      [ngClass]="{ 'icon': true, 'icon-read': badge.count === 0 }">
-      {{ badge.icon }}
-    </mat-icon>
+@import 'common';
+
+.card {
+  position: relative;
+  width: 100%;
+  flex-direction: column;
+  padding: 10px;
+  border-radius: 5px;
+  font-family: 'Montserrat', serif;
+  background: white;
+  display: flex;
+  align-content: center;
+  flex: 0 0 auto;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+
+  // États
+  &.clickable {
+    cursor: pointer;
+
+    &:hover {
+      transform: scale(1.02);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  &.active {
+    border: 2px solid $text-primary;
+    box-shadow: 0 0 0 1px $text-primary;
+  }
+
+  &.read {
+    background: #ffffff !important;
+    color: rgba(221, 221, 221, 1) !important;
+  }
+
+  &.unread {
+    background: linear-gradient(
+      252.13deg,
+      rgba(255, 166, 167, 0.6) -38.94%,
+      rgba(255, 237, 238, 0.6) 109.8%
+    ) !important;
+  }
+
+  // Variantes
+  &.coastal-breeze { background: #e2f7f7; }
+  &.yellow { background: #fff7eb; }
+  &.sea-salt-sherbet { background: #fff7f7; }
+  &.cloud-break { background: #f6f3ff; }
+  &.calcareous-sinter { background: #dfeeff; }
+  &.small-red { background: $danger-background; }
+
+  // Taille spécifique (si nécessaire)
+  &.yellow,
+  &.sea-salt-sherbet,
+  &.calcareous-sinter {
+    width: 200px;
+  }
+
+  &.small-red {
+    width: 70px;
+    height: 65px;
+    padding: 4.8px 12.8px;
+    border-radius: 4.8px;
+  }
+
+  // Section haute
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
+  .top {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-left: 0;
+  }
+
+  // Contenu principal
+  .icon {
+    font-size: 24px;
+    width: 25.92px;
+    height: 25.92px;
+    object-fit: contain;
+  }
+
+  .count {
+    font-size: 20px;
+    line-height: 100%;
+    font-weight: 700;
+    width: auto;
+    height: auto;
+  }
+
+  .label {
+    @extend .font-size-small;
+    text-align: center;
+    width: 75px;
+    line-height: 100%;
+  }
+
+  // Groupe de badges
+  .badge-group {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    height: 50px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 45px;
+    width: 35px;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.6);
+
+    &-group-position {
+      top: 10px;
+      right: 10px;
+      height: 50px;
+    }
+
+    &-value {
+      width: 8px;
+      height: 15px;
+      font-weight: 700;
+      font-size: 12.29px;
+      margin-bottom: 4px;
+    }
+
+    &-icon {
+      width: 14.75px;
+      height: 14.75px;
+      font-size: 16px;
+      object-fit: contain;
+    }
+  }
+
+  .icon-read {
+    filter: grayscale(100%) !important;
+    opacity: 0.3;
+    font-size: 16px;
   }
 }
