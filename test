@@ -1,98 +1,70 @@
-.card {
-  position: relative;
+columnConfig: {
+  action: {
+    label: 'Action',
+    style: { width: '100px', minWidth: '100px', maxWidth: '100px' },
+  },
+  id: {
+    label: 'N° ticket',
+    style: { width: '140px', minWidth: '140px', maxWidth: '140px' },
+  },
+  lastActivityTimestamp: {
+    label: 'Dernière MAJ',
+    style: { width: '160px', minWidth: '160px', maxWidth: '160px' },
+  },
+  partLabel: {
+    label: 'Client',
+    style: { width: '250px', minWidth: '250px', maxWidth: '250px' },
+  },
+  domainLabel: {
+    label: 'Domaine<br/>Sous-domaine',
+    style: { width: '300px', minWidth: '300px', maxWidth: '300px' },
+  },
+  objectLabel: {
+    label: 'Objet de la sollicitation',
+    style: { width: '300px', minWidth: '300px', maxWidth: '300px' },
+  },
+  claimTypeLabel: {
+    label: 'Type',
+    style: { width: '200px', minWidth: '200px', maxWidth: '200px' },
+  },
+  slaLabel: {
+    label: 'Traitement<br/>Échéance',
+    style: { width: '140px', minWidth: '140px', maxWidth: '140px' },
+  },
+  status: {
+    label: 'Statut',
+    style: { width: '120px', minWidth: '120px', maxWidth: '120px' },
+  },
+  managedBy: {
+    label: 'Gérée par',
+    style: { width: '160px', minWidth: '160px', maxWidth: '160px' },
+  },
+}
+.fixed-table {
+  table-layout: fixed;
   width: 100%;
-  padding: 8px;
-  border-radius: 5px;
-  font-family: 'Montserrat', serif;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  transition: background-color 0.2s ease;
-}
-// === Mixin pour la couleur avec hover + active ===
-@mixin card-color($color) {
-  background-color: $color;
-
-  &.clickable:hover,
-  &.active {
-    background-color: darken($color, 5%);
-  }
 }
 
-// === Styles généraux de la carte ===
-.card {
-  position: relative;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  padding: 8px;
-  border-radius: 5px;
-  font-family: 'Montserrat', serif;
-  background: white;
-  align-content: center;
-  flex: 0 0 auto;
-  transition: transform 0.15s ease, box-shadow 0.2s ease;
-
-  gap: 6px;
-
-  &.clickable {
-    cursor: pointer;
-
-    &:hover {
-      // Le fond sera géré dynamiquement via le mixin
-      transform: scale(1.02);
-      box-shadow: none;
-    }
-  }
-
-  &.active {
-    // Couleur de fond gérée par le mixin
-    box-shadow: none;
-  }
-
-  &.read {
-    opacity: 0.8;
-  }
+::ng-deep .mat-header-cell,
+::ng-deep .mat-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
-// === Cartes spécifiques avec couleurs uniques ===
-.coastal-breeze {
-  @include card-color(#e2f7f7);
-  width: 315px;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 6px;
-
-  .top {
-    margin-left: 60px;
-  }
-
-  .badge-group {
-    display: flex;
-    justify-content: center;
-    flex-direction: row;
-  }
-
-  .badge {
-    margin-left: 5px;
-  }
-
-  .label {
-    width: 145px;
-  }
+::ng-deep .mat-header-cell {
+  font-weight: 600;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  color: $text-primary;
+  background: $text-background;
+  height: 50px;
 }
 
-.calcareous-sinter {
-  @include card-color(#ffe9e9);
-}
-
-.verdant-meadow {
-  @include card-color(#d8ead7);
-}
-
-.cloudy-peach {
-  @include card-color(#f7ece6);
+::ng-deep .mat-cell {
+  font-size: 14px;
+  font-family: 'Montserrat', sans-serif;
+  height: 50px;
+  align-items: center;
 }
