@@ -1,70 +1,60 @@
-columnConfig: {
-  action: {
-    label: 'Action',
-    style: { width: '100px', minWidth: '100px', maxWidth: '100px' },
-  },
-  id: {
-    label: 'N° ticket',
-    style: { width: '140px', minWidth: '140px', maxWidth: '140px' },
-  },
-  lastActivityTimestamp: {
-    label: 'Dernière MAJ',
-    style: { width: '160px', minWidth: '160px', maxWidth: '160px' },
-  },
-  partLabel: {
-    label: 'Client',
-    style: { width: '250px', minWidth: '250px', maxWidth: '250px' },
-  },
-  domainLabel: {
-    label: 'Domaine<br/>Sous-domaine',
-    style: { width: '300px', minWidth: '300px', maxWidth: '300px' },
-  },
-  objectLabel: {
-    label: 'Objet de la sollicitation',
-    style: { width: '300px', minWidth: '300px', maxWidth: '300px' },
-  },
-  claimTypeLabel: {
-    label: 'Type',
-    style: { width: '200px', minWidth: '200px', maxWidth: '200px' },
-  },
-  slaLabel: {
-    label: 'Traitement<br/>Échéance',
-    style: { width: '140px', minWidth: '140px', maxWidth: '140px' },
-  },
-  status: {
-    label: 'Statut',
-    style: { width: '120px', minWidth: '120px', maxWidth: '120px' },
-  },
-  managedBy: {
-    label: 'Gérée par',
-    style: { width: '160px', minWidth: '160px', maxWidth: '160px' },
-  },
-}
-.fixed-table {
-  table-layout: fixed;
-  width: 100%;
+import { Component, Input, TemplateRef, ViewChild } from '@angular/core';
+
+@Component({
+  selector: 'metabot-solicitings-page-base',
+  standalone: true,
+  templateUrl: './solicitings-page-base.component.html',
+  styleUrls: ['./solicitings-page-base.component.scss'],
+  imports: [
+    // Ajoutez ici vos composants comme :
+    // CommonModule, MetabotPageHeaderComponent, MetabotFilterBarComponent, MetabotSolicitingsTableComponent, etc.
+  ]
+})
+export class SolicitingsPageBaseComponent {
+  @Input() title = '';
+  @Input() tickets: any[] = [];
+  @Input() statusList: any[] = [];
+
+  @Input() displayedColumns: string[] = [];
+  @Input() columnConfig: any = {};
+  @Input() columnTemplates: Record<string, string> = {};
+
+  @Input() rowClick!: (row: any) => void;
+  @Input() filtersTpl?: TemplateRef<any>;
+
+  @ViewChild('defaultFilterTpl', { static: true }) defaultFilterTpl!: TemplateRef<any>;
+
+  // Méthodes si besoin d'intercepter les événements
+  onSearchChange(value: string) {}
+  onStatusFilterChanged(value: string) {}
 }
 
-::ng-deep .mat-header-cell,
-::ng-deep .mat-cell {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  vertical-align: middle;
-}
+<div class="h-100 root">
 
-::ng-deep .mat-header-cell {
-  font-weight: 600;
-  font-family: 'Montserrat', sans-serif;
-  font-size: 14px;
-  color: $text-primary;
-  background: $text-background;
-  height: 50px;
-}
+  <!-- En-tête -->
+  <metabot-page-header
+    [currentCount]="tickets?.length"
+    [title]="title"
+  />
 
-::ng-deep .mat-cell {
-  font-size: 14px;
-  font-family: 'Montserrat', sans-serif;
-  height: 50px;
-  align-items: center;
-}
+  <!-- Barre de filtre -->
+  <metabot-filter-bar
+    [statusList]="statusList"
+    (searchChange)="onSearchChange($event)"
+    (statusChanged)="onStatusFilterChanged($event)"
+    [extraFiltersTpl]="filtersTpl || defaultFilterTpl"
+  />
+
+  <!-- Tableau -->
+  <metabot-solicitings-table
+    [tickets]="tickets"
+    [displayedColumns]="displayedColumns"
+    [columnConfig]="columnConfig"
+    [columnTemplates]="columnTemplates"
+    [rowClick]="rowClick"
+  />
+
+  <!-- Template par défaut vide si aucun filtre spécifique n'est fourni -->
+  <ng-template #defaultFilterTpl></ng-template>
+
+</div>
