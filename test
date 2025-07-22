@@ -1,30 +1,171 @@
-<!-- En-tête -->
-<metabot-page-header
-  [currentCount]="tickets?.length"
-  [title]="title">
-</metabot-page-header>
+import {
+  ChangeDetectorRef,
+  Component,
+  TemplateRef,
+  ViewChild,
+  ContentChild,
+  Output,
+  EventEmitter,
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { TicketsPageBase } from '../shared/tickets-page.base';
+import { FilterBarComponent } from '../../shared/components/filter-bar/filter-bar.component';
+import { PageBaseComponent } from '../../shared/components/page-base/page-base.component';
+import { StatusTabsComponent } from '../../shared/components/status-tabs/status-tabs.component';
+import { SolicitingsTableComponent } from '../../shared/components/solicitings-table/solicitings-table.component';
+import { ColumnConfigType, Ticket, FilterCardType } from '../../model';
 
-<!-- Cartes -->
-<div *ngIf="smallCards.length > 0 || largeCards.length > 0" class="dashboard-summary">
-  <ng-container *ngFor="let card of smallCards">
-    <metabot-dashboard-card
-      class="card"
-      [card]="card"
-      [class]="card.variant"
-      [activeType]="activeCard"
-      (cardclicked)="onCardClicked($event)">
-    </metabot-dashboard-card>
-  </ng-container>
+@Component({
+  selector: 'metabot-team-page',
+  standalone: true,
+  imports: [
+    CommonModule,
+    PageBaseComponent,
+    FilterBarComponent,
+    StatusTabsComponent,
+    SolicitingsTableComponent,
+  ],
+  templateUrl: './team-page.component.html',
+  styleUrls: ['./team-page.component.scss'],
+})
+export class TeamPageComponent extends TicketsPageBase {
+  @ViewChild('actionTpl') protected actionTpl!: TemplateRef<unknown>;
+  @ViewChild('idTpl') protected idTpl!: TemplateRef<unknown>;
+  @ViewChild('objectLabelTpl') protected objectLabelTpl!: TemplateRef<unknown>;
 
-  <div class="dashboard-separator"></div>
+  @ContentChild('filterBarTpl') protected filterBarTpl?: TemplateRef<unknown>;
 
-  <ng-container *ngFor="let card of largeCards">
-    <metabot-dashboard-card
-      class="card"
-      [card]="card"
-      [class]="card.variant"
-      [activeType]="activeCard"
-      (cardclicked)="onCardClicked($event)">
-    </metabot-dashboard-card>
-  </ng-container>
+  @Output() protected scrolled = new EventEmitter<void>();
+  @Output() protected cardClicked = new EventEmitter<FilterCardType>();
+
+  constructor(
+    override readonly cdr: ChangeDetectorRef
+  ) {
+    super(
+      /* listService */ undefined!,
+      /* mbotService */ undefined!,
+      /* jwtService */ undefined!,
+      /* constantsService */ undefined!,
+      /* router */ undefined!,
+      cdr,
+      /* tableConfigFactory */ undefined!,
+      /* cardConfigFactory */ undefined!
+    );
+  }
+
+  override ngOnInit(): void {
+    this.loadTickets(FilterCardType.NONE, this.cardClicked.emit.bind(this.cardClicked));
+
+    const config = this.tableConfigFactory.getBaseColumns();
+    this.displayedColumns = config.displayedColumns;
+    this.columnConfig = config.columnConfig;
+
+    this.statusTabs = [
+      { label: 'En cours', value: 'ongoing' },
+      { label: 'Terminées', value: 'completed' }
+    ];
+  }
+
+  override ngAfterViewInit(): void {
+    Promise.resolve().then(() => {
+      this.columnTemplates = this.tableConfigFactory.getBaseTemplates(this);
+      this.cdr.detectChanges();
+    });
+  }
+}
+
+<metabot-page-base
+  [title]="'Liste des tickets équipe'"
+  [tickets]="tickets"
+  [displayedColumns]="displayedColumns"
+  [columnConfig]="columnConfig"
+  [columnTemplates]="columnTemplates"
+  [statusTabs]="statusTabs"
+  [rowClick]="goToView"
+>
+  <ng-template #filterBarTpl>
+    <metabot-filter-bar
+      [statusList]="statusList"
+      (searchChanged)="onSearchChange($event)"
+      (statusChanged)="onStatusFilterChanged($event)"
+    />
+  </ng-template>
+</metabot-page-base>
+
+<!-- Templates nécessaires -->
+<ng-template #actionTpl let-row>
+  <span>{{ row?.id }}</span>
+</ng-template>
+
+<ng-template #idTpl let-row>
+  <span>{{ row?.id }}</span>
+</ng-template>
+
+<ng-template #objectLabelTpl let-row>
+  <span>{{ row?.object?.label }}</span>
+</ng-template>
+
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Input,
+  TemplateRef,
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { SolicitingsTableComponent } from '../solicitings-table/solicitings-table.component';
+import { FilterBarComponent } from '../filter-bar/filter-bar.component';
+import { PageHeaderComponent } from '../page-header/page-header.component';
+import { StatusTabsComponent } from '../status-tabs/status-tabs.component';
+import { Ticket, ColumnConfigType } from '../../../model';
+
+@Component({
+  selector: 'metabot-page-base',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    CommonModule,
+    PageHeaderComponent,
+    FilterBarComponent,
+    SolicitingsTableComponent,
+    StatusTabsComponent,
+  ],
+  templateUrl: './page-base.component.html',
+  styleUrls: ['./page-base.component.scss']
+})
+export class PageBaseComponent {
+  @Input() title = '';
+  @Input() tickets: Ticket[] = [];
+  @Input() displayedColumns: string[] = [];
+  @Input() columnConfig: ColumnConfigType = {};
+  @Input() columnTemplates: Record<string, TemplateRef<unknown>> = {};
+  @Input() statusTabs: { label: string; value: string }[] = [];
+  @Input() rowClick?: (ticket: Ticket) => void;
+
+  @Input() extraFiltersTpl?: TemplateRef<unknown>;
+}
+
+<div class="h-100 root">
+  <!-- En-tête -->
+  <metabot-page-header
+    [currentCount]="tickets?.length"
+    [title]="title"
+  />
+
+  <!-- Barre de filtre -->
+  <ng-container *ngTemplateOutlet="extraFiltersTpl"></ng-container>
+
+  <!-- Statuts -->
+  <metabot-status-tabs
+    [tabs]="statusTabs"
+    [currentCount]="tickets?.length"
+  />
+
+  <!-- Tableau -->
+  <metabot-solicitings-table
+    [tickets]="tickets"
+    [displayedColumns]="displayedColumns"
+    [columnConfig]="columnConfig"
+    [columnTemplates]="columnTemplates"
+    [rowClick]="rowClick"
+/>
 </div>
