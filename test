@@ -1,89 +1,30 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { PageBaseComponent } from '../../shared/components/page-base/page-base.component'; // adapte le chemin selon ton projet
+<!-- En-tête -->
+<metabot-page-header
+  [currentCount]="tickets?.length"
+  [title]="title">
+</metabot-page-header>
 
-@Component({
-  selector: 'metabot-team-page',
-  standalone: true,
-  imports: [
-    CommonModule,
-    PageBaseComponent,
-    // autres composants nécessaires (input-control, etc.)
-  ],
-  templateUrl: './team-page.component.html',
-})
-export class TeamPageComponent {
-  tickets = []; // à remplacer par ta source réelle
-  statusList = [];
+<!-- Cartes -->
+<div *ngIf="smallCards.length > 0 || largeCards.length > 0" class="dashboard-summary">
+  <ng-container *ngFor="let card of smallCards">
+    <metabot-dashboard-card
+      class="card"
+      [card]="card"
+      [class]="card.variant"
+      [activeType]="activeCard"
+      (cardclicked)="onCardClicked($event)">
+    </metabot-dashboard-card>
+  </ng-container>
 
-  teamDisplayedColumns = ['id', 'status', 'type', 'objectLabel', 'managedBy'];
+  <div class="dashboard-separator"></div>
 
-  teamColumnConfig = {
-    id: { label: 'ID' },
-    status: { label: 'Statut' },
-    type: { label: 'Type' },
-    objectLabel: { label: 'Objet' },
-    managedBy: { label: 'Responsable' },
-  };
-
-  teamTemplates = {
-    status: 'statusTpl',
-    objectLabel: 'objectLabelTpl',
-    managedBy: 'managedByTpl',
-  };
-
-  goToView(row: any): void {
-    // ta logique de navigation
-  }
-
-  // Filtres personnalisés
-  selectedAgencyCtrl = null;
-  selectedCollaboratorCtrl = null;
-  filteredAgencies = [];
-  filteredCollaborators = [];
-
-  onAgencyChange(value: string) {
-    // logique à implémenter
-  }
-
-  onCollaboratorChange(value: string) {
-    // logique à implémenter
-  }
-}
-
-<metabot-page-base
-  [title]="'Tickets d’équipe'"
-  [tickets]="tickets"
-  [statusList]="statusList"
-  [displayedColumns]="teamDisplayedColumns"
-  [columnConfig]="teamColumnConfig"
-  [columnTemplates]="teamTemplates"
-  [rowClick]="goToView"
-  [filtersTpl]="teamFiltersTpl"
-/>
-
-<ng-template #teamFiltersTpl>
-  <!-- Filtres spécifiques à cette page -->
-  <input-control
-    type="AUTOCOMPLETE"
-    [control]="selectedAgencyCtrl"
-    [inputIcon]="{ icon: 'search', position: 'LEFT' }"
-    [labelPlaceholder]="'Saisissez une agence'"
-    [values]="filteredAgencies"
-    (input)="onAgencyChange($event)"
-  />
-
-  <input-control
-    type="AUTOCOMPLETE"
-    [control]="selectedCollaboratorCtrl"
-    [inputIcon]="{ icon: 'search', position: 'LEFT' }"
-    [labelPlaceholder]="'Saisissez un collaborateur'"
-    [values]="filteredCollaborators"
-    (input)="onCollaboratorChange($event)"
-  />
-</ng-template>
-
-<!-- Templates de colonnes spécifiques -->
-<ng-template #managedByTpl let-row>
-  <span>{{ row.managedBy?.fullName }}</span>
-</ng-template>
+  <ng-container *ngFor="let card of largeCards">
+    <metabot-dashboard-card
+      class="card"
+      [card]="card"
+      [class]="card.variant"
+      [activeType]="activeCard"
+      (cardclicked)="onCardClicked($event)">
+    </metabot-dashboard-card>
+  </ng-container>
+</div>
