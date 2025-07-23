@@ -1,31 +1,69 @@
-public List<Ticket> findMatchingTickets(String envId, String customerId, String edsId, String context) {
-    Predicate<Object, Ticket> p1 = null, p2 = null, p3 = null, p4 = null, p5 = null;
+public MbotPageDto getTicketsByCard(MbotRequestDataDto mbotRequestData, TicketContext context) {
+    Customer customer = resolveCustomer();
+    TicketFiltersDto filters = ticketBuilderService.buildTicketFilterFromMbotRequestData(customer, mbotRequestData);
+    Pageable pageable = filtersHelper.getPageable(filters);
 
-    if (TicketContext.SOLICITATIONS.getName().equals(context)) {
-        p1 = TicketCriteria.requests(customerId);
-        p2 = TicketCriteria.claims(customerId);
-        p3 = TicketCriteria.approvals(""); // TODO: managedId ?
-        p4 = TicketCriteria.discussionGroups("", edsId);
-        p5 = TicketCriteria.requestsExpertService("", edsId);
-    } else if (TicketContext.TEAM.getName().equals(context)) {
-        p1 = TicketCriteria.requests(customerId);
-        p2 = TicketCriteria.claims(customerId);
-        p3 = TicketCriteria.approvals(customerId);
-        p4 = TicketCriteria.discussionGroups(customerId, edsId);
-        p5 = TicketCriteria.requestsExpertService(customerId, edsId);
-    } else {
-        return Collections.emptyList();
-    }
+    String cardType = Optional.ofNullable(mbotRequestData.getCardType()).orElse(FilterCardType.NONE.getCode());
 
-    Predicate<Object, Ticket> predicate = Predicates.or(p1, p2, p3, p4, p5);
+    Predicate<Object, Ticket> predicate = switch (cardType) {
+        case "readCustomer" -> TicketCriteria.readCustomer(filters.getCustomer().getId(), filters.getEdsId());
 
-    return hazelcastTicketRepository
-            .findByViewTypeAndPredicate(envId,
-                    Arrays.asList(InMemoryViewEnum.ON_GOING, InMemoryViewEnum.TO_PROCESS),
-                    predicate)
-            .stream()
-            .distinct()
-            .toList();
+        case "treatmentIsLateDs" -> TicketCriteria.treatmentIsLateDs(filters.getCustomer().getId(), filters.getEdsId());
+
+        case "customerEdsDs" -> TicketCriteria.customerEds(filters.getCustomer().getId(), filters.getEdsId());
+
+        case "requests" -> TicketCriteria.requests(filters.getCustomer().getId());
+
+        case "claims" -> {
+            if (context == TicketContext.TEAM) {
+                yield TicketCriteria.claims(filters.getCustomer().getId());
+            } else {
+                yield TicketCriteria.claimsReadCustomer(filters.getCustomer().getId());
+            }
+        }
+
+        case "approvals" -> TicketCriteria.approvals(filters.getCustomer().getId());
+
+        case "discussionGroups" -> {
+            if (context == TicketContext.TEAM) {
+                yield TicketCriteria.discussionGroups(filters.getCustomer().getId(), filters.getEdsId());
+            } else {
+                yield TicketCriteria.discussionGroupsReadCustomer(filters.getCustomer().getId(), filters.getEdsId());
+            }
+        }
+
+        case "requestsExpertService" -> TicketCriteria.requestsExpertService(filters.getCustomer().getId(), filters.getEdsId());
+
+        case "requestsExpertServiceReadCustomer" ->
+                TicketCriteria.requestsExpertServiceReadCustomer(filters.getCustomer().getId(), filters.getEdsId());
+
+        case "requestsExpertServiceTreatmentIsLate" ->
+                TicketCriteria.requestsExpertServiceTreatmentIsLate(filters.getCustomer().getId(), filters.getEdsId());
+
+        case "requestsExpertServiceEds" ->
+                TicketCriteria.requestsExpertServiceEds(filters.getCustomer().getId(), filters.getEdsId());
+
+        default -> Predicates.or(
+                TicketCriteria.requests(filters.getCustomer().getId()),
+                TicketCriteria.claims(filters.getCustomer().getId()),
+                TicketCriteria.approvals(filters.getCustomer().getId()),
+                TicketCriteria.discussionGroups(filters.getCustomer().getId(), filters.getEdsId()),
+                TicketCriteria.requestsExpertService(filters.getCustomer().getId(), filters.getEdsId())
+        );
+    };
+
+    List<Ticket> tickets = hazelcastRepository.findByPredicate(customer.getOrg(), predicate);
+    long totalElements = tickets.size();
+
+    int pageNumber = pageable.getPageNumber();
+    int pageSize = pageable.getPageSize();
+    int fromIndex = Math.min(pageNumber * pageSize, tickets.size());
+    int toIndex = Math.min(fromIndex + pageSize, tickets.size());
+    List<Ticket> pagedTickets = tickets.subList(fromIndex, toIndex);
+
+    List<MbotTicketLightDto> ticketLightDto = iMapperTicket.listTicketToListMbotTicketDto(pagedTickets);
+
+    return MbotPageDto.builder()
+            .tickets(new PageImpl<>(ticketLightDto, pageable, totalElements))
+            .build();
 }
-
-refactor: remplacement des chaînes de contexte par l'enum TicketContext
