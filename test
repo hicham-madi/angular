@@ -1,89 +1,48 @@
-public MbotPageDto getTicketsByCard(MbotRequestDataDto mbotRequestData) {
-    Customer customer = resolveCustomer();
-    TicketFiltersDto filters = ticketBuilderService.buildTicketFilterFromMbotRequestData(customer, mbotRequestData);
-    Pageable pageable = FiltersHelper.getPageable(filters);
+public static com.hazelcast.query.Predicate<Object, Ticket> customerEdsDs(
+    String edsId,
+    List<String> edsChilds,
+    boolean isPrivate
+) {
+    Predicate<?, ?> edsPredicate;
 
-    String crdType = Optional.ofNullable(mbotRequestData.getCardType()).orElse(FilterCardType.NONE.getCode());
-    String ctx = IStringUtils.isEmpty(mbotRequestData.getContext()) ? "" : mbotRequestData.getContext();
-
-    Optional<FilterCardType> optionalCardType = Arrays.stream(FilterCardType.values())
-        .filter(c -> c.getCode().equals(crdType))
-        .findFirst();
-
-    Optional<TicketContext> optionalContext = Arrays.stream(TicketContext.values())
-        .filter(c -> c.getName().equals(ctx))
-        .findFirst();
-
-    if (optionalCardType.isEmpty() || optionalContext.isEmpty()) {
-        throw new IllegalArgumentException("CardType or Context inconnu : " + crdType + "/" + ctx);
+    if (edsChilds != null && !edsChilds.isEmpty()) {
+        edsPredicate = Predicates.in(CUSTOMER_EDS_ID_FIELD, edsChilds.toArray());
+    } else {
+        edsPredicate = Predicates.equal(CUSTOMER_EDS_ID_FIELD, edsId);
     }
 
-    FilterCardType cardType = optionalCardType.get();
-    TicketContext context = optionalContext.get();
-
-    Predicate<Object, Ticket> predicate = switch (context) {
-        case SOLICITATIONS -> buildPredicateForSolicitations(filters, cardType);
-        case TEAM -> buildPredicateForTeam(filters, cardType);
-        // case NOUVEL_ONGLET -> buildPredicateForNewTab(filters, cardType);
-    };
-
-    List<Ticket> tickets = hazelcastRepository.findByPredicate(customer.getOrg(), predicate);
-    long totalElements = tickets.size();
-
-    int pageNumber = pageable.getPageNumber();
-    int pageSize = pageable.getPageSize();
-    int fromIndex = Math.min(pageNumber * pageSize, tickets.size());
-    int toIndex = Math.min(fromIndex + pageSize, tickets.size());
-
-    List<Ticket> pagedTickets = tickets.subList(fromIndex, toIndex);
-    List<MbotTicketLightDto> ticketLightDto = IMapperTicket.INSTANCE.listTicketToListMbotTicketDto(pagedTickets);
-
-    return MbotPageDto.builder()
-        .tickets(new PageImpl<>(ticketLightDto, pageable, totalElements))
-        .build();
+    return Predicates.and(
+        Predicates.equal(CUSTOMER_EDS_FIELD, true),
+        edsPredicate,
+        Predicates.equal(CLAIM_TYPE_CODE_FIELD, ClaimTypeCode.DS.toString()),
+        isPrivate ? Predicates.equal(PRIVATE_FIELD, true) : Predicates.alwaysTrue()
+    );
 }
+case CUSTOMER_EDS_DS -> TicketCriteria.customerEdsDs(
+    filters.getCustomer().getEdsId(),
+    null,
+    false
+);
+
+case CUSTOMER_EDS_DS_TEAM -> TicketCriteria.customerEdsDs(
+    null,
+    edsChilds,
+    true
+);
+
 private Predicate<Object, Ticket> buildPredicateForSolicitations(TicketFiltersDto filters, FilterCardType cardType) {
-    Long customerId = filters.getCustomer().getId();
+    Eds eds = edsService.getEds(filters.getEnvId());
+    List<String> edsChilds = eds.getEdsChilds();
+
+    // ✅ Ajout du edsId principal s'il est non vide
     String edsId = filters.getCustomer().getEdsId();
+    if (StringUtils.isNotEmpty(edsId) && !edsChilds.contains(edsId)) {
+        edsChilds.add(edsId);
+    }
 
     return switch (cardType) {
-        case READ_CUSTOMER -> TicketCriteria.readCustomer(customerId, edsId, false);
-        case TREATMENT_IS_LATE_DS -> TicketCriteria.treatmentIsLateDs(customerId, edsId);
-        case CUSTOMER_EDS_DS -> TicketCriteria.customerEdsDs(customerId, edsId);
-        case REQUESTS -> TicketCriteria.requests(customerId);
-        case REQUESTS_READ_CUSTOMER -> TicketCriteria.requestsReadCustomer(customerId, edsId);
-        case CLAIMS -> TicketCriteria.claims(customerId, false);
-        case CLAIMS_READ_CUSTOMER -> TicketCriteria.claimsReadCustomer(customerId, edsId, false);
-        case APPROVALS -> TicketCriteria.approvals(customerId, false);
-        case DISCUSSION_GROUPS -> TicketCriteria.discussionGroups(customerId, false);
-        case DISCUSSION_GROUPS_READ_CUSTOMER -> TicketCriteria.discussionGroupsReadCustomer(customerId, edsId, false);
-        case REQUESTS_EXPERT_SERVICE -> TicketCriteria.requestsExpertService(customerId, edsId, false);
-        case REQUESTS_EXPERT_SERVICE_READ_CUSTOMER -> TicketCriteria.requestsExpertServiceReadCustomer(customerId, edsId, false);
-        case REQUESTS_EXPERT_SERVICE_TREATMENT_IS_LATE -> TicketCriteria.requestsExpertServiceTreatmentIsLate(customerId, edsId, false);
-        case REQUESTS_EXPERT_SERVICE_EDS -> TicketCriteria.requestsExpertServiceEds(customerId, edsId, false);
-        default -> TicketCriteria.defaultPredicate(customerId, edsId, false); // si tu veux un fallback
+        case FilterCardType.CUSTOMER_EDS_DS -> 
+            TicketCriteria.customerEdsDs(edsId, edsChilds, true);
+        // autres cas inchangés...
     };
 }
-private Predicate<Object, Ticket> buildPredicateForTeam(TicketFiltersDto filters, FilterCardType cardType) {
-    Long customerId = filters.getCustomer().getId();
-    String edsId = filters.getCustomer().getEdsId();
-
-    return switch (cardType) {
-        case READ_CUSTOMER -> TicketCriteria.readCustomer(customerId, edsId, true);
-        case TREATMENT_IS_LATE_DS -> TicketCriteria.treatmentIsLateDs(customerId, edsId);
-        case CUSTOMER_EDS_DS -> TicketCriteria.customerEdsDs(customerId, edsId);
-        case REQUESTS -> TicketCriteria.requests(customerId);
-        case REQUESTS_READ_CUSTOMER -> TicketCriteria.requestsReadCustomer(customerId, edsId);
-        case CLAIMS -> TicketCriteria.claims(customerId, true);
-        case CLAIMS_READ_CUSTOMER -> TicketCriteria.claimsReadCustomer(customerId, edsId, true);
-        case APPROVALS -> TicketCriteria.approvals(customerId, true);
-        case DISCUSSION_GROUPS -> TicketCriteria.discussionGroups(customerId, true);
-        case DISCUSSION_GROUPS_READ_CUSTOMER -> TicketCriteria.discussionGroupsReadCustomer(customerId, edsId, true);
-        case REQUESTS_EXPERT_SERVICE -> TicketCriteria.requestsExpertService(customerId, edsId, true);
-        case REQUESTS_EXPERT_SERVICE_READ_CUSTOMER -> TicketCriteria.requestsExpertServiceReadCustomer(customerId, edsId, true);
-        case REQUESTS_EXPERT_SERVICE_TREATMENT_IS_LATE -> TicketCriteria.requestsExpertServiceTreatmentIsLate(customerId, edsId, true);
-        case REQUESTS_EXPERT_SERVICE_EDS -> TicketCriteria.requestsExpertServiceEds(customerId, edsId, true);
-        default -> TicketCriteria.defaultPredicate(customerId, edsId, true);
-    };
-}
-
