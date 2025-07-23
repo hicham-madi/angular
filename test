@@ -46,3 +46,25 @@ private Predicate<Object, Ticket> buildPredicateForSolicitations(TicketFiltersDt
         // autres cas inchangés...
     };
 }
+
+
+public static com.hazelcast.query.Predicate<Object, Ticket> customerEdsDs(String edsId, List<String> edsChilds, boolean isPrivate) {
+    Predicate<?, ?> edsPredicate;
+
+    if (edsChilds != null && !edsChilds.isEmpty()) {
+        List<String> ids = new ArrayList<>(edsChilds);
+        if (StringUtils.isNotEmpty(edsId) && !ids.contains(edsId)) {
+            ids.add(edsId);
+        }
+        edsPredicate = Predicates.in(CUSTOMER_EDS_ID_FIELD, ids.toArray(new Object[0]));
+    } else {
+        edsPredicate = Predicates.equal(CUSTOMER_EDS_ID_FIELD, edsId);
+    }
+
+    return Predicates.and(
+        Predicates.equal(CUSTOMER_EDS_FIELD, true),
+        edsPredicate,
+        Predicates.equal(CLAIM_TYPE_CODE_FIELD, ClaimTypeCode.DS.toString()),
+        isPrivate ? Predicates.equal(PRIVATE_FIELD, true) : Predicates.alwaysTrue()
+    );
+}
