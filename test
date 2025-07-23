@@ -1,29 +1,42 @@
-import { OnChanges, AfterViewInit, SimpleChanges } from '@angular/core';
+export enum TicketContext {
+  SOLICITINGS = 'solicitings',
+  TEAM = 'team',
+  // ... d'autres onglets ici
+}
 
-export class TicketsPageBase implements OnChanges, AfterViewInit {
+protected onCardClicked(type: FilterCardType, context: TicketContext): void {
+  this.activeCard = type;
+  this.currentPage = 0;
+  this.scrollCompleted = false;
+  this.tickets = [];
+  this.ticketsCount = 0;
 
-  @Input() columnTemplates: Record<string, string> = {};
-  @Input() columnConfig: any = {};
-  @Input() tableConfigFactory!: TableConfigFactory;
+  const observable = this.loadTicketsForContext(type, context);
 
-  ngAfterViewInit(): void {
-    Promise.resolve().then(() => {
-      this.columnTemplates = {
-        ...this.tableConfigFactory.getBaseTemplates(this),
-        ...this.columnTemplates,
-      };
-      this.cdr?.detectChanges();
-    });
+  observable.subscribe({
+    next: (response) => this.handleTicketResponse(response),
+    error: (err) => console.error(`Erreur lors du chargement des tickets (${context}) :`, err),
+  });
+}
+
+protected loadTicketsForContext(type: FilterCardType, context: TicketContext): Observable<MbotListV2> {
+  switch (context) {
+    case TicketContext.TEAM:
+      return this.mbotService.getTicketsForCardInTeamTab(type);
+    case TicketContext.SOLICITINGS:
+    default:
+      return this.cardConfigFactory.loadTicketsByCard(type);
   }
+}
+<metabot-dashboard-card
+  class="card"
+  [card]="card"
+  [class]="card.variant"
+  (cardClicked)="onCardClicked($event, TicketContext.TEAM)">
+</metabot-dashboard-card>
 
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['tickets']) {
-      console.log('tickets changed', this['tickets']);
-    }
+import { TicketContext } from '../../models/ticket-context.enum'; // ou le bon chemin
 
-    this.columnTemplates = {
-      ...this.tableConfigFactory.getBaseTemplates(this),
-      ...this.columnTemplates,
-    };
-  }
+export class TeamPageComponent extends TicketsPageBase {
+  TicketContext = TicketContext; // Pour l’utiliser dans le template
 }
