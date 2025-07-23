@@ -1,42 +1,31 @@
-export enum TicketContext {
-  SOLICITINGS = 'solicitings',
-  TEAM = 'team',
-  // ... d'autres onglets ici
+public List<Ticket> findMatchingTickets(String envId, String customerId, String edsId, String context) {
+    Predicate<Object, Ticket> p1 = null, p2 = null, p3 = null, p4 = null, p5 = null;
+
+    if (TicketContext.SOLICITATIONS.getName().equals(context)) {
+        p1 = TicketCriteria.requests(customerId);
+        p2 = TicketCriteria.claims(customerId);
+        p3 = TicketCriteria.approvals(""); // TODO: managedId ?
+        p4 = TicketCriteria.discussionGroups("", edsId);
+        p5 = TicketCriteria.requestsExpertService("", edsId);
+    } else if (TicketContext.TEAM.getName().equals(context)) {
+        p1 = TicketCriteria.requests(customerId);
+        p2 = TicketCriteria.claims(customerId);
+        p3 = TicketCriteria.approvals(customerId);
+        p4 = TicketCriteria.discussionGroups(customerId, edsId);
+        p5 = TicketCriteria.requestsExpertService(customerId, edsId);
+    } else {
+        return Collections.emptyList();
+    }
+
+    Predicate<Object, Ticket> predicate = Predicates.or(p1, p2, p3, p4, p5);
+
+    return hazelcastTicketRepository
+            .findByViewTypeAndPredicate(envId,
+                    Arrays.asList(InMemoryViewEnum.ON_GOING, InMemoryViewEnum.TO_PROCESS),
+                    predicate)
+            .stream()
+            .distinct()
+            .toList();
 }
 
-protected onCardClicked(type: FilterCardType, context: TicketContext): void {
-  this.activeCard = type;
-  this.currentPage = 0;
-  this.scrollCompleted = false;
-  this.tickets = [];
-  this.ticketsCount = 0;
-
-  const observable = this.loadTicketsForContext(type, context);
-
-  observable.subscribe({
-    next: (response) => this.handleTicketResponse(response),
-    error: (err) => console.error(`Erreur lors du chargement des tickets (${context}) :`, err),
-  });
-}
-
-protected loadTicketsForContext(type: FilterCardType, context: TicketContext): Observable<MbotListV2> {
-  switch (context) {
-    case TicketContext.TEAM:
-      return this.mbotService.getTicketsForCardInTeamTab(type);
-    case TicketContext.SOLICITINGS:
-    default:
-      return this.cardConfigFactory.loadTicketsByCard(type);
-  }
-}
-<metabot-dashboard-card
-  class="card"
-  [card]="card"
-  [class]="card.variant"
-  (cardClicked)="onCardClicked($event, TicketContext.TEAM)">
-</metabot-dashboard-card>
-
-import { TicketContext } from '../../models/ticket-context.enum'; // ou le bon chemin
-
-export class TeamPageComponent extends TicketsPageBase {
-  TicketContext = TicketContext; // Pour l’utiliser dans le template
-}
+refactor: remplacement des chaînes de contexte par l'enum TicketContext
