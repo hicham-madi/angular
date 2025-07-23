@@ -1,67 +1,14 @@
-public MbotPageDto getTicketsByCard(MbotRequestDataDto mbotRequestData) {
-    Customer customer = resolveCustomer(mbotRequestData);
-    TicketFiltersDto filters = ticketBuilderService.buildTicketFilterFromMbotRequestData(customer, mbotRequestData);
-    Pageable pageable = FiltersHelper.getPageable(filters);
+Optional<FilterCardType> optionalCardType = Arrays.stream(FilterCardType.values())
+    .filter(c -> c.getCode().equals(crdType))
+    .findFirst();
 
-    String cardType = Optional.ofNullable(mbotRequestData.getCardType())
-        .orElse(FilterCardType.NONE.getCode());
+Optional<TicketContext> optionalContext = Arrays.stream(TicketContext.values())
+    .filter(c -> c.getName().equals(ctx))
+    .findFirst();
 
-    TicketContext context = mbotRequestData.getContext(); // enum context passée dans la requête
-
-    Predicate<Object, Ticket> predicate = switch (context) {
-        case SOLICITATIONS -> switch (cardType) {
-            case "claimsReadCustomer" -> TicketCriteria.claimsReadCustomer(filters.getCustomer().getId());
-            case "claims" -> TicketCriteria.claims(filters.getCustomer().getId());
-            case "approvals" -> TicketCriteria.approvals(filters.getCustomer().getId());
-            case "discussionGroupsReadCustomer" -> TicketCriteria.discussionGroupsReadCustomer(filters.getCustomer().getId());
-            case "discussionGroups" -> TicketCriteria.discussionGroups(filters.getCustomer().getId());
-            case "requestsExpertServiceReadCustomer" -> TicketCriteria.requestsExpertServiceReadCustomer(
-                filters.getCustomer().getId(), filters.getCustomer().getEdsId());
-            case "requestsExpertServiceTreatmentIsLateDs" -> TicketCriteria.requestsExpertServiceTreatmentIsLateDs(
-                filters.getCustomer().getId(), filters.getCustomer().getEdsId());
-            case "requestsExpertServiceEds" -> TicketCriteria.requestsExpertServiceEds(
-                filters.getCustomer().getId(), filters.getCustomer().getEdsId());
-            default -> defaultPredicate(filters);
-        };
-        case TEAM -> switch (cardType) {
-            case "claimsReadCustomer" -> TicketCriteria.claimsReadCustomer(filters.getCustomer().getId());
-            case "claims" -> TicketCriteria.claims(filters.getCustomer().getId());
-            case "approvals" -> TicketCriteria.approvals("managerId"); // valeur fictive à adapter
-            case "discussionGroupsReadCustomer" -> TicketCriteria.discussionGroupsReadCustomer(filters.getCustomer().getId());
-            case "discussionGroups" -> TicketCriteria.discussionGroups(filters.getCustomer().getId());
-            case "requestsExpertServiceReadCustomer" -> TicketCriteria.requestsExpertServiceReadCustomer(
-                "userId", filters.getCustomer().getEdsId());
-            case "requestsExpertServiceTreatmentIsLateDs" -> TicketCriteria.requestsExpertServiceTreatmentIsLateDs(
-                "userId", filters.getCustomer().getEdsId());
-            case "requestsExpertServiceEds" -> TicketCriteria.requestsExpertServiceEds(
-                "userId", filters.getCustomer().getEdsId());
-            default -> defaultPredicate(filters);
-        };
-        default -> defaultPredicate(filters);
-    };
-
-    List<Ticket> tickets = hazelcastRepository.findByPredicate(customer.getOrg(), predicate);
-    long totalElements = tickets.size();
-
-    int pageNumber = pageable.getPageNumber();
-    int pageSize = pageable.getPageSize();
-    int fromIndex = Math.min(pageNumber * pageSize, tickets.size());
-    int toIndex = Math.min(fromIndex + pageSize, tickets.size());
-
-    List<Ticket> pagedTickets = tickets.subList(fromIndex, toIndex);
-    List<MbotTicketLightDto> ticketLightDto = iMapperTicket.listTicketToListMbotTicketDto(pagedTickets);
-
-    return MbotPageDto.builder()
-        .tickets(new PageImpl<>(ticketLightDto, pageable, totalElements))
-        .build();
+if (optionalCardType.isEmpty() || optionalContext.isEmpty()) {
+    throw new IllegalArgumentException("CardType or Context inconnu : " + crdType + " / " + ctx);
 }
 
-private Predicate<Object, Ticket> defaultPredicate(TicketFiltersDto filters) {
-    return Predicates.or(
-        TicketCriteria.requests(filters.getCustomer().getId()),
-        TicketCriteria.claims(filters.getCustomer().getId()),
-        TicketCriteria.approvals(filters.getCustomer().getId()),
-        TicketCriteria.discussionGroups(filters.getCustomer().getId()),
-        TicketCriteria.requestsExpertService(filters.getCustomer().getId(), filters.getCustomer().getEdsId())
-    );
-}
+FilterCardType cardType = optionalCardType.get();
+TicketContext context = optionalContext.get();
