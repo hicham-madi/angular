@@ -1,46 +1,20 @@
-import java.util.function.Predicate;
-import java.util.EnumMap;
-import java.util.Map;
+private boolean evaluateHazelcastPredicate(com.hazelcast.query.Predicate<Object, Ticket> predicate, Ticket ticket) {
+    return predicate.apply(Map.entry(UUID.randomUUID(), ticket));
+}
 
-@Service
-public class TicketStatsService {
+CARD_TYPE_PREDICATES.put(FilterCardType.READ_CUSTOMER, (ticket, userId, edsId) -> {
+    return new TicketStatsService().evaluateHazelcastPredicate(
+        TicketCriteria.readCustomer(userId, edsId, List.of(), false), ticket
+    );
+});
 
-    private static final Map<FilterCardType, PredicateContextual> CARD_TYPE_PREDICATES = new EnumMap<>(FilterCardType.class);
+CARD_TYPE_PREDICATES.put(FilterCardType.TREATMENT_IS_LATE_DS, (ticket, userId, edsId) -> {
+    return new TicketStatsService().evaluateHazelcastPredicate(
+        TicketCriteria.treatmentIsLateDsPredicate(userId, edsId, List.of(), false), ticket
+    );
+});
 
-    static {
-        CARD_TYPE_PREDICATES.put(FilterCardType.READ_CUSTOMER,
-            (ticket, userId, edsId) -> isReadCustomer(ticket, userId, edsId));
-        CARD_TYPE_PREDICATES.put(FilterCardType.TREATMENT_IS_LATE_DS,
-            (ticket, userId, edsId) -> isLateTreatmentDs(ticket, userId, edsId));
-        CARD_TYPE_PREDICATES.put(FilterCardType.CUSTOMER_EDS_DS,
-            (ticket, userId, edsId) -> isCustomerEdsDs(ticket, edsId));
-        // Ajoutez les autres de manière identique…
-    }
-
-    @FunctionalInterface
-    private interface PredicateContextual {
-        boolean test(Ticket ticket, String userId, String edsId);
-    }
-
-    public TicketCardsDto computeStats(List<Ticket> tickets, String userId, String edsId) {
-        TicketCardsDto.TicketCardsDtoBuilder builder = TicketCardsDto.builder();
-
-        for (Ticket ticket : tickets) {
-            for (Map.Entry<FilterCardType, PredicateContextual> entry : CARD_TYPE_PREDICATES.entrySet()) {
-                if (entry.getValue().test(ticket, userId, edsId)) {
-                    incrementBuilderField(builder, entry.getKey().name());
-                }
-            }
-        }
-
-        return builder.build();
-    }
-
-    public boolean ticketMatchesCardTypeConfig(Ticket ticket, FilterCardType cardType, String userId, String edsId) {
-        PredicateContextual predicate = CARD_TYPE_PREDICATES.get(cardType);
-        return predicate != null && predicate.test(ticket, userId, edsId);
-    }
-
-    // Méthodes comme isReadCustomer(), isLateTreatmentDs() etc. restent inchangées
-
+public boolean ticketMatchesCardTypeConfig(Ticket ticket, FilterCardType cardType, String userId, String edsId) {
+    PredicateContextual predicate = CARD_TYPE_PREDICATES.get(cardType);
+    return predicate != null && predicate.test(ticket, userId, edsId);
 }
