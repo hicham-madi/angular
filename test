@@ -1,85 +1,134 @@
-<div class="table-wrapper uk-flex uk-flex-column h-100">
-  <!-- TABLE HEAD FIXE -->
-  <table mat-table [dataSource]="[]" matSort class="mat-elevation-z8">
-    <ng-container *ngFor="let column of displayedColumns" [matColumnDef]="column">
-      <th mat-header-cell *matHeaderCellDef [ngStyle]="columnConfig[column]?.style || {}"
-          class="column-align"
-          (click)="sortData(column)">
-        <ng-container *ngIf="column !== 'slaLabel' && column !== 'domainLabel'">
-          {{ columnConfig[column]?.label || column }}
-        </ng-container>
-        <ng-container *ngIf="column === 'slaLabel' || column === 'domainLabel'">
-          <span class="column-label" [innerHTML]="columnConfig[column]?.label || column"></span>
-        </ng-container>
-        <ng-container *ngIf="column !== 'action'">
-          <mat-icon class="sort-icon" fontIcon="{{ getSortIcon(column) }}"></mat-icon>
-        </ng-container>
-      </th>
-    </ng-container>
-    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-  </table>
-
-  <!-- BODY SCROLLABLE -->
-  <cdk-virtual-scroll-viewport itemSize="40" class="uk-flex-1 uk-overflow-auto">
+<div class="table-scroll-wrapper">
+  <cdk-virtual-scroll-viewport
+    itemSize="50"
+    class="cdk-height"
+    (scrolledIndexChange)="onCdkScroll()"
+  >
     <table mat-table [dataSource]="tickets" class="mat-elevation-z8">
-      <ng-container *ngFor="let column of displayedColumns" [matColumnDef]="column">
-        <td mat-cell *matCellDef="let row" [ngStyle]="columnConfig[column]?.style || {}">
-          <ng-container *ngIf="columnTemplates[column]">
-            <ng-container *ngTemplateOutlet="columnTemplates[column]; context: { $implicit: row }"></ng-container>
-          </ng-container>
-        </td>
-      </ng-container>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns"
-          [class.readCustomer]="isReadCustomer(row)"
-          (click)="rowClick?.(row)">
-      </tr>
+
+      <!-- Colonnes dynamiques -->
+      @for (column of displayedColumns; track column) {
+        <ng-container [matColumnDef]="column">
+          
+          <!-- Header sticky -->
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            sticky
+            class="column-align"
+            [ngStyle]="columnConfig[column]?.style || {}"
+            (click)="sortData(column)"
+          >
+            @if (column !== 'slaLabel' && column !== 'domainLabel') {
+              {{ columnConfig[column]?.label || column }}
+            } @else {
+              <span class="column-label" [innerHTML]="columnConfig[column]?.label || column"></span>
+            }
+
+            @if (column !== 'action') {
+              <mat-icon class="sort-icon" fontIcon="{{ getSortIcon(column) }}"></mat-icon>
+            }
+          </th>
+
+          <!-- Cellule -->
+          <td
+            mat-cell
+            *matCellDef="let row"
+            [ngStyle]="columnConfig[column]?.style || {}"
+          >
+            @if (columnTemplates[column]) {
+              <ng-container
+                *ngTemplateOutlet="columnTemplates[column]; context: { $implicit: row }"
+              ></ng-container>
+            }
+          </td>
+        </ng-container>
+      }
+
+      <!-- Ligne header -->
+      <tr mat-header-row *matHeaderRowDef="displayedColumns" sticky></tr>
+
+      <!-- Ligne data -->
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns"
+        [class.readCustomer]="isReadCustomer(row)"
+        (click)="rowClick(row)"
+      ></tr>
+      
     </table>
   </cdk-virtual-scroll-viewport>
 </div>
-.table-wrapper {
-  @extend .scrollbar-ui;
-  @extend .uk-flex;
-  @extend .uk-flex-column;
-  @extend .h-100;
+@import 'common'; // si tu as un fichier commun pour fonts/couleurs
+
+:host {
+  display: block;
+}
+
+.table-scroll-wrapper {
+  max-height: 70vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid $text-border; // facultatif
+  border-radius: 8px;
+}
+
+cdk-virtual-scroll-viewport {
+  height: 100%;
+  display: block;
+}
+
+table {
   width: 100%;
+  table-layout: fixed;
 
-  table {
-    @extend .uk-table;
-    border-collapse: separate;
-    text-wrap: nowrap;
-
-    thead tr th,
-    tbody tr td {
-      padding: 10px;
-      border-bottom: 1px solid $text-border;
-    }
-
-    thead tr:first-child th,
-    tbody tr td:first-child {
-      @extend .padding-large-left;
-    }
-
-    thead tr:last-child th,
-    tbody tr td:last-child {
-      @extend .padding-large-right;
-    }
-
-    thead tr th {
-      @extend .font-weight-xs;
-      @extend .text-color;
-      text-transform: none;
-      position: sticky;
-      top: 0;
-      background-color: $text-background;
-      border-top: 1px solid $text-border;
-      border-bottom: 1px solid $text-border;
-    }
-
-    tbody tr td {
-      @extend .font-weight-medium;
-      @extend .text-primary-color;
-      @extend .padding-xsmall;
-      vertical-align: middle;
-    }
+  th.mat-header-cell,
+  td.mat-cell {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 8px 12px;
+    font-family: 'Montserrat', sans-serif;
   }
+
+  th.mat-header-cell {
+    background-color: $text-background;
+    color: $text-primary;
+    font-weight: 600;
+    font-size: 14px;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    border-bottom: 1px solid $text-border;
+  }
+
+  td.mat-cell {
+    font-size: 13px;
+    font-weight: 400;
+    border-bottom: 1px solid $text-border;
+  }
+
+  tr.mat-row:hover td.mat-cell {
+    background-color: rgba(0, 0, 0, 0.02);
+    transition: background-color 0.2s ease;
+  }
+
+  tr.mat-row.readCustomer td {
+    background-color: rgba(238, 248, 246, 1);
+    font-weight: 600;
+  }
+}
+
+.sort-icon {
+  margin-left: 5px;
+  vertical-align: middle;
+  font-size: 18px;
+}
+
+.column-align {
+  text-align: left;
+}
+
+.column-label {
+  line-height: 1.4;
 }
