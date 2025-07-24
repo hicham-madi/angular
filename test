@@ -1,44 +1,4 @@
-public isBadgeActive(badgeType: string): boolean {
-  return this.activeType === badgeType;
-}
+export * from './lib/informations/ticket-reclamation/ticket-reclamation-timeline/ticket-reclamation-timeline.component';
 
-public isBadgeDimmed(badgeType: string): boolean {
-  return this.cardClickedOnce && this.activeType !== FilterCardType.NONE && !this.isBadgeActive(badgeType);
-}
-<div *for="let badge of card.badges; track badge" class="badge"
-  [class.clickable]="badge.clickable && badge.count > 0"
-  [class.active]="isBadgeActive(badge.type)"
-  [class.dimmed]="isBadgeDimmed(badge.type)"
-  (click)="onClick(badge, $event)">
+import { TicketReclamationTimelineComponent } from '@metabot/view';
 
-<div class="card"
-  [ngClass]="[
-    card.variant || 'default',
-    card.wide ? 'wide' : '',
-    card.small ? 'small' : '',
-    card.count === 0 ? 'read' : '',
-    card.count > 0 ? 'clickable' : '',
-    isActive() ? 'active' : '',
-    isDimmed() ? 'dimmed' : '',
-    hasActiveBadge() ? 'active' : '',
-    hasDimmedBadge() ? 'dimmed' : ''
-  ]"
-  (click)="onClick()">
-
-public hasActiveBadge(): boolean {
-  return this.card.badges?.some(b => this.isBadgeActive(b.type));
-}
-
-public hasDimmedBadge(): boolean {
-  return this.cardClickedOnce && this.activeType !== FilterCardType.NONE && !this.hasActiveBadge();
-}
-
-.card.dimmed,
-.badge.dimmed {
-  opacity: 0.5;
-}
-
-.card.active,
-.badge.active {
-  opacity: 1;
-}
