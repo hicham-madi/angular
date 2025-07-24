@@ -1,20 +1,19 @@
-private boolean evaluateHazelcastPredicate(com.hazelcast.query.Predicate<Object, Ticket> predicate, Ticket ticket) {
-    return predicate.apply(Map.entry(UUID.randomUUID(), ticket));
-}
+public TicketCardsDto computeStats(List<Ticket> tickets, String userId, String edsId, List<String> edsChilds, boolean isPrivate)
 
-CARD_TYPE_PREDICATES.put(FilterCardType.READ_CUSTOMER, (ticket, userId, edsId) -> {
+CARD_TYPE_PREDICATES.put(FilterCardType.TREATMENT_IS_LATE_DS, (ticket, userId, edsId, edsChilds, isPrivate) -> {
     return new TicketStatsService().evaluateHazelcastPredicate(
-        TicketCriteria.readCustomer(userId, edsId, List.of(), false), ticket
+        TicketCriteria.treatmentIsLateDs(userId, edsId, edsChilds, isPrivate), ticket
     );
 });
 
-CARD_TYPE_PREDICATES.put(FilterCardType.TREATMENT_IS_LATE_DS, (ticket, userId, edsId) -> {
-    return new TicketStatsService().evaluateHazelcastPredicate(
-        TicketCriteria.treatmentIsLateDsPredicate(userId, edsId, List.of(), false), ticket
-    );
-});
-
-public boolean ticketMatchesCardTypeConfig(Ticket ticket, FilterCardType cardType, String userId, String edsId) {
-    PredicateContextual predicate = CARD_TYPE_PREDICATES.get(cardType);
-    return predicate != null && predicate.test(ticket, userId, edsId);
+@FunctionalInterface
+private interface PredicateContextual {
+    boolean test(Ticket ticket, String userId, String edsId, List<String> edsChilds, boolean isPrivate);
 }
+
+if (entry.getValue().test(ticket, userId, edsId, edsChilds, isPrivate)) {
+
+List<String> edsChilds = filters.getEdsChilds(); // ou un fallback vide si null
+boolean isPrivate = filters.isPrivate(); // selon ton modèle
+
+TicketCardsDto ticketStatsDto = ticketStatsService.computeStats(tickets, customer.getId(), customer.getEdsId(), edsChilds, isPrivate);
