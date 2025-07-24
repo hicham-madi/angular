@@ -4,22 +4,23 @@
       {{ getSlaLabel(row) }}
     </div>
 
-    <div *ngIf="!row?.recla && !!row?.recla2?.timeline; else dsTimeline">
+    @if (!row?.recla && !!row?.recla2?.timeline) {
       <metabot-bar-timeline
         [treatmentDate]="row?.recla2?.timeline[2]?.fromValue"
         [timeline]="row?.recla2?.timeline"
         [date]="row?.recla2?.confReceptionSendingDate === 'ENVOI' ? row?.recla2?.sendingDate : row?.recla2?.receivingDate"
       ></metabot-bar-timeline>
-    </div>
-
-    <ng-template #dsTimeline>
-      <ng-container *ngIf="row?.ds?.timeline">
-        <metabot-bar-timeline
-          [treatmentDate]="row?.ds?.timeline[2]?.fromValue"
-          [timeline]="row?.ds?.timeline"
-          [date]="row.ds.timeline.find(t => t.shortLabel === 'end')?.formattedValue"
-        ></metabot-bar-timeline>
-      </ng-container>
-    </ng-template>
+    } @else {
+      @for (step of row?.ds?.timeline || []; track step) {
+        @if (step?.shortLabel === 'end') {
+          <metabot-bar-timeline
+            [treatmentDate]="row?.ds?.timeline[2]?.fromValue"
+            [timeline]="row?.ds?.timeline"
+            [date]="step?.formattedValue"
+          ></metabot-bar-timeline>
+          @break
+        }
+      }
+    }
   </div>
 </ng-template>
