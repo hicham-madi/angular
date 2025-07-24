@@ -13,3 +13,18 @@
 .card {
   transition: opacity 0.2s ease;
 }
+
+feat(css): réduction d’opacité des cards inactives lorsqu’une card est active
+
+public hasActiveCard(): boolean {
+  return this.cards?.some(card => card.active);
+}
+
+<div [class.has-active-card]="hasActiveCard()">
+  <metabot-dashboard-card
+    *ngFor="let card of cards"
+    [card]="card"
+    [activeType]="activeType"
+    (cardClicked)="onCardClicked($event)">
+  </metabot-dashboard-card>
+</div>
