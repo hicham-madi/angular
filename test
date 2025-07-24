@@ -1,15 +1,14 @@
-public TicketCardsDto computeStats(List<Ticket> tickets, String userId, String edsId, List<String> edsChilds, boolean isPrivate) {
-    Map<FilterCardType, Long> counts = CARD_TYPE_PREDICATES.entrySet().stream()
-        .collect(Collectors.toMap(
-            Map.Entry::getKey,
-            entry -> tickets.stream()
-                .filter(ticket -> entry.getValue().test(ticket, userId, edsId, edsChilds, isPrivate))
-                .count()
-        ));
-
-    return TicketCardsDto.builder()
-        .treatmentIsLateDs(counts.getOrDefault(FilterCardType.TREATMENT_IS_LATE_DS, 0L).intValue())
-        // .readCustomer(counts.getOrDefault(FilterCardType.READ_CUSTOMER, 0L).intValue()) // à ajouter selon les autres prédicats
-        // .claims(counts.getOrDefault(FilterCardType.CLAIMS, 0L).intValue()) // etc.
-        .build();
+public static Predicate<Ticket> treatmentIsLateDsPredicate(String userId, String edsId, List<String> edsChilds, boolean isPrivate) {
+    return ticket -> {
+        if (!ticket.getClaimTypeCode().equals(ClaimTypeCode.DS)) return false;
+        if (!ticket.getStatus().isIn(StatusTicket.PROCESSING, StatusTicket.PENDING, ...)) return false;
+        if (isPrivate && !ticket.isPrivate()) return false;
+        // Vérifie edsId / edsChilds si nécessaire
+        return true;
+    };
 }
+CARD_TYPE_PREDICATES.put(
+    FilterCardType.TREATMENT_IS_LATE_DS,
+    (ticket, userId, edsId, edsChilds, isPrivate) ->
+        TicketCriteria.treatmentIsLateDsPredicate(userId, edsId, edsChilds, isPrivate).test(ticket)
+);
