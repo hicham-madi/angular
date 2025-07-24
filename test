@@ -18,3 +18,10 @@ private boolean isLateTreatmentDs(Ticket ticket, String userId, String edsId) {
 
     return predicate.test(ticket);
 }
+
+private static Predicate<Ticket> toJavaPredicate(com.hazelcast.query.Predicate<Object, Ticket> hzPredicate) {
+    return ticket -> {
+        Map.Entry<Object, Ticket> entry = new AbstractMap.SimpleEntry<>(ticket.getId(), ticket);
+        return hzPredicate.apply(entry);
+    };
+}
