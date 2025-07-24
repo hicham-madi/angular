@@ -1,27 +1,15 @@
-private static Predicate<Ticket> toJavaPredicate(com.hazelcast.query.Predicate<Object, Ticket> hzPredicate) {
-    return ticket -> hzPredicate.apply(ticket);
+:host-context(.has-active-card) .card:not(.active) {
+  opacity: 0.4;
 }
 
-private boolean isLateTreatmentDs(Ticket ticket, String userId, String edsId) {
-    if (ticket == null || ticket.getStatus() == null || ticket.getCustomer() == null || ticket.getDs() == null || ticket.getClaimType() == null) {
-        return false;
-    }
+<div [ngClass]="{ 'has-active-card': cards.some(c => c.active) }">
+  <metabot-dashboard-card
+    *ngFor="let card of cards"
+    [card]="card"
+    ...
+  ></metabot-dashboard-card>
+</div>
 
-    Predicate<Ticket> predicate = toJavaPredicate(
-        TicketCriteria.treatmentIsLateDs(
-            userId,
-            edsId,
-            List.of(), // ou récupérez les EDS enfants si nécessaire
-            ticket.isPrivate() // booléen
-        )
-    );
-
-    return predicate.test(ticket);
-}
-
-private static Predicate<Ticket> toJavaPredicate(com.hazelcast.query.Predicate<Object, Ticket> hzPredicate) {
-    return ticket -> {
-        Map.Entry<Object, Ticket> entry = new AbstractMap.SimpleEntry<>(ticket.getId(), ticket);
-        return hzPredicate.apply(entry);
-    };
+.card {
+  transition: opacity 0.2s ease;
 }
