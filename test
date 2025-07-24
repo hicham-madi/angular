@@ -1,29 +1,8 @@
-@Input() timeline: { shortLabel: string; formattedValueShort?: string; dayInBetweenDates?: number }[] = [];
+readonly DEFAULT_AGENCY = { code: 'ALL', label: 'Toutes les agences' };
 
-protected timelineRep?: { shortLabel: string; formattedValueShort?: string; dayInBetweenDates?: number };
+filteredAgencies = [
+  this.DEFAULT_AGENCY,
+  ...autresAgences // ton tableau habituel
+];
 
-public ngOnInit(): void {
-  if (!Array.isArray(this.timeline)) {
-    console.warn('BarTimelineComponent : timeline is not defined or not an array.');
-    return;
-  }
-
-  this.timelineRep = this.timeline.find((e) => e.shortLabel === 'REP');
-
-  if (!this.timelineRep) {
-    console.warn('BarTimelineComponent : No timeline item found with shortLabel === "REP"');
-    return;
-  }
-
-  this.countDay = this.getCountDay();
-
-  if (typeof this.timelineRep.dayInBetweenDates === 'number') {
-    this.bufferValue = Math.abs(this.timelineRep.dayInBetweenDates);
-  }
-
-  this.value = this.getProgress();
-
-  if (this.isInProgress()) {
-    this.backgroundColor = this.countDay >= 0 ? 'success-progress' : 'danger-progress';
-  }
-}
+selectedAgencyCtrl = new FormControl(this.DEFAULT_AGENCY);
