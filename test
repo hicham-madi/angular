@@ -1,8 +1,66 @@
-Map<FilterCardType, Long> counts = CARD_TYPE_PREDICATES.entrySet().stream()
-    .collect(Collectors.toMap(
-        Map.Entry::getKey,
-        entry -> hazelcastInstance
-            .<UUID, Ticket>getMap("ticket-cache") // 👈 ajout explicite ici
-            .values(entry.getValue().toPredicate(userId, edsId, edsChilds, isPrivate))
-            .size()
-    ));
+public class TicketCriteria {
+
+    private static final String CUSTOMER_EDS_ID_FIELD = "customer.edsId";
+    private static final String CUSTOMER_ID_FIELD = "customer.id";
+    private static final String CUSTOMER_EDS_FIELD = "customer.eds";
+    private static final String CLAIM_TYPE_CODE_FIELD = "claimType.code";
+    private static final String STATUS_FIELD = "status";
+    private static final String PRIVATE_FIELD = "private";
+    private static final String TREATMENT_IS_LATE_FIELD = "treatmentIsLate";
+
+    public static Predicate<Object, Ticket> treatmentIsLateDs(String userId, String edsId, List<String> edsChilds, boolean isPrivate) {
+        Predicate<Object, Ticket> edsPredicate = buildHazelcastEdsPredicate(edsId, edsChilds);
+
+        return Predicates.and(
+            Predicates.equal(TREATMENT_IS_LATE_FIELD, true),
+            Predicates.equal(CLAIM_TYPE_CODE_FIELD, "DS"),
+            Predicates.in(STATUS_FIELD, "PROCESSING", "VALIDATED", "REOPENED"),
+            Predicates.or(
+                Predicates.equal(CUSTOMER_ID_FIELD, userId),
+                Predicates.and(
+                    Predicates.equal(CUSTOMER_EDS_FIELD, true),
+                    edsPredicate
+                )
+            ),
+            isPrivate ? Predicates.equal(PRIVATE_FIELD, false) : Predicates.alwaysTrue()
+        );
+    }
+
+    private static Predicate<Object, Ticket> buildHazelcastEdsPredicate(String edsId, List<String> edsChilds) {
+        if (edsChilds != null && !edsChilds.isEmpty()) {
+            return Predicates.in(CUSTOMER_EDS_ID_FIELD, edsChilds.toArray(new Comparable[0]));
+        } else {
+            return Predicates.equal(CUSTOMER_EDS_ID_FIELD, edsId);
+        }
+    }
+}
+@FunctionalInterface
+private interface PredicateContextual {
+    Predicate<Object, Ticket> toPredicate(String userId, String edsId, List<String> edsChilds, boolean isPrivate);
+}
+
+private static final Map<FilterCardType, PredicateContextual> CARD_TYPE_PREDICATES = new EnumMap<>(FilterCardType.class);
+
+static {
+    CARD_TYPE_PREDICATES.put(
+        FilterCardType.TREATMENT_IS_LATE_DS,
+        (userId, edsId, edsChilds, isPrivate) -> TicketCriteria.treatmentIsLateDs(userId, edsId, edsChilds, isPrivate)
+    );
+}
+
+public TicketCardsDto computeStats(String userId, String edsId, List<String> edsChilds, boolean isPrivate) {
+    IMap<UUID, Ticket> ticketMap = hazelcastInstance.getMap("ticket-cache");
+
+    Map<FilterCardType, Long> counts = CARD_TYPE_PREDICATES.entrySet().stream()
+        .collect(Collectors.toMap(
+            Map.Entry::getKey,
+            entry -> ticketMap.values(
+                entry.getValue().toPredicate(userId, edsId, edsChilds, isPrivate)
+            ).size()
+        ));
+
+    return TicketCardsDto.builder()
+        .treatmentIsLateDs(counts.getOrDefault(FilterCardType.TREATMENT_IS_LATE_DS, 0L).intValue())
+        // Ajouter les autres .xxx(counts.getOrDefault(...)) si nécessaires
+        .build();
+}
