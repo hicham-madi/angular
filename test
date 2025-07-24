@@ -1,3 +1,34 @@
+import com.hazelcast.query.Predicate;
+
+public class TicketCriteria {
+
+    public static Predicate<Object, Ticket> treatmentIsLateDs(String userId, String edsId, List<String> edsChilds, boolean isPrivate) {
+        Predicate<Object, Ticket> edsPredicate = buildHazelcastEdsPredicate(edsId, edsChilds);
+
+        return Predicates.and(
+            Predicates.equal("treatmentIsLate", true),
+            Predicates.equal("claimType.code", "DS"),
+            Predicates.in("status", "PROCESSING", "VALIDATED", "REOPENED"),
+            Predicates.or(
+                Predicates.equal("customer.id", userId),
+                Predicates.and(
+                    Predicates.equal("customer.eds", true),
+                    edsPredicate
+                )
+            ),
+            isPrivate ? Predicates.equal("private", false) : Predicates.alwaysTrue()
+        );
+    }
+
+    private static Predicate<Object, Ticket> buildHazelcastEdsPredicate(String edsId, List<String> edsChilds) {
+        if (edsChilds != null && !edsChilds.isEmpty()) {
+            return Predicates.in("customer.edsId", edsChilds.toArray(new Comparable[0]));
+        } else {
+            return Predicates.equal("customer.edsId", edsId);
+        }
+    }
+}
+
 public class TicketCriteria {
 
     private static final String CUSTOMER_EDS_ID_FIELD = "customer.edsId";
