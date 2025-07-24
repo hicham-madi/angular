@@ -1,5 +1,14 @@
 CARD_TYPE_PREDICATES.put(
     FilterCardType.TREATMENT_IS_LATE_DS,
     (String userId, String edsId, List<String> edsChilds, boolean isPrivate) ->
-        (entryKey, ticket) -> TicketCriteria.treatmentIsLateDs(userId, edsId, edsChilds, isPrivate).test(entryKey, ticket)
+        TicketCriteria.treatmentIsLateDs(userId, edsId, edsChilds, isPrivate)
 );
+
+Map<FilterCardType, Long> counts = CARD_TYPE_PREDICATES.entrySet().stream()
+    .collect(Collectors.toMap(
+        Map.Entry::getKey,
+        entry -> hazelcastInstance
+            .getMap(Ticket.class.getSimpleName()) // ou le nom de ta map
+            .values(entry.getValue().toPredicate(userId, edsId, edsChilds, isPrivate))
+            .size()
+    ));
