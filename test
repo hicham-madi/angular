@@ -28,3 +28,8 @@ public hasActiveCard(): boolean {
     (cardClicked)="onCardClicked($event)">
   </metabot-dashboard-card>
 </div>
+
+return (
+  this.cardClickedOnce &&
+  [...this.smallCards, ...this.largeCards].some((card: DashboardCardData) => !!card.active)
+);
