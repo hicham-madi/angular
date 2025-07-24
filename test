@@ -1,26 +1,29 @@
-<ng-template #slaLabelTpl let-row>
-  <div class="sla-label">
-    <div [class]="getSlaSticker(row)" class="sla-sticker">
-      {{ getSlaLabel(row) }}
-    </div>
+@Input() timeline: { shortLabel: string; formattedValueShort?: string; dayInBetweenDates?: number }[] = [];
 
-    @if (!row?.recla && !!row?.recla2?.timeline) {
-      <metabot-bar-timeline
-        [treatmentDate]="row?.recla2?.timeline[2]?.fromValue"
-        [timeline]="row?.recla2?.timeline"
-        [date]="row?.recla2?.confReceptionSendingDate === 'ENVOI' ? row?.recla2?.sendingDate : row?.recla2?.receivingDate"
-      ></metabot-bar-timeline>
-    } @else {
-      @for (step of row?.ds?.timeline || []; track step) {
-        @if (step?.shortLabel === 'end') {
-          <metabot-bar-timeline
-            [treatmentDate]="row?.ds?.timeline[2]?.fromValue"
-            [timeline]="row?.ds?.timeline"
-            [date]="step?.formattedValue"
-          ></metabot-bar-timeline>
-          @break
-        }
-      }
-    }
-  </div>
-</ng-template>
+protected timelineRep?: { shortLabel: string; formattedValueShort?: string; dayInBetweenDates?: number };
+
+public ngOnInit(): void {
+  if (!Array.isArray(this.timeline)) {
+    console.warn('BarTimelineComponent : timeline is not defined or not an array.');
+    return;
+  }
+
+  this.timelineRep = this.timeline.find((e) => e.shortLabel === 'REP');
+
+  if (!this.timelineRep) {
+    console.warn('BarTimelineComponent : No timeline item found with shortLabel === "REP"');
+    return;
+  }
+
+  this.countDay = this.getCountDay();
+
+  if (typeof this.timelineRep.dayInBetweenDates === 'number') {
+    this.bufferValue = Math.abs(this.timelineRep.dayInBetweenDates);
+  }
+
+  this.value = this.getProgress();
+
+  if (this.isInProgress()) {
+    this.backgroundColor = this.countDay >= 0 ? 'success-progress' : 'danger-progress';
+  }
+}
