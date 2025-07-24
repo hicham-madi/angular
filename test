@@ -1,44 +1,51 @@
-.table-scroll-wrapper {
-  display: flex;
-  flex-direction: column;
-  height: 100%; // ou 100vh si dans la page complète
-  min-height: 0; // nécessaire pour scroll dynamique
-
-  table {
-    table-layout: fixed;
-    width: 100%;
-  }
-}
-
-.table-viewport {
-  flex: 1 1 auto;
-  overflow: auto;
-}
-
 <div class="table-scroll-wrapper uk-flex uk-flex-column">
-  <!-- Table HEADER fixe -->
+
+  <!-- TABLE FIXE POUR LES HEADERS UNIQUEMENT -->
   <table mat-table [dataSource]="[]" matSort class="mat-elevation-z8">
-    <ng-container *ngFor="let column of displayedColumns" [matColumnDef]="column">
-      <th mat-header-cell *matHeaderCellDef [ngStyle]="columnConfig[column]?.style || {}">
-        {{ columnConfig[column]?.label || column }}
+    <ng-container *ngFor="let column of displayedColumns; trackBy: trackColumn" [matColumnDef]="column">
+      <th mat-header-cell *matHeaderCellDef class="column-align" (click)="sortData(column)"
+          [ngStyle]="columnConfig[column]?.style || {}">
+
+        <ng-container *ngIf="column !== 'action'; else htmlLabel">
+          {{ columnConfig[column]?.label || column }}
+        </ng-container>
+        <ng-template #htmlLabel>
+          <span class="column-label" [innerHTML]="columnConfig[column]?.label || column"></span>
+        </ng-template>
+
+        <ng-container *ngIf="column !== 'action'">
+          <mat-icon class="sort-icon" fontIcon="{{ getSortIcon(column) }}"></mat-icon>
+        </ng-container>
       </th>
     </ng-container>
+
     <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
   </table>
 
-  <!-- Table BODY scrollable -->
+  <!-- SCROLLABLE BODY -->
   <cdk-virtual-scroll-viewport
-    itemSize="50"
     class="table-viewport uk-flex-1"
+    [itemSize]="50"
     (scrolledIndexChange)="onCdkScroll()"
   >
-    <table mat-table [dataSource]="tickets" class="mat-elevation-z8">
-      <ng-container *ngFor="let column of displayedColumns" [matColumnDef]="column">
-        <td mat-cell *matCellDef="let row" [ngStyle]="columnConfig[column]?.style || {}">
-          {{ row[column] }}
-        </td>
-      </ng-container>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-    </table>
+    <div *cdkVirtualFor="let row of tickets">
+      <table mat-table [dataSource]="[row]" class="mat-elevation-z8">
+        <ng-container *ngFor="let column of displayedColumns; trackBy: trackColumn" [matColumnDef]="column">
+          <td mat-cell *matCellDef="let row" [ngStyle]="columnConfig[column]?.style || {}">
+            <ng-container *ngIf="columnTemplates[column]; else defaultCell">
+              <ng-container *ngTemplateOutlet="columnTemplates[column]; context: { $implicit: row }"></ng-container>
+            </ng-container>
+            <ng-template #defaultCell>{{ row[column] }}</ng-template>
+          </td>
+        </ng-container>
+
+        <tr
+          mat-row
+          *matRowDef="let row; columns: displayedColumns"
+          (click)="rowClick(row)"
+          [class.readCustomer]="isReadCustomer(row)"
+        ></tr>
+      </table>
+    </div>
   </cdk-virtual-scroll-viewport>
 </div>
