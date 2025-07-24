@@ -1,14 +1,51 @@
-public static Predicate<Ticket> treatmentIsLateDsPredicate(String userId, String edsId, List<String> edsChilds, boolean isPrivate) {
-    return ticket -> {
-        if (!ticket.getClaimTypeCode().equals(ClaimTypeCode.DS)) return false;
-        if (!ticket.getStatus().isIn(StatusTicket.PROCESSING, StatusTicket.PENDING, ...)) return false;
-        if (isPrivate && !ticket.isPrivate()) return false;
-        // Vérifie edsId / edsChilds si nécessaire
-        return true;
-    };
+import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.map.IMap;
+import com.zef.wikipg.service.model.mongo.primary.ticket.Ticket;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class TicketStatsService {
+
+    private final HazelcastInstance hazelcastInstance;
+
+    private static final Map<FilterCardType, PredicateContextual> CARD_TYPE_PREDICATES = new EnumMap<>(FilterCardType.class);
+
+    static {
+        CARD_TYPE_PREDICATES.put(
+            FilterCardType.TREATMENT_IS_LATE_DS,
+            (userId, edsId, edsChilds, isPrivate) -> TicketCriteria.treatmentIsLateDs(userId, edsId, edsChilds, isPrivate)
+        );
+        // 👉 Ajoutez ici les autres prédicats (READ_CUSTOMER, CLAIMS...) si nécessaire
+    }
+
+    @FunctionalInterface
+    private interface PredicateContextual {
+        Predicate<Object, Ticket> toPredicate(String userId, String edsId, List<String> edsChilds, boolean isPrivate);
+    }
+
+    public TicketCardsDto computeStats(String userId, String edsId, List<String> edsChilds, boolean isPrivate) {
+        IMap<UUID, Ticket> ticketMap = hazelcastInstance.getMap("ticket-cache");
+
+        Map<FilterCardType, Long> counts = CARD_TYPE_PREDICATES.entrySet().stream()
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                entry -> ticketMap.values(entry.getValue().toPredicate(userId, edsId, edsChilds, isPrivate)).size()
+            ));
+
+        return TicketCardsDto.builder()
+            .treatmentIsLateDs(counts.getOrDefault(FilterCardType.TREATMENT_IS_LATE_DS, 0L).intValue())
+            // .readCustomer(...) etc. ajoutez les autres counts ici si ajoutés dans CARD_TYPE_PREDICATES
+            .build();
+    }
 }
-CARD_TYPE_PREDICATES.put(
-    FilterCardType.TREATMENT_IS_LATE_DS,
-    (ticket, userId, edsId, edsChilds, isPrivate) ->
-        TicketCriteria.treatmentIsLateDsPredicate(userId, edsId, edsChilds, isPrivate).test(ticket)
+TicketCardsDto ticketStatsDto = ticketStatsService.computeStats(
+    customer.getId(),
+    customer.getEdsId(),
+    new ArrayList<>(), // ou customer.getEdsChilds() si disponible
+    filters.isPrivate()
 );
