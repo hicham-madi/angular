@@ -1,31 +1,15 @@
-@Service
-@DependsOn({"configurationService"})
-public class TicketStatsService {
+public TicketCardsDto computeStats(List<Ticket> tickets, String userId, String edsId, List<String> edsChilds, boolean isPrivate) {
+    Map<FilterCardType, Long> counts = CARD_TYPE_PREDICATES.entrySet().stream()
+        .collect(Collectors.toMap(
+            Map.Entry::getKey,
+            entry -> tickets.stream()
+                .filter(ticket -> entry.getValue().test(ticket, userId, edsId, edsChilds, isPrivate))
+                .count()
+        ));
 
-    private static final Map<FilterCardType, PredicateContextual> CARD_TYPE_PREDICATES = new EnumMap<>(FilterCardType.class);
-
-    static {
-        CARD_TYPE_PREDICATES.put(FilterCardType.TREATMENT_IS_LATE_DS,
-            (ticket, userId, edsId, edsChilds, isPrivate) ->
-                TicketCriteria.treatmentIsLateDs(userId, edsId, edsChilds, isPrivate).apply(ticket)
-        );
-        // Tu pourras ajouter ici les autres prédicats avec la même logique
-    }
-
-    @FunctionalInterface
-    private interface PredicateContextual {
-        boolean test(Ticket ticket, String userId, String edsId, List<String> edsChilds, boolean isPrivate);
-    }
-
-    public TicketCardsDto computeStats(List<Ticket> tickets, String userId, String edsId, List<String> edsChilds, boolean isPrivate) {
-        Map<FilterCardType, Long> counts = CARD_TYPE_PREDICATES.entrySet().stream()
-            .collect(Collectors.toMap(
-                Map.Entry::getKey,
-                entry -> tickets.stream()
-                    .filter(ticket -> entry.getValue().test(ticket, userId, edsId, edsChilds, isPrivate))
-                    .count()
-            ));
-
-        return new TicketCardsDto(counts);
-    }
+    return TicketCardsDto.builder()
+        .treatmentIsLateDs(counts.getOrDefault(FilterCardType.TREATMENT_IS_LATE_DS, 0L).intValue())
+        // .readCustomer(counts.getOrDefault(FilterCardType.READ_CUSTOMER, 0L).intValue()) // à ajouter selon les autres prédicats
+        // .claims(counts.getOrDefault(FilterCardType.CLAIMS, 0L).intValue()) // etc.
+        .build();
 }
