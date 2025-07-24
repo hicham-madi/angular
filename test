@@ -1,4 +1,25 @@
-export * from './lib/informations/ticket-reclamation/ticket-reclamation-timeline/ticket-reclamation-timeline.component';
+<ng-template #slaLabelTpl let-row>
+  <div class="sla-label">
+    <div [class]="getSlaSticker(row)" class="sla-sticker">
+      {{ getSlaLabel(row) }}
+    </div>
 
-import { TicketReclamationTimelineComponent } from '@metabot/view';
+    <div *ngIf="!row?.recla && !!row?.recla2?.timeline; else dsTimeline">
+      <metabot-bar-timeline
+        [treatmentDate]="row?.recla2?.timeline[2]?.fromValue"
+        [timeline]="row?.recla2?.timeline"
+        [date]="row?.recla2?.confReceptionSendingDate === 'ENVOI' ? row?.recla2?.sendingDate : row?.recla2?.receivingDate"
+      ></metabot-bar-timeline>
+    </div>
 
+    <ng-template #dsTimeline>
+      <ng-container *ngIf="row?.ds?.timeline">
+        <metabot-bar-timeline
+          [treatmentDate]="row?.ds?.timeline[2]?.fromValue"
+          [timeline]="row?.ds?.timeline"
+          [date]="row.ds.timeline.find(t => t.shortLabel === 'end')?.formattedValue"
+        ></metabot-bar-timeline>
+      </ng-container>
+    </ng-template>
+  </div>
+</ng-template>
