@@ -1,14 +1,20 @@
-this.campaignsValues = [
-  { id: '1', label: 'notif 9' },
-  { id: '2', label: 'Notif 6' },
-  { id: '3', label: 'notiF 7' },
-  { id: '4', label: 'NotiF 11' },
-  { id: '5', label: 'Test Notif 10' },
-  { id: '6', label: 'test-timeline-value' },
-  { id: '7', label: 'test Notif n' }
-];
+private static Predicate<Ticket> toJavaPredicate(com.hazelcast.query.Predicate<Object, Ticket> hzPredicate) {
+    return ticket -> hzPredicate.apply(ticket);
+}
 
-// Filtrage sur ceux contenant "notif" (insensible à la casse)
-this.filteredCampaigns = this.campaignsValues.filter(c =>
-  c.label.toLowerCase().includes('notif')
-);
+private boolean isLateTreatmentDs(Ticket ticket, String userId, String edsId) {
+    if (ticket == null || ticket.getStatus() == null || ticket.getCustomer() == null || ticket.getDs() == null || ticket.getClaimType() == null) {
+        return false;
+    }
+
+    Predicate<Ticket> predicate = toJavaPredicate(
+        TicketCriteria.treatmentIsLateDs(
+            userId,
+            edsId,
+            List.of(), // ou récupérez les EDS enfants si nécessaire
+            ticket.isPrivate() // booléen
+        )
+    );
+
+    return predicate.test(ticket);
+}
