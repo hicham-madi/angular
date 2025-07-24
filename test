@@ -1,18 +1,31 @@
-public TicketCardsDto computeStats(List<Ticket> tickets, String userId, String edsId, List<String> edsChilds, boolean isPrivate) {
-    int treatmentIsLateDsCount = 0;
+@Service
+@DependsOn({"configurationService"})
+public class TicketStatsService {
 
-    for (Ticket ticket : tickets) {
-        for (Map.Entry<FilterCardType, PredicateContextual> entry : CARD_TYPE_PREDICATES.entrySet()) {
-            if (entry.getValue().test(ticket, userId, edsId, edsChilds, isPrivate)) {
-                switch (entry.getKey()) {
-                    case TREATMENT_IS_LATE_DS -> treatmentIsLateDsCount++;
-                    // Ajoute ici les autres cas quand on ajoutera les autres filtres
-                }
-            }
-        }
+    private static final Map<FilterCardType, PredicateContextual> CARD_TYPE_PREDICATES = new EnumMap<>(FilterCardType.class);
+
+    static {
+        CARD_TYPE_PREDICATES.put(FilterCardType.TREATMENT_IS_LATE_DS,
+            (ticket, userId, edsId, edsChilds, isPrivate) ->
+                TicketCriteria.treatmentIsLateDs(userId, edsId, edsChilds, isPrivate).apply(ticket)
+        );
+        // Tu pourras ajouter ici les autres prédicats avec la même logique
     }
 
-    return TicketCardsDto.builder()
-        .treatmentIsLateDs(treatmentIsLateDsCount)
-        .build();
+    @FunctionalInterface
+    private interface PredicateContextual {
+        boolean test(Ticket ticket, String userId, String edsId, List<String> edsChilds, boolean isPrivate);
+    }
+
+    public TicketCardsDto computeStats(List<Ticket> tickets, String userId, String edsId, List<String> edsChilds, boolean isPrivate) {
+        Map<FilterCardType, Long> counts = CARD_TYPE_PREDICATES.entrySet().stream()
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                entry -> tickets.stream()
+                    .filter(ticket -> entry.getValue().test(ticket, userId, edsId, edsChilds, isPrivate))
+                    .count()
+            ));
+
+        return new TicketCardsDto(counts);
+    }
 }
