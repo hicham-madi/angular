@@ -1,19 +1,38 @@
-public TicketCardsDto computeStats(List<Ticket> tickets, String userId, String edsId, List<String> edsChilds, boolean isPrivate)
+@Service
+@DependsOn({ "configurationService" })
+public class TicketStatsService {
 
-CARD_TYPE_PREDICATES.put(FilterCardType.TREATMENT_IS_LATE_DS, (ticket, userId, edsId, edsChilds, isPrivate) -> {
-    return new TicketStatsService().evaluateHazelcastPredicate(
-        TicketCriteria.treatmentIsLateDs(userId, edsId, edsChilds, isPrivate), ticket
-    );
-});
+    private static final Map<FilterCardType, PredicateContextual> CARD_TYPE_PREDICATES = new EnumMap<>(FilterCardType.class);
 
-@FunctionalInterface
-private interface PredicateContextual {
-    boolean test(Ticket ticket, String userId, String edsId, List<String> edsChilds, boolean isPrivate);
+    static {
+        CARD_TYPE_PREDICATES.put(FilterCardType.TREATMENT_IS_LATE_DS,
+            (ticket, userId, edsId, edsChilds, isPrivate) ->
+                new TicketStatsService().evaluateHazelcastPredicate(
+                    TicketCriteria.treatmentIsLateDs(userId, edsId, edsChilds, isPrivate), ticket
+                )
+        );
+    }
+
+    private boolean evaluateHazelcastPredicate(com.hazelcast.query.Predicate<Object, Ticket> predicate, Ticket ticket) {
+        return predicate.apply(Map.entry(UUID.randomUUID(), ticket));
+    }
+
+    @FunctionalInterface
+    private interface PredicateContextual {
+        boolean test(Ticket ticket, String userId, String edsId, List<String> edsChilds, boolean isPrivate);
+    }
+
+    public TicketCardsDto computeStats(List<Ticket> tickets, String userId, String edsId, List<String> edsChilds, boolean isPrivate) {
+        TicketCardsDto.TicketCardsDtoBuilder builder = TicketCardsDto.builder();
+
+        for (Ticket ticket : tickets) {
+            for (Map.Entry<FilterCardType, PredicateContextual> entry : CARD_TYPE_PREDICATES.entrySet()) {
+                if (entry.getValue().test(ticket, userId, edsId, edsChilds, isPrivate)) {
+                    incrementBuilderField(builder, entry.getKey().name());
+                }
+            }
+        }
+
+        return builder.build();
+    }
 }
-
-if (entry.getValue().test(ticket, userId, edsId, edsChilds, isPrivate)) {
-
-List<String> edsChilds = filters.getEdsChilds(); // ou un fallback vide si null
-boolean isPrivate = filters.isPrivate(); // selon ton modèle
-
-TicketCardsDto ticketStatsDto = ticketStatsService.computeStats(tickets, customer.getId(), customer.getEdsId(), edsChilds, isPrivate);
