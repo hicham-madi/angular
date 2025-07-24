@@ -1,70 +1,14 @@
-public static com.hazelcast.query.Predicate<Object, Ticket> customerEdsDs(
-    String edsId,
-    List<String> edsChilds,
-    boolean isPrivate
-) {
-    Predicate<?, ?> edsPredicate;
+this.campaignsValues = [
+  { id: '1', label: 'notif 9' },
+  { id: '2', label: 'Notif 6' },
+  { id: '3', label: 'notiF 7' },
+  { id: '4', label: 'NotiF 11' },
+  { id: '5', label: 'Test Notif 10' },
+  { id: '6', label: 'test-timeline-value' },
+  { id: '7', label: 'test Notif n' }
+];
 
-    if (edsChilds != null && !edsChilds.isEmpty()) {
-        edsPredicate = Predicates.in(CUSTOMER_EDS_ID_FIELD, edsChilds.toArray());
-    } else {
-        edsPredicate = Predicates.equal(CUSTOMER_EDS_ID_FIELD, edsId);
-    }
-
-    return Predicates.and(
-        Predicates.equal(CUSTOMER_EDS_FIELD, true),
-        edsPredicate,
-        Predicates.equal(CLAIM_TYPE_CODE_FIELD, ClaimTypeCode.DS.toString()),
-        isPrivate ? Predicates.equal(PRIVATE_FIELD, true) : Predicates.alwaysTrue()
-    );
-}
-case CUSTOMER_EDS_DS -> TicketCriteria.customerEdsDs(
-    filters.getCustomer().getEdsId(),
-    null,
-    false
+// Filtrage sur ceux contenant "notif" (insensible à la casse)
+this.filteredCampaigns = this.campaignsValues.filter(c =>
+  c.label.toLowerCase().includes('notif')
 );
-
-case CUSTOMER_EDS_DS_TEAM -> TicketCriteria.customerEdsDs(
-    null,
-    edsChilds,
-    true
-);
-
-private Predicate<Object, Ticket> buildPredicateForSolicitations(TicketFiltersDto filters, FilterCardType cardType) {
-    Eds eds = edsService.getEds(filters.getEnvId());
-    List<String> edsChilds = eds.getEdsChilds();
-
-    // ✅ Ajout du edsId principal s'il est non vide
-    String edsId = filters.getCustomer().getEdsId();
-    if (StringUtils.isNotEmpty(edsId) && !edsChilds.contains(edsId)) {
-        edsChilds.add(edsId);
-    }
-
-    return switch (cardType) {
-        case FilterCardType.CUSTOMER_EDS_DS -> 
-            TicketCriteria.customerEdsDs(edsId, edsChilds, true);
-        // autres cas inchangés...
-    };
-}
-
-
-public static com.hazelcast.query.Predicate<Object, Ticket> customerEdsDs(String edsId, List<String> edsChilds, boolean isPrivate) {
-    Predicate<?, ?> edsPredicate;
-
-    if (edsChilds != null && !edsChilds.isEmpty()) {
-        List<String> ids = new ArrayList<>(edsChilds);
-        if (StringUtils.isNotEmpty(edsId) && !ids.contains(edsId)) {
-            ids.add(edsId);
-        }
-        edsPredicate = Predicates.in(CUSTOMER_EDS_ID_FIELD, ids.toArray(new Object[0]));
-    } else {
-        edsPredicate = Predicates.equal(CUSTOMER_EDS_ID_FIELD, edsId);
-    }
-
-    return Predicates.and(
-        Predicates.equal(CUSTOMER_EDS_FIELD, true),
-        edsPredicate,
-        Predicates.equal(CLAIM_TYPE_CODE_FIELD, ClaimTypeCode.DS.toString()),
-        isPrivate ? Predicates.equal(PRIVATE_FIELD, true) : Predicates.alwaysTrue()
-    );
-}
