@@ -1,97 +1,85 @@
-import com.hazelcast.query.Predicate;
+<div class="table-wrapper uk-flex uk-flex-column h-100">
+  <!-- TABLE HEAD FIXE -->
+  <table mat-table [dataSource]="[]" matSort class="mat-elevation-z8">
+    <ng-container *ngFor="let column of displayedColumns" [matColumnDef]="column">
+      <th mat-header-cell *matHeaderCellDef [ngStyle]="columnConfig[column]?.style || {}"
+          class="column-align"
+          (click)="sortData(column)">
+        <ng-container *ngIf="column !== 'slaLabel' && column !== 'domainLabel'">
+          {{ columnConfig[column]?.label || column }}
+        </ng-container>
+        <ng-container *ngIf="column === 'slaLabel' || column === 'domainLabel'">
+          <span class="column-label" [innerHTML]="columnConfig[column]?.label || column"></span>
+        </ng-container>
+        <ng-container *ngIf="column !== 'action'">
+          <mat-icon class="sort-icon" fontIcon="{{ getSortIcon(column) }}"></mat-icon>
+        </ng-container>
+      </th>
+    </ng-container>
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+  </table>
 
-public class TicketCriteria {
+  <!-- BODY SCROLLABLE -->
+  <cdk-virtual-scroll-viewport itemSize="40" class="uk-flex-1 uk-overflow-auto">
+    <table mat-table [dataSource]="tickets" class="mat-elevation-z8">
+      <ng-container *ngFor="let column of displayedColumns" [matColumnDef]="column">
+        <td mat-cell *matCellDef="let row" [ngStyle]="columnConfig[column]?.style || {}">
+          <ng-container *ngIf="columnTemplates[column]">
+            <ng-container *ngTemplateOutlet="columnTemplates[column]; context: { $implicit: row }"></ng-container>
+          </ng-container>
+        </td>
+      </ng-container>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"
+          [class.readCustomer]="isReadCustomer(row)"
+          (click)="rowClick?.(row)">
+      </tr>
+    </table>
+  </cdk-virtual-scroll-viewport>
+</div>
+.table-wrapper {
+  @extend .scrollbar-ui;
+  @extend .uk-flex;
+  @extend .uk-flex-column;
+  @extend .h-100;
+  width: 100%;
 
-    public static Predicate<Object, Ticket> treatmentIsLateDs(String userId, String edsId, List<String> edsChilds, boolean isPrivate) {
-        Predicate<Object, Ticket> edsPredicate = buildHazelcastEdsPredicate(edsId, edsChilds);
+  table {
+    @extend .uk-table;
+    border-collapse: separate;
+    text-wrap: nowrap;
 
-        return Predicates.and(
-            Predicates.equal("treatmentIsLate", true),
-            Predicates.equal("claimType.code", "DS"),
-            Predicates.in("status", "PROCESSING", "VALIDATED", "REOPENED"),
-            Predicates.or(
-                Predicates.equal("customer.id", userId),
-                Predicates.and(
-                    Predicates.equal("customer.eds", true),
-                    edsPredicate
-                )
-            ),
-            isPrivate ? Predicates.equal("private", false) : Predicates.alwaysTrue()
-        );
+    thead tr th,
+    tbody tr td {
+      padding: 10px;
+      border-bottom: 1px solid $text-border;
     }
 
-    private static Predicate<Object, Ticket> buildHazelcastEdsPredicate(String edsId, List<String> edsChilds) {
-        if (edsChilds != null && !edsChilds.isEmpty()) {
-            return Predicates.in("customer.edsId", edsChilds.toArray(new Comparable[0]));
-        } else {
-            return Predicates.equal("customer.edsId", edsId);
-        }
-    }
-}
-
-public class TicketCriteria {
-
-    private static final String CUSTOMER_EDS_ID_FIELD = "customer.edsId";
-    private static final String CUSTOMER_ID_FIELD = "customer.id";
-    private static final String CUSTOMER_EDS_FIELD = "customer.eds";
-    private static final String CLAIM_TYPE_CODE_FIELD = "claimType.code";
-    private static final String STATUS_FIELD = "status";
-    private static final String PRIVATE_FIELD = "private";
-    private static final String TREATMENT_IS_LATE_FIELD = "treatmentIsLate";
-
-    public static Predicate<Object, Ticket> treatmentIsLateDs(String userId, String edsId, List<String> edsChilds, boolean isPrivate) {
-        Predicate<Object, Ticket> edsPredicate = buildHazelcastEdsPredicate(edsId, edsChilds);
-
-        return Predicates.and(
-            Predicates.equal(TREATMENT_IS_LATE_FIELD, true),
-            Predicates.equal(CLAIM_TYPE_CODE_FIELD, "DS"),
-            Predicates.in(STATUS_FIELD, "PROCESSING", "VALIDATED", "REOPENED"),
-            Predicates.or(
-                Predicates.equal(CUSTOMER_ID_FIELD, userId),
-                Predicates.and(
-                    Predicates.equal(CUSTOMER_EDS_FIELD, true),
-                    edsPredicate
-                )
-            ),
-            isPrivate ? Predicates.equal(PRIVATE_FIELD, false) : Predicates.alwaysTrue()
-        );
+    thead tr:first-child th,
+    tbody tr td:first-child {
+      @extend .padding-large-left;
     }
 
-    private static Predicate<Object, Ticket> buildHazelcastEdsPredicate(String edsId, List<String> edsChilds) {
-        if (edsChilds != null && !edsChilds.isEmpty()) {
-            return Predicates.in(CUSTOMER_EDS_ID_FIELD, edsChilds.toArray(new Comparable[0]));
-        } else {
-            return Predicates.equal(CUSTOMER_EDS_ID_FIELD, edsId);
-        }
+    thead tr:last-child th,
+    tbody tr td:last-child {
+      @extend .padding-large-right;
     }
-}
-@FunctionalInterface
-private interface PredicateContextual {
-    Predicate<Object, Ticket> toPredicate(String userId, String edsId, List<String> edsChilds, boolean isPrivate);
-}
 
-private static final Map<FilterCardType, PredicateContextual> CARD_TYPE_PREDICATES = new EnumMap<>(FilterCardType.class);
+    thead tr th {
+      @extend .font-weight-xs;
+      @extend .text-color;
+      text-transform: none;
+      position: sticky;
+      top: 0;
+      background-color: $text-background;
+      border-top: 1px solid $text-border;
+      border-bottom: 1px solid $text-border;
+    }
 
-static {
-    CARD_TYPE_PREDICATES.put(
-        FilterCardType.TREATMENT_IS_LATE_DS,
-        (userId, edsId, edsChilds, isPrivate) -> TicketCriteria.treatmentIsLateDs(userId, edsId, edsChilds, isPrivate)
-    );
-}
-
-public TicketCardsDto computeStats(String userId, String edsId, List<String> edsChilds, boolean isPrivate) {
-    IMap<UUID, Ticket> ticketMap = hazelcastInstance.getMap("ticket-cache");
-
-    Map<FilterCardType, Long> counts = CARD_TYPE_PREDICATES.entrySet().stream()
-        .collect(Collectors.toMap(
-            Map.Entry::getKey,
-            entry -> ticketMap.values(
-                entry.getValue().toPredicate(userId, edsId, edsChilds, isPrivate)
-            ).size()
-        ));
-
-    return TicketCardsDto.builder()
-        .treatmentIsLateDs(counts.getOrDefault(FilterCardType.TREATMENT_IS_LATE_DS, 0L).intValue())
-        // Ajouter les autres .xxx(counts.getOrDefault(...)) si nécessaires
-        .build();
+    tbody tr td {
+      @extend .font-weight-medium;
+      @extend .text-primary-color;
+      @extend .padding-xsmall;
+      vertical-align: middle;
+    }
+  }
 }
