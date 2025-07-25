@@ -1,103 +1,38 @@
-@Component({
-  selector: 'metabot-filter-bar',
-  templateUrl: './filter-bar.component.html',
-  styleUrls: ['./filter-bar.component.scss'],
-  standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
-})
-export class FilterBarComponent {
-  @Input() statusList: string[] = [];
-  @Input() agencyList: string[] = [];
-  @Input() collaboratorsList: string[] = [];
-  @Input() campaignsList: string[] = [];
-  @Input() extraFiltersTpl: TemplateRef<unknown> | null = null;
-
-  @Output() searchChanged = new EventEmitter<string>();
-  @Output() statusChanged = new EventEmitter<string>();
-
-  public searchTerm = '';
-  public selectedStatus = '';
-  public selectedAgency = '';
-  public selectedCollaborator = '';
-  public selectedCampaign = '';
-
-  public onSearchChange(): void {
-    this.searchChanged.emit(this.searchTerm.trim());
+protected getSortIcon(column: string): string {
+  if (this.sort?.active !== column) {
+    return 'unfold_more'; // Pas la colonne triée
   }
 
-  public onStatusChange(): void {
-    this.statusChanged.emit(this.selectedStatus);
+  return this.currentSortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward';
+}
+
+feat(table): tri par défaut sur 'lastActivityTimestamp' du plus récent au plus ancien avec icône adaptée
+
+public sortActive: string = 'lastActivityTimestamp';
+public sortDirection: 'asc' | 'desc' = 'desc';
+
+ngOnInit(): void {
+  this.currentSortDirection = this.sortDirection;
+  this.fetchTickets(this.sortActive, this.sortDirection);
+}
+
+protected sortData(column: string): void {
+  if (this.sortActive !== column) {
+    this.sortActive = column;
+    this.currentSortDirection = 'asc';
+  } else {
+    switch (this.currentSortDirection) {
+      case 'asc':
+        this.currentSortDirection = 'desc';
+        break;
+      case 'desc':
+        this.currentSortDirection = null;
+        break;
+      default:
+        this.currentSortDirection = 'asc';
+    }
   }
 
-  // Ajoute si besoin les autres émetteurs ici plus tard
+  this.sortDirection = this.currentSortDirection ?? 'asc';
+  this.fetchTickets(this.currentSortDirection ? column : null, this.currentSortDirection);
 }
-
-<div class="status">
-  <select [(ngModel)]="selectedStatus" (change)="onStatusChange()">
-    <option value="">Tous les statuts</option>
-    <option *ngFor="let status of statusList" [value]="status">
-      {{ status }}
-    </option>
-  </select>
-</div>
-
-<div class="agency">
-  <select [(ngModel)]="selectedAgency">
-    <option value="">Toutes les agences</option>
-    <option *ngFor="let agency of agencyList" [value]="agency">
-      {{ agency }}
-    </option>
-  </select>
-</div>
-
-<div class="collaborator">
-  <select [(ngModel)]="selectedCollaborator">
-    <option value="">Tous les collaborateurs</option>
-    <option *ngFor="let collaborator of collaboratorsList" [value]="collaborator">
-      {{ collaborator }}
-    </option>
-  </select>
-</div>
-
-<div class="campaign">
-  <select [(ngModel)]="selectedCampaign">
-    <option value="">Toutes les campagnes</option>
-    <option *ngFor="let campaign of campaignsList" [value]="campaign">
-      {{ campaign }}
-    </option>
-  </select>
-</div>
-
-<metabot-filter-bar
-  [statusList]="statusList"
-  [agencyList]="agencyList"
-  [collaboratorsList]="collaboratorsList"
-  [campaignsList]="campaignsList"
-  [extraFiltersTpl]="filterBarTpl"
-  (searchChanged)="onSearch($event)"
-  (statusChanged)="onStatusSelected($event)"
-></metabot-filter-bar>
-
-statusList: string[] = [];
-agencyList: string[] = [];
-collaboratorsList: string[] = [];
-campaignsList: string[] = [];
-
-
-export interface MbotPageDto {
-  // ...
-  statusList: string[];
-  agencyList: string[];
-  collaboratorsList: string[];
-  campaignsList: string[];
-  // ...
-}
-
-this.teamService.getMyTickets().subscribe((response: MbotPageDto) => {
-  this.statusList = response.statusList || [];
-  this.agencyList = response.agencyList || [];
-  this.collaboratorsList = response.collaboratorsList || [];
-  this.campaignsList = response.campaignsList || [];
-
-  // et tu continues à mapper les tickets si nécessaire
-});
