@@ -1,41 +1,103 @@
-public class TicketMetadataExtractor {
+@Component({
+  selector: 'metabot-filter-bar',
+  templateUrl: './filter-bar.component.html',
+  styleUrls: ['./filter-bar.component.scss'],
+  standalone: true,
+  imports: [CommonModule, FormsModule, MatIconModule],
+})
+export class FilterBarComponent {
+  @Input() statusList: string[] = [];
+  @Input() agencyList: string[] = [];
+  @Input() collaboratorsList: string[] = [];
+  @Input() campaignsList: string[] = [];
+  @Input() extraFiltersTpl: TemplateRef<unknown> | null = null;
 
-    public static TicketMetadata extractFrom(List<Ticket> tickets) {
-        Set<String> statuses = new HashSet<>();
-        Set<String> agencies = new HashSet<>();
-        Set<String> collaborators = new HashSet<>();
-        Set<String> campaigns = new HashSet<>();
-        boolean hasToBeClosed = false;
+  @Output() searchChanged = new EventEmitter<string>();
+  @Output() statusChanged = new EventEmitter<string>();
 
-        for (Ticket ticket : tickets) {
-            if (ticket.getStatus() != null) statuses.add(ticket.getStatus());
-            if (ticket.getAgency() != null) agencies.add(ticket.getAgency());
-            if (ticket.getCollaborator() != null) collaborators.add(ticket.getCollaborator());
-            if (ticket.getCampaign() != null) campaigns.add(ticket.getCampaign());
-            if (!hasToBeClosed && Boolean.TRUE.equals(ticket.getGetToBeClosed())) {
-                hasToBeClosed = true;
-            }
-        }
+  public searchTerm = '';
+  public selectedStatus = '';
+  public selectedAgency = '';
+  public selectedCollaborator = '';
+  public selectedCampaign = '';
 
-        if (hasToBeClosed) {
-            statuses.add("TO_BE_CLOSED");
-        }
+  public onSearchChange(): void {
+    this.searchChanged.emit(this.searchTerm.trim());
+  }
 
-        return new TicketMetadata(statuses, agencies, collaborators, campaigns);
-    }
+  public onStatusChange(): void {
+    this.statusChanged.emit(this.selectedStatus);
+  }
 
-    public record TicketMetadata(
-        Set<String> statusList,
-        Set<String> agencyList,
-        Set<String> collaboratorsList,
-        Set<String> campaignsList
-    ) {}
+  // Ajoute si besoin les autres émetteurs ici plus tard
 }
 
-TicketMetadataExtractor.TicketMetadata metadata = TicketMetadataExtractor.extractFrom(tickets);
+<div class="status">
+  <select [(ngModel)]="selectedStatus" (change)="onStatusChange()">
+    <option value="">Tous les statuts</option>
+    <option *ngFor="let status of statusList" [value]="status">
+      {{ status }}
+    </option>
+  </select>
+</div>
+
+<div class="agency">
+  <select [(ngModel)]="selectedAgency">
+    <option value="">Toutes les agences</option>
+    <option *ngFor="let agency of agencyList" [value]="agency">
+      {{ agency }}
+    </option>
+  </select>
+</div>
+
+<div class="collaborator">
+  <select [(ngModel)]="selectedCollaborator">
+    <option value="">Tous les collaborateurs</option>
+    <option *ngFor="let collaborator of collaboratorsList" [value]="collaborator">
+      {{ collaborator }}
+    </option>
+  </select>
+</div>
+
+<div class="campaign">
+  <select [(ngModel)]="selectedCampaign">
+    <option value="">Toutes les campagnes</option>
+    <option *ngFor="let campaign of campaignsList" [value]="campaign">
+      {{ campaign }}
+    </option>
+  </select>
+</div>
+
+<metabot-filter-bar
+  [statusList]="statusList"
+  [agencyList]="agencyList"
+  [collaboratorsList]="collaboratorsList"
+  [campaignsList]="campaignsList"
+  [extraFiltersTpl]="filterBarTpl"
+  (searchChanged)="onSearch($event)"
+  (statusChanged)="onStatusSelected($event)"
+></metabot-filter-bar>
+
+statusList: string[] = [];
+agencyList: string[] = [];
+collaboratorsList: string[] = [];
+campaignsList: string[] = [];
 
 
-.statusList(metadata.statusList())
-.agencyList(metadata.agencyList())
-.collaboratorsList(metadata.collaboratorsList())
-.campaignsList(metadata.campaignsList())
+export interface MbotPageDto {
+  // ...
+  statusList: string[];
+  agencyList: string[];
+  collaboratorsList: string[];
+  campaignsList: string[];
+  // ...
+}
+
+this.teamService.getMyTickets().subscribe((response: MbotPageDto) => {
+  this.statusList = response.statusList || [];
+  this.agencyList = response.agencyList || [];
+  this.collaboratorsList = response.collaboratorsList || [];
+  this.campaignsList = response.campaignsList || [];
+
+  // et tu continues à mapper les tickets si nécessaire
+});
