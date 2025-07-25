@@ -1,51 +1,41 @@
-<div class="table-scroll-wrapper uk-flex uk-flex-column">
+public class TicketMetadataExtractor {
 
-  <!-- TABLE FIXE POUR LES HEADERS UNIQUEMENT -->
-  <table mat-table [dataSource]="[]" matSort class="mat-elevation-z8">
-    <ng-container *ngFor="let column of displayedColumns; trackBy: trackColumn" [matColumnDef]="column">
-      <th mat-header-cell *matHeaderCellDef class="column-align" (click)="sortData(column)"
-          [ngStyle]="columnConfig[column]?.style || {}">
+    public static TicketMetadata extractFrom(List<Ticket> tickets) {
+        Set<String> statuses = new HashSet<>();
+        Set<String> agencies = new HashSet<>();
+        Set<String> collaborators = new HashSet<>();
+        Set<String> campaigns = new HashSet<>();
+        boolean hasToBeClosed = false;
 
-        <ng-container *ngIf="column !== 'action'; else htmlLabel">
-          {{ columnConfig[column]?.label || column }}
-        </ng-container>
-        <ng-template #htmlLabel>
-          <span class="column-label" [innerHTML]="columnConfig[column]?.label || column"></span>
-        </ng-template>
+        for (Ticket ticket : tickets) {
+            if (ticket.getStatus() != null) statuses.add(ticket.getStatus());
+            if (ticket.getAgency() != null) agencies.add(ticket.getAgency());
+            if (ticket.getCollaborator() != null) collaborators.add(ticket.getCollaborator());
+            if (ticket.getCampaign() != null) campaigns.add(ticket.getCampaign());
+            if (!hasToBeClosed && Boolean.TRUE.equals(ticket.getGetToBeClosed())) {
+                hasToBeClosed = true;
+            }
+        }
 
-        <ng-container *ngIf="column !== 'action'">
-          <mat-icon class="sort-icon" fontIcon="{{ getSortIcon(column) }}"></mat-icon>
-        </ng-container>
-      </th>
-    </ng-container>
+        if (hasToBeClosed) {
+            statuses.add("TO_BE_CLOSED");
+        }
 
-    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-  </table>
+        return new TicketMetadata(statuses, agencies, collaborators, campaigns);
+    }
 
-  <!-- SCROLLABLE BODY -->
-  <cdk-virtual-scroll-viewport
-    class="table-viewport uk-flex-1"
-    [itemSize]="50"
-    (scrolledIndexChange)="onCdkScroll()"
-  >
-    <div *cdkVirtualFor="let row of tickets">
-      <table mat-table [dataSource]="[row]" class="mat-elevation-z8">
-        <ng-container *ngFor="let column of displayedColumns; trackBy: trackColumn" [matColumnDef]="column">
-          <td mat-cell *matCellDef="let row" [ngStyle]="columnConfig[column]?.style || {}">
-            <ng-container *ngIf="columnTemplates[column]; else defaultCell">
-              <ng-container *ngTemplateOutlet="columnTemplates[column]; context: { $implicit: row }"></ng-container>
-            </ng-container>
-            <ng-template #defaultCell>{{ row[column] }}</ng-template>
-          </td>
-        </ng-container>
+    public record TicketMetadata(
+        Set<String> statusList,
+        Set<String> agencyList,
+        Set<String> collaboratorsList,
+        Set<String> campaignsList
+    ) {}
+}
 
-        <tr
-          mat-row
-          *matRowDef="let row; columns: displayedColumns"
-          (click)="rowClick(row)"
-          [class.readCustomer]="isReadCustomer(row)"
-        ></tr>
-      </table>
-    </div>
-  </cdk-virtual-scroll-viewport>
-</div>
+TicketMetadataExtractor.TicketMetadata metadata = TicketMetadataExtractor.extractFrom(tickets);
+
+
+.statusList(metadata.statusList())
+.agencyList(metadata.agencyList())
+.collaboratorsList(metadata.collaboratorsList())
+.campaignsList(metadata.campaignsList())
