@@ -1,24 +1,8 @@
-protected getSortIcon(column: string): string {
-  if (this.sort?.active !== column) {
-    return 'unfold_more'; // Pas la colonne triée
-  }
-
-  return this.currentSortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward';
-}
-
-feat(table): tri par défaut sur 'lastActivityTimestamp' du plus récent au plus ancien avec icône adaptée
-
-public sortActive: string = 'lastActivityTimestamp';
-public sortDirection: 'asc' | 'desc' = 'desc';
-
-ngOnInit(): void {
-  this.currentSortDirection = this.sortDirection;
-  this.fetchTickets(this.sortActive, this.sortDirection);
-}
+feat(front): ajout du tri initial sur 'lastActivityTimestamp' desc lors du chargement de la liste des tickets
 
 protected sortData(column: string): void {
-  if (this.sortActive !== column) {
-    this.sortActive = column;
+  if (this.sort.active !== column) {
+    this.sort.active = column;
     this.currentSortDirection = 'asc';
   } else {
     switch (this.currentSortDirection) {
@@ -27,12 +11,15 @@ protected sortData(column: string): void {
         break;
       case 'desc':
         this.currentSortDirection = null;
-        break;
+        // ✅ On retourne au tri par défaut
+        this.sort.active = 'lastActivityTimestamp';
+        this.fetchTickets('lastActivityTimestamp', 'desc');
+        return;
       default:
         this.currentSortDirection = 'asc';
     }
   }
 
-  this.sortDirection = this.currentSortDirection ?? 'asc';
+  this.sort.direction = this.currentSortDirection ?? '';
   this.fetchTickets(this.currentSortDirection ? column : null, this.currentSortDirection);
 }
