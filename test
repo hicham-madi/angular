@@ -1,25 +1,173 @@
-feat(front): ajout du tri initial sur 'lastActivityTimestamp' desc lors du chargement de la liste des tickets
+<div class="table-scroll-wrapper">
 
-protected sortData(column: string): void {
-  if (this.sort.active !== column) {
-    this.sort.active = column;
-    this.currentSortDirection = 'asc';
-  } else {
-    switch (this.currentSortDirection) {
-      case 'asc':
-        this.currentSortDirection = 'desc';
-        break;
-      case 'desc':
-        this.currentSortDirection = null;
-        // ✅ On retourne au tri par défaut
-        this.sort.active = 'lastActivityTimestamp';
-        this.fetchTickets('lastActivityTimestamp', 'desc');
-        return;
-      default:
-        this.currentSortDirection = 'asc';
-    }
-  }
+<div class="table-scroll-wrapper">
+  <!-- Header fix -->
+  <table mat-table ... class="mat-elevation-z8 mat-header-table">
+    ...
+  </table>
 
-  this.sort.direction = this.currentSortDirection ?? '';
-  this.fetchTickets(this.currentSortDirection ? column : null, this.currentSortDirection);
+  <!-- Scrollable content -->
+  <div class="table-viewport">
+    <cdk-virtual-scroll-viewport class="cdk-height" ...>
+      <table mat-table ... class="mat-elevation-z8 mat-body-table h-100">
+        ...
+      </table>
+    </cdk-virtual-scroll-viewport>
+  </div>
+</div>
+
+
+@import 'common';
+
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
 }
+
+/* ----------- STRUCTURE PRINCIPALE ----------- */
+
+.table-scroll-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.table-viewport {
+  flex: 1 1 auto;
+  overflow: auto;
+  min-height: 0;
+}
+
+/* Override de cdk-viewport */
+.cdk-height {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto !important;
+}
+
+/* ----------- TABLE ----------- */
+
+table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.mat-header-table,
+.mat-body-table {
+  min-width: 960px; // ajustable ou supprimable si responsive total
+}
+
+/* ----------- CELLULES ----------- */
+
+::ng-deep td.mat-mdc-cell {
+  @extend .font-size-medium;
+  @extend .font-weight-xs;
+  align-items: center;
+  font-family: 'Montserrat', sans-serif;
+  border-bottom: 1px solid $text-border;
+  height: 50px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+::ng-deep .mat-cell,
+::ng-deep .mat-header-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+th.mat-mdc-header-cell {
+  @extend .font-size-medium;
+  font-weight: $root-font-weight;
+  line-height: 100%;
+  color: $text-primary;
+  background: $text-background;
+}
+
+/* ----------- LIGNES ET HOVER ----------- */
+
+tr[mat-row]:hover td[mat-cell] {
+  background-color: rgba(0, 0, 0, 0.02);
+  transition: background-color 0.2s ease;
+}
+
+/* ----------- STATUT ET LECTURE ----------- */
+
+.readCustomer {
+  background: rgba(238, 248, 246, 1); // $vert-prairie
+  font-weight: $root-font-weight;
+}
+
+td.object-readcustomer {
+  background: rgba(238, 248, 246, 1);
+}
+
+/* ----------- ICONES ----------- */
+
+.sort-icon {
+  @extend .font-size-xxl;
+  @extend .margin-xsmall-left;
+  vertical-align: middle;
+  align-items: center;
+  align-content: center;
+  justify-content: center;
+}
+
+<div class="table-scroll-wrapper uk-flex uk-flex-column">
+
+  <!-- TABLE HEADERS FIXES -->
+  <table mat-table [dataSource]="[]" matSort class="mat-elevation-z8 mat-header-table">
+    <ng-container *ngFor="let column of displayedColumns; trackBy: trackColumn" [matColumnDef]="column">
+      <th
+        mat-header-cell
+        *matHeaderCellDef
+        class="column-align"
+        [ngStyle]="columnConfig[column]?.style || {}"
+        (click)="sortData(column)"
+      >
+        <ng-container *ngIf="column !== 'slaLabel' && column !== 'domainLabel'">
+          {{ columnConfig[column]?.label || column }}
+        </ng-container>
+        <ng-container *ngIf="column === 'htmlLabel'">
+          <span class="column-label" [innerHTML]="columnConfig[column]?.label || column"></span>
+        </ng-container>
+
+        <ng-container *ngIf="column !== 'action'">
+          <mat-icon class="sort-icon" [fontIcon]="getSortIcon(column)"></mat-icon>
+        </ng-container>
+      </th>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+  </table>
+
+  <!-- SCROLLABLE BODY -->
+  <cdk-virtual-scroll-viewport itemSize="50" class="cdk-height" (scrolledIndexChange)="onCdkScroll()">
+    <table mat-table [dataSource]="tickets" class="mat-elevation-z8 mat-body-table h-100">
+      <ng-container *ngFor="let column of displayedColumns; trackBy: trackColumn" [matColumnDef]="column">
+        <td
+          mat-cell
+          *matCellDef="let row"
+          [ngStyle]="columnConfig[column]?.style || {}"
+        >
+          <ng-container *ngIf="columnTemplates[column]">
+            <ng-container *ngTemplateOutlet="columnTemplates[column]; context: { $implicit: row }"></ng-container>
+          </ng-container>
+        </td>
+      </ng-container>
+
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns"
+        [class.readCustomer]="isReadCustomer(row)"
+        (click)="rowClick?.(row)"
+      ></tr>
+    </table>
+  </cdk-virtual-scroll-viewport>
+</div>
