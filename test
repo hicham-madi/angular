@@ -1,9 +1,6 @@
-this.largeCards = cards.largeCards.filter(card => {
-  if (!this.enableReclamation && card.type === 'CLAIMS') {
-    return false;
-  }
-  if (!this.enableDs && card.type === 'CUSTOMER_EDS_DS') {
-    return false;
-  }
-  return true;
-});
+const disabledCardTypes = new Set<string>();
+if (!this.enableReclamation) disabledCardTypes.add('CLAIMS');
+if (!this.enableDiscussionGroupForCustomer) disabledCardTypes.add('DISCUSSION_GROUPS');
+if (!this.enableDs) disabledCardTypes.add('REQUESTS_EXPERT_SERVICE');
+
+this.largeCards = cards.largeCards.filter(card => !disabledCardTypes.has(card.type));
