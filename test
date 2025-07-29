@@ -1,53 +1,8 @@
-<div
-  class="status-tabs"
-  (mouseover)="hoveringTabs = true"
-  (mouseleave)="hoveringTabs = false"
-  [class.hovering]="hoveringTabs"
->
-  <div
-    class="tab"
-    *ngFor="let tab of tabs"
-    [class.active]="tab.active"
-    [class.inactive]="!tab.active"
-  >
-    {{ tab.label }}
-  </div>
-</div>
-
-hoveringTabs = false;
-
-.status-tabs {
-  display: flex;
-  gap: 0.5rem;
-
-  .tab {
-    border: none;
-    background: none;
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-
-    &.active,
-    &.inactive {
-      color: $canard-fonce;
-      border-bottom: 2px solid transparent;
-    }
-
-    &.active {
-      background-color: $vert-prairie;
-    }
-
-    &.inactive {
-      background-color: $vert-prairie-clair;
-    }
-
-    &:hover {
-      z-index: 1;
-    }
-  }
-
-  &.hovering .tab {
-    background-color: lighten($vert-prairie, 5%) !important;
-  }
-}
+<mat-icon
+  fontIcon="mark_chat_unread"
+  class="material-symbols-outlined font-size-xxl margin-xsmall-top font-weight-medium"
+  [matTooltip]="!isReadCustomer(row) ? 'marquer comme non lu' : ''"
+  [matTooltipDisabled]="isReadCustomer(row)"
+  matTooltipPosition="above"
+  [ngClass]="{ 'danger-color': !isReadCustomer(row) }">
+</mat-icon>
