@@ -1,11 +1,48 @@
-<span class="material-symbols-outlined icon-s16"
-      [ngClass]="{
-        'icon-read': badge.count === 0,
-        'text-danger': badge.icon === 'mark_chat_unread'
-      }">
-  {{ badge.icon }}
-</span>
+<!-- TABLE UNIQUE avec Virtual Scroll et Sticky Header -->
+<cdk-virtual-scroll-viewport itemSize="50" class="cdk-height" (scrolledIndexChange)="onCdkScroll()">
+  <table mat-table [dataSource]="tickets" matSort class="mat-elevation-z8 h-100">
 
-.text-danger {
-  color: $danger !important;
+    <!-- Colonnes dynamiques -->
+    <ng-container *ngFor="let column of displayedColumns" [matColumnDef]="column">
+      
+      <!-- Cellules (Body) -->
+      <td mat-cell *matCellDef="let row" [ngStyle]="columnConfig[column]?.style || {}">
+        <ng-container *ngIf="columnTemplates[column]">
+          <ng-container *ngTemplateOutlet="columnTemplates[column]; context: { $implicit: row }"></ng-container>
+        </ng-container>
+      </td>
+
+      <!-- En-têtes (Header) -->
+      <th mat-header-cell *matHeaderCellDef (click)="sortData(column)" [ngStyle]="columnConfig[column]?.style || {}">
+        <ng-container *ngIf="column !== 'action'">
+          <span class="column-label" [innerHTML]="columnConfig[column]?.label || column"></span>
+        </ng-container>
+        <ng-container *ngIf="column === 'action'">
+          <mat-icon fontIcon="{{ getSortIcon(column) }}"></mat-icon>
+        </ng-container>
+      </th>
+
+    </ng-container>
+
+    <!-- Ligne d'en-tête sticky -->
+    <tr mat-header-row *matHeaderRowDef="displayedColumns" sticky></tr>
+
+    <!-- Lignes de données -->
+    <tr
+      mat-row
+      *matRowDef="let row; columns: displayedColumns"
+      [class.readCustomer]="isReadCustomer(row)"
+      (click)="rowClick?.(row)">
+    </tr>
+
+  </table>
+</cdk-virtual-scroll-viewport>
+
+.readCustomer {
+  background-color: $gray-light; // ou une autre classe si tu veux différencier les lignes lues
+}
+
+.column-label {
+  font-weight: bold;
+  white-space: nowrap;
 }
