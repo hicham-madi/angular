@@ -1,48 +1,9 @@
-<div class="status-tabs" [class.hovering]="hoveringTab !== null">
-  <button
-    class="tab"
-    *ngFor="let tab of tabs"
-    [class.active]="selected === tab.value"
-    [class.inactive]="selected !== tab.value"
-    (click)="selected = tab.value"
-    (mouseover)="hoveringTab = tab.value"
-    (mouseleave)="hoveringTab = null">
-    {{ tab.label }}
-  </button>
-</div>
-
-hoveringTab: string | null = null;
-selected: string = ''; // ton modèle actuel
-
-.status-tabs {
-  .tab {
-    padding: 6px 16px;
-    font-family: 'Montserrat', sans-serif;
-    color: $text;
-    border: none;
-    background: none;
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
-    cursor: pointer;
-
-    &.active {
-      background-color: $vert-prairie;
-      color: $canard-fonce;
-      border-bottom: 2px solid transparent;
-    }
-
-    &.inactive {
-      background-color: $vert-prairie-clair;
-    }
-
-    &:hover {
-      background-color: $vert-prairie;
-    }
+this.largeCards = cards.largeCards.filter(card => {
+  if (!this.enableReclamation && card.type === 'CLAIMS') {
+    return false;
   }
-
-  &.hovering {
-    .tab.active {
-      background-color: yellow !important;
-    }
+  if (!this.enableDs && card.type === 'CUSTOMER_EDS_DS') {
+    return false;
   }
-}
+  return true;
+});
