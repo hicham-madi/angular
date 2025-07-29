@@ -1,8 +1,14 @@
-<mat-icon
-  fontIcon="mark_chat_unread"
-  class="material-symbols-outlined font-size-xxl margin-xsmall-top font-weight-medium"
-  [matTooltip]="!isReadCustomer(row) ? 'marquer comme non lu' : ''"
-  [matTooltipDisabled]="isReadCustomer(row)"
-  matTooltipPosition="above"
-  [ngClass]="{ 'danger-color': !isReadCustomer(row) }">
-</mat-icon>
+.icon-wrapper {
+  position: relative; // Ajouté
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  color: $canard-clair;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: $danger;
+  }
+}
