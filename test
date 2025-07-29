@@ -1,26 +1,23 @@
 .status-tabs {
-  .tab {
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
-    cursor: pointer;
-    background-color: $vert-prairie-clair; // facultatif, couleur de base
+  display: flex;
 
-    &:hover {
-      background-color: $vert-prairie;
-    }
+  .tab {
+    background-color: $vert-prairie-clair;
+    cursor: pointer;
+    border-radius: 6px 6px 0 0;
+    transition: background-color 0.2s ease;
 
     &.active {
+      background-color: $vert-prairie;
       color: $canard-fonce;
-      border-bottom: 2px solid transparent;
-      background-color: $vert-prairie; // actif + hover = même fond
-    }
-
-    &.inactive {
-      background-color: $vert-prairie-clair;
     }
   }
-}
 
-[class.hovering]="hoveringTabs"
-(mouseover)="hoveringTabs = true"
-(mouseleave)="hoveringTabs = false"
+  &:has(.tab:hover) .tab:not(:hover):not(.active) {
+    background-color: $vert-prairie-clair !important;
+  }
+
+  .tab:hover:not(.active) {
+    background-color: $vert-prairie !important;
+  }
+}
