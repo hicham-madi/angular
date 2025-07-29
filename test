@@ -1,11 +1,32 @@
+<div
+  class="status-tabs"
+  (mouseover)="hoveringTabs = true"
+  (mouseleave)="hoveringTabs = false"
+  [class.hovering]="hoveringTabs"
+>
+  <div
+    class="tab"
+    *ngFor="let tab of tabs"
+    [class.active]="tab.active"
+    [class.inactive]="!tab.active"
+  >
+    {{ tab.label }}
+  </div>
+</div>
+
+hoveringTabs = false;
+
 .status-tabs {
-  display: flex; // nécessaire pour cibler les autres onglets
+  display: flex;
+  gap: 0.5rem;
+
   .tab {
     border: none;
     background: none;
     border-top-left-radius: 6px;
     border-top-right-radius: 6px;
     cursor: pointer;
+    transition: background-color 0.2s ease;
 
     &.active,
     &.inactive {
@@ -22,17 +43,11 @@
     }
 
     &:hover {
-      background-color: $vert-prairie;
-
-      // changer les autres onglets
-      ~ .tab:not(.active) {
-        background-color: lighten($vert-prairie-clair, 5%);
-      }
-      @media (hover: hover) {
-        &:not(.active) {
-          background-color: $vert-prairie; // au cas par cas
-        }
-      }
+      z-index: 1;
     }
+  }
+
+  &.hovering .tab {
+    background-color: lighten($vert-prairie, 5%) !important;
   }
 }
