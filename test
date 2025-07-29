@@ -1,20 +1,38 @@
-<div class="badge"
-     [class.clickable]="badge.clickable && badge.count > 0"
-     [class.active]="isBadgeActive(badge.type)"
-     [class.dimmed]="isBadgeDimmed(badge.type)"
-     [class.disabled]="badge.count === 0"
-     [ngClass]="{
-       'card-colored': isBadgeActive(badge.type) || isActive(),
-       [card.variant]: isBadgeActive(badge.type) || isActive()
-     }"
-     (click)="onClick(badge, $event)">
-.badge {
-  // styles par défaut
-  background-color: $html-background;
+.status-tabs {
+  display: flex; // nécessaire pour cibler les autres onglets
+  .tab {
+    border: none;
+    background: none;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    cursor: pointer;
 
-  &.card-colored.yellow        { @include card-color(#f6f3f7); }
-  &.card-colored.cloud-break   { @include card-color(#f6f3f7); }
-  &.card-colored.sea-salt-sherbet { @include card-color(#fff7f7); }
-  &.card-colored.calcareous-sinter { @include card-color(#dfeeff); }
-  &.card-colored.coastal-breeze    { @include card-color(#e2f7f7); }
+    &.active,
+    &.inactive {
+      color: $canard-fonce;
+      border-bottom: 2px solid transparent;
+    }
+
+    &.active {
+      background-color: $vert-prairie;
+    }
+
+    &.inactive {
+      background-color: $vert-prairie-clair;
+    }
+
+    &:hover {
+      background-color: $vert-prairie;
+
+      // changer les autres onglets
+      ~ .tab:not(.active) {
+        background-color: lighten($vert-prairie-clair, 5%);
+      }
+      @media (hover: hover) {
+        &:not(.active) {
+          background-color: $vert-prairie; // au cas par cas
+        }
+      }
+    }
+  }
 }
