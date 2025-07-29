@@ -1,4 +1,4 @@
-<!-- TABLE UNIQUE avec Virtual Scroll et Sticky Header -->
+ni<!-- TABLE UNIQUE avec Virtual Scroll et Sticky Header -->
 <cdk-virtual-scroll-viewport itemSize="50" class="cdk-height" (scrolledIndexChange)="onCdkScroll()">
   <table mat-table [dataSource]="tickets" matSort class="mat-elevation-z8 h-100">
 
@@ -45,4 +45,12 @@
 .column-label {
   font-weight: bold;
   white-space: nowrap;
+}
+
+
+::ng-deep .mat-header-row {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: white; // ou $white si tu utilises SCSS variables
 }
