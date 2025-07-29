@@ -1,9 +1,11 @@
-.material-symbols-outlined[fonticon="mark_chat_unread"] {
-  color: $danger;
-}
+<span class="material-symbols-outlined icon-s16"
+      [ngClass]="{
+        'icon-read': badge.count === 0,
+        'text-danger': badge.icon === 'mark_chat_unread'
+      }">
+  {{ badge.icon }}
+</span>
 
-<mat-icon fontIcon="mark_chat_unread" class="icon-unread"></mat-icon>
-
-.danger-color {
-  color: $danger;
+.text-danger {
+  color: $danger !important;
 }
