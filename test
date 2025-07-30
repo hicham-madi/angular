@@ -1,16 +1,17 @@
-.cell-action-with-bar {
-  position: relative; // Permet à .barre-unread de se positionner proprement
-  display: flex;
-  align-items: center;
-  height: 100%;
-}
+.progress-resize {
+  position: relative;
+  height: 6px;
+  border-radius: 4px;
+  overflow: hidden;
 
-.barre-unread {
-  position: absolute;
-  left: 0;
-  top: 4px;
-  bottom: 4px;
-  width: 4px;
-  background-color: $canard-clair;
-  border-radius: 2px;
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px; // ← ajuste la largeur du "padding visuel" souhaité
+    height: 100%;
+    background-color: white; // ou la couleur du fond
+    z-index: 2;
+  }
 }
