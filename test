@@ -1,6 +1,16 @@
-const disabledCardTypes = new Set<string>();
-if (!this.enableReclamation) disabledCardTypes.add('CLAIMS');
-if (!this.enableDiscussionGroupForCustomer) disabledCardTypes.add('DISCUSSION_GROUPS');
-if (!this.enableDs) disabledCardTypes.add('REQUESTS_EXPERT_SERVICE');
+.cell-action-with-bar {
+  position: relative; // Permet à .barre-unread de se positionner proprement
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
 
-this.largeCards = cards.largeCards.filter(card => !disabledCardTypes.has(card.type));
+.barre-unread {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 4px;
+  background-color: $canard-clair;
+  border-radius: 2px;
+}
