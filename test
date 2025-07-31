@@ -1,15 +1,7 @@
-.icon-wrapper {
-  display: flex;
-  align-items: center;
-  position: relative;
-
-  &.has-bar::before {
-    content: '';
-    display: inline-block;
-    width: 5px;
-    height: 10px;
-    background-color: $canard-clair;
-    border-radius: 2px;
-    margin-right: 4px;
-  }
-}
+Set<Ticket> uniqueTickets = new HashSet<>(hazelcastRepository.findMatchingTickets(
+    customer.getOrg(),
+    filters.getCustomer().getId(),
+    filters.getCustomer().getEdsId(),
+    mbotRequestData.getContext()
+));
+List<Ticket> tickets = new ArrayList<>(uniqueTickets);
