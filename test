@@ -1,16 +1,9 @@
-ngOnInit(): void {
-  this.route.queryParamMap
-    .pipe(take(1))
-    .subscribe((params: ParamMap) => {
-      const cardParam = params.get('card') as FilterCardType;
-
-      if (cardParam && Object.values(FilterCardType).includes(cardParam)) {
-        this.activeCard = cardParam;
-      } else {
-        this.activeCard = FilterCardType.NONE;
-      }
-
-      this.cardClickedOnce = true;
-      this.loadTickets(this.activeCard, this.cardClicked, TicketContext.SOLICITATIONS);
-    });
+if (cardParam && FilterCardType[cardParam as keyof typeof FilterCardType]) {
+  this.activeCard = FilterCardType[cardParam as keyof typeof FilterCardType];
+} else {
+  this.activeCard = FilterCardType.NONE;
 }
+
+const cardParam = params.get('card') as keyof typeof FilterCardType;
+
+this.activeCard = FilterCardType[cardParam] ?? FilterCardType.NONE;
