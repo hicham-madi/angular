@@ -26,3 +26,20 @@ private getCountDay(): number {
     ? parseInt(this.timelineRep.formattedValueShort)
     : 0;
 }
+
+getDsEndTimeline(row: any): TimeLineV2 | null {
+  if (!row?.ds?.timeline) return null;
+  return row.ds.timeline.find((t: any) => t.shortLabel === 'end') ?? null;
+}
+
+getDsTreatmentDate(row: any): number | null {
+  return row?.ds?.treatmentDate ?? null;
+}
+
+<ng-container *ngIf="getDsEndTimeline(row) as endTimeline">
+  <metabot-bar-timeline
+    [treatmentDate]="getDsTreatmentDate(row)"
+    [timeline]="[endTimeline]"
+    [date]="row?.ds?.treatmentDelay">
+  </metabot-bar-timeline>
+</ng-container>
