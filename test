@@ -1,14 +1,16 @@
 ngOnInit(): void {
   this.route.queryParamMap
     .pipe(take(1))
-    .subscribe((params) => {
+    .subscribe((params: ParamMap) => {
       const cardParam = params.get('card') as FilterCardType;
+
       if (cardParam && Object.values(FilterCardType).includes(cardParam)) {
         this.activeCard = cardParam;
       } else {
         this.activeCard = FilterCardType.NONE;
       }
 
-      this.loadTickets(this.activeCard, undefined, this.context); // ou context = TicketContext.SOLICITATIONS
+      this.cardClickedOnce = true;
+      this.loadTickets(this.activeCard, this.cardClicked, TicketContext.SOLICITATIONS);
     });
 }
