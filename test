@@ -1,18 +1,21 @@
 public ngAfterViewInit(): void {
-  // On attend que la vue soit initialisée
-  setTimeout(() => {
-    // Forcer le recalcul du viewport virtuel (cdk)
-    this.cdkVirtualScroll?.checkViewportSize();
+  const interval = setInterval(() => {
+    // Si au moins une ligne est présente dans le DOM
+    const hasRows = document.querySelectorAll('table mat-row').length > 0;
 
-    // Deuxième timeout pour garantir que les données et templates sont bien injectés
-    setTimeout(() => {
-      // Mise à jour des colonnes
-      this.columnTemplates = {
-        ...this.tableConfigFactory.getBaseTemplates(this),
-      };
-
-      // Forcer Angular à détecter les changements et re-rendre les barres vertes
+    if (hasRows && this.cdkVirtualScroll) {
+      this.cdkVirtualScroll.checkViewportSize();
       this.cdr.detectChanges();
-    }, 50);
-  }, 0);
+      clearInterval(interval); // Stop le polling
+    }
+  }, 50);
+}
+
+@ViewChild(CdkVirtualScrollViewport) cdkVirtualScroll!: CdkVirtualScrollViewport;
+
+public ngOnChanges(): void {
+  setTimeout(() => {
+    this.cdkVirtualScroll?.checkViewportSize();
+    this.cdr.detectChanges();
+  });
 }
