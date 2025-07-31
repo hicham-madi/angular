@@ -1,10 +1,28 @@
-setTimeout(() => {
-  const elements = document.querySelectorAll('.barre');
-  elements.forEach(el => {
-    // Forcer le reflow en accédant à offsetHeight
-    void (el as HTMLElement).offsetHeight;
+public ngAfterViewInit(): void {
+  // Charger les templates une fois la vue stabilisée
+  Promise.resolve().then(() => {
+    this.columnTemplates = {
+      ...this.tableConfigFactory.getBaseTemplates(this),
+    };
+    this.cdr.detectChanges();
   });
 
-  this.cdkVirtualScroll?.checkViewportSize();
-  this.cdr.detectChanges();
-}, 50);
+  // Attendre que les lignes soient rendues par cdk-virtual-scroll
+  setTimeout(() => {
+    this.cdkVirtualScroll?.checkViewportSize();
+    this.cdr.detectChanges();
+
+    // Forcer le reflow pour corriger le positionnement des .barre
+    this.reflowBarres();
+  }, 100);
+}
+
+// 🔧 Forcer le reflow du DOM pour stabiliser la position des barres
+private reflowBarres(): void {
+  requestAnimationFrame(() => {
+    const elements = document.querySelectorAll('.barre');
+    elements.forEach(el => {
+      void (el as HTMLElement).offsetHeight;
+    });
+  });
+}
