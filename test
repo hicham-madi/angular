@@ -43,3 +43,36 @@ getDsTreatmentDate(row: any): number | null {
     [date]="row?.ds?.treatmentDelay">
   </metabot-bar-timeline>
 </ng-container>
+
+export class BarTimelineComponent implements OnChanges {
+  @Input() protected timeLine!: TimeLineV2[];
+  @Input() protected treatmentDate!: Date;
+
+  // reste identique...
+
+  ngOnChanges(): void {
+    if (!this.timeLine || !Array.isArray(this.timeLine)) {
+      this.timelineRep = undefined;
+      return;
+    }
+
+    this.timelineRep = this.timeLine.find((e) => e.shortLabel === 'REP');
+    this.countDay = this.getCountDay();
+
+    if (this.timelineRep?.dayInBetweenDates) {
+      this.bufferValue = Math.abs(this.timelineRep.dayInBetweenDates);
+    }
+
+    this.value = this.getProgress();
+
+    if (this.isInProgress()) {
+      this.backgroundColor = this.countDay >= 0 ? 'success-progress' : 'danger-progress';
+    }
+  }
+}
+
+<metabot-bar-timeline
+  *ngIf="row?.ds?.timeline"
+  [timeline]="row.ds.timeline"
+  [treatmentDate]="row.ds.treatmentDate">
+</metabot-bar-timeline>
