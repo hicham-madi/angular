@@ -83,3 +83,75 @@ this.cardClicked.subscribe((clickedCard: FilterCardType) => {
   // Recharge les tickets
   this.loadTickets(this.activeCard, TicketContext.SOLICITATIONS);
 });
+
+protected loadTickets(
+  card: FilterCardType,
+  context: TicketContext,
+  options?: { searchTerm?: string }
+): void {
+  const params = this.listService.reinitParam(0);
+
+  params.context = context;
+  params.sortKey = 'lastActivityTimestamp';
+  params.isAsc = false;
+
+  if (options?.searchTerm) {
+    params.searchTerm = options.searchTerm;
+  }
+
+  this.isLoading = true;
+
+  if (card !== FilterCardType.NONE) {
+    params.cardType = card;
+  }
+
+  this.mbotService.getTicketListV2(params).subscribe({
+    next: (response) => {
+      this.handleTicketResponse(response, context);
+
+      const statusMap = new Map<string, string>();
+      response.statusList.forEach((status: string) => {
+        const label = this.getStatusLabelForTicket(status);
+        if (!statusMap.has(label)) {
+          statusMap.set(label, status);
+        }
+      });
+
+      this.statusList = Array.from(statusMap.entries()).map(([label, value]) => ({
+        label,
+        value,
+      }));
+
+      this.statusList.sort((a, b) => a.label.localeCompare(b.label, 'fr'));
+
+      this.agencyList = response.agencyList || [];
+      this.collaboratorsList = response.collaboratorsList || [];
+      this.campaignsList = response.campaignsList || [];
+      this.ticketCardInfos = response.stats;
+
+      const cards = this.cardConfigFactory.countCards(
+        this.ticketCardInfos,
+        this.activeCard,
+        this.cardClicked
+      );
+
+      const disabledCardTypes = new Set<string>();
+      if (!this.enableReclamation) disabledCardTypes.add('CLAIMS');
+      if (!this.enableDiscussionGroupForCustomer) disabledCardTypes.add('DISCUSSION_GROUPS');
+      if (!this.enableDs) disabledCardTypes.add('REQUESTS_EXPERT_SERVICE');
+
+      this.smallCards = cards.smallCards;
+      this.largeCards = cards.largeCards.filter(
+        (card) => !!card.type && !disabledCardTypes.has(card.type)
+      );
+
+      this.cdr.detectChanges();
+    },
+    error: (err) => {
+      console.error('Erreur lors du chargement des tickets :', err);
+    },
+    complete: () => {
+      this.isLoading = false;
+    },
+  });
+}
