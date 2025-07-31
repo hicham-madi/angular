@@ -1,7 +1,28 @@
-Set<Ticket> uniqueTickets = new HashSet<>(hazelcastRepository.findMatchingTickets(
-    customer.getOrg(),
-    filters.getCustomer().getId(),
-    filters.getCustomer().getEdsId(),
-    mbotRequestData.getContext()
-));
-List<Ticket> tickets = new ArrayList<>(uniqueTickets);
+@else if (row?.ds?.timeline?.some(t => t.shortLabel === 'end'))
+  <metabot-bar-timeline
+    [treatmentDate]="row?.ds?.treatmentDate"
+    [timeline]="row?.ds?.timeline"
+    [date]="row?.ds?.treatmentDate">
+  </metabot-bar-timeline>
+
+ngOnInit(): void {
+  this.timelineRep = this.timeLine1.find(e => e.shortLabel === 'end');
+
+  this.countDay = this.getCountDay();
+
+  if (this.timelineRep?.dayInBetweenDates) {
+    this.bufferValue = Math.abs(this.timelineRep.dayInBetweenDates);
+  }
+
+  this.value = this.getProgress();
+
+  if (this.isInProgress()) {
+    this.backgroundColor = this.countDay > 0 ? 'success-progress' : 'danger-progress';
+  }
+}
+
+private getCountDay(): number {
+  return this.timelineRep?.formattedValueShort?.includes('j')
+    ? parseInt(this.timelineRep.formattedValueShort)
+    : 0;
+}
