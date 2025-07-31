@@ -1,18 +1,10 @@
-protected getRemainingDays(): number | null {
-  if (!this.timeline) return null;
-  const endItem = this.timeline.find((t: any) => t.shortLabel === 'end');
+protected getDsRemainingDays(row: Ticket): number | null {
+  const endItem = row?.ds?.timeline?.find(t => t.shortLabel === 'end');
   return endItem?.remainingDays ?? null;
 }
 
-<div class="progress-bar-wrapper">
-  <mat-progress-bar
-    [value]="value"
-    [mode]="mode"
-    [bufferValue]="bufferValue"
-    [color]="backgroundColor">
-  </mat-progress-bar>
-
-  <span class="remaining-days" *ngIf="getRemainingDays() !== null">
-    {{ getRemainingDays() }}j restant
-  </span>
-</div>
+<metabot-bar-timeline
+  [treatmentDate]="getDsTreatmentDate(row)"
+  [timeline]="[getDsEndTimeline(row)]"
+  [date]="getDsRemainingDays(row)">
+</metabot-bar-timeline>
