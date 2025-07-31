@@ -1,10 +1,20 @@
-protected getDsRemainingDays(row: Ticket): number | null {
-  const endItem = row?.ds?.timeline?.find(t => t.shortLabel === 'end');
-  return endItem?.remainingDays ?? null;
+getDsEndTimeline(row: Ticket): any[] {
+  return row?.ds?.timeline?.filter(t => t.shortLabel === 'end') ?? [];
+}
+
+getDsTreatmentDate(row: Ticket): Date | null {
+  const end = this.getDsEndTimeline(row)[0];
+  return end?.fromValue ? new Date(end.fromValue) : null;
+}
+
+getDsRemainingDays(row: Ticket): number | null {
+  const end = this.getDsEndTimeline(row)[0];
+  return end?.remainingDays ?? null;
 }
 
 <metabot-bar-timeline
+  *ngIf="getDsEndTimeline(row).length > 0"
   [treatmentDate]="getDsTreatmentDate(row)"
-  [timeline]="[getDsEndTimeline(row)]"
+  [timeline]="getDsEndTimeline(row)"
   [date]="getDsRemainingDays(row)">
 </metabot-bar-timeline>
