@@ -1,9 +1,85 @@
-if (cardParam && FilterCardType[cardParam as keyof typeof FilterCardType]) {
-  this.activeCard = FilterCardType[cardParam as keyof typeof FilterCardType];
-} else {
-  this.activeCard = FilterCardType.NONE;
+protected loadTickets(card: FilterCardType, context: TicketContext, options?: { searchTerm?: string }): void {
+  const params = this.listService.reinitParam(0);
+  params.context = context;
+  params.sortKey = 'lastActivityTimestamp';
+  params.isAsc = false;
+
+  if (options?.searchTerm) {
+    params.searchTerm = options.searchTerm;
+  }
+
+  this.isLoading = true;
+
+  const load$ = card !== FilterCardType.NONE
+    ? this.mbotService.getTicketsByCard({ ...params, cardType: card })
+    : this.mbotService.getTicketListV2(params); // l'ancien WS
+
+  load$.subscribe({
+    next: (response) => {
+      this.handleTicketResponse(response, context);
+
+      const statusMap = new Map<string, string>();
+      this.getAllStatusesFromResponse(response).forEach((status: string) => {
+        const label = this.getStatusLabelForTicket(status);
+        if (!statusMap.has(label)) {
+          statusMap.set(label, status);
+        }
+      });
+
+      this.statusList = Array.from(statusMap.entries()).map(([label, value]) => ({ label, value }));
+      this.statusList.sort((a, b) => a.label.localeCompare(b.label, 'fr'));
+
+      this.agencyList = response.agencyList || [];
+      this.collaboratorsList = response.collaboratorsList || [];
+      this.campaignsList = response.campaignsList || [];
+
+      this.ticketCardInfos = response.stats;
+
+      const cards = this.cardConfigFactory.countCards(this.ticketCardInfos, this.activeCard, this.cardClicked);
+      this.smallCards = cards.smallCards;
+
+      const disabledCardTypes = new Set<string>();
+      if (!this.enableReclamation) disabledCardTypes.add('CLAIMS');
+      if (!this.enableDiscussionGroupForCustomer) disabledCardTypes.add('DISCUSSION_GROUPS');
+      if (!this.enableDs) disabledCardTypes.add('REQUESTS_EXPERT_SERVICE');
+
+      this.largeCards = cards.largeCards.filter(card => !disabledCardTypes.has(card.type));
+
+      this.cdr.detectChanges();
+    },
+    error: (err) => {
+      console.error('Erreur lors du chargement des tickets :', err);
+    },
+    complete: () => {
+      this.isLoading = false;
+    }
+  });
 }
+this.cardClicked.subscribe((card: FilterCardType) => {
+  this.router.navigate([], {
+    queryParams: { card },
+    queryParamsHandling: 'merge',
+  });
 
-const cardParam = params.get('card') as keyof typeof FilterCardType;
+  this.activeCard = card;
+  this.loadTickets(card, TicketContext.SOLICITATIONS);
+});
 
-this.activeCard = FilterCardType[cardParam] ?? FilterCardType.NONE;
+this.cardClicked.subscribe((clickedCard: FilterCardType) => {
+  // Si on clique la même carte, on désélectionne
+  const isSameCard = this.activeCard === clickedCard;
+
+  const newCard = isSameCard ? FilterCardType.NONE : clickedCard;
+  this.activeCard = newCard;
+
+  // Met à jour l’URL
+  this.router.navigate([], {
+    queryParams: {
+      card: newCard !== FilterCardType.NONE ? newCard : null, // retire "card" si NONE
+    },
+    queryParamsHandling: 'merge',
+  });
+
+  // Recharge les tickets
+  this.loadTickets(this.activeCard, TicketContext.SOLICITATIONS);
+});
