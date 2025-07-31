@@ -1,78 +1,18 @@
-@else if (row?.ds?.timeline?.some(t => t.shortLabel === 'end'))
-  <metabot-bar-timeline
-    [treatmentDate]="row?.ds?.treatmentDate"
-    [timeline]="row?.ds?.timeline"
-    [date]="row?.ds?.treatmentDate">
-  </metabot-bar-timeline>
-
-ngOnInit(): void {
-  this.timelineRep = this.timeLine1.find(e => e.shortLabel === 'end');
-
-  this.countDay = this.getCountDay();
-
-  if (this.timelineRep?.dayInBetweenDates) {
-    this.bufferValue = Math.abs(this.timelineRep.dayInBetweenDates);
-  }
-
-  this.value = this.getProgress();
-
-  if (this.isInProgress()) {
-    this.backgroundColor = this.countDay > 0 ? 'success-progress' : 'danger-progress';
-  }
+protected getRemainingDays(): number | null {
+  if (!this.timeline) return null;
+  const endItem = this.timeline.find((t: any) => t.shortLabel === 'end');
+  return endItem?.remainingDays ?? null;
 }
 
-private getCountDay(): number {
-  return this.timelineRep?.formattedValueShort?.includes('j')
-    ? parseInt(this.timelineRep.formattedValueShort)
-    : 0;
-}
+<div class="progress-bar-wrapper">
+  <mat-progress-bar
+    [value]="value"
+    [mode]="mode"
+    [bufferValue]="bufferValue"
+    [color]="backgroundColor">
+  </mat-progress-bar>
 
-getDsEndTimeline(row: any): TimeLineV2 | null {
-  if (!row?.ds?.timeline) return null;
-  return row.ds.timeline.find((t: any) => t.shortLabel === 'end') ?? null;
-}
-
-getDsTreatmentDate(row: any): number | null {
-  return row?.ds?.treatmentDate ?? null;
-}
-
-<ng-container *ngIf="getDsEndTimeline(row) as endTimeline">
-  <metabot-bar-timeline
-    [treatmentDate]="getDsTreatmentDate(row)"
-    [timeline]="[endTimeline]"
-    [date]="row?.ds?.treatmentDelay">
-  </metabot-bar-timeline>
-</ng-container>
-
-export class BarTimelineComponent implements OnChanges {
-  @Input() protected timeLine!: TimeLineV2[];
-  @Input() protected treatmentDate!: Date;
-
-  // reste identique...
-
-  ngOnChanges(): void {
-    if (!this.timeLine || !Array.isArray(this.timeLine)) {
-      this.timelineRep = undefined;
-      return;
-    }
-
-    this.timelineRep = this.timeLine.find((e) => e.shortLabel === 'REP');
-    this.countDay = this.getCountDay();
-
-    if (this.timelineRep?.dayInBetweenDates) {
-      this.bufferValue = Math.abs(this.timelineRep.dayInBetweenDates);
-    }
-
-    this.value = this.getProgress();
-
-    if (this.isInProgress()) {
-      this.backgroundColor = this.countDay >= 0 ? 'success-progress' : 'danger-progress';
-    }
-  }
-}
-
-<metabot-bar-timeline
-  *ngIf="row?.ds?.timeline"
-  [timeline]="row.ds.timeline"
-  [treatmentDate]="row.ds.treatmentDate">
-</metabot-bar-timeline>
+  <span class="remaining-days" *ngIf="getRemainingDays() !== null">
+    {{ getRemainingDays() }}j restant
+  </span>
+</div>
