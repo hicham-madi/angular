@@ -1,24 +1,15 @@
-<!-- Colonne barre -->
-<ng-container matColumnDef="barre">
-  <th mat-header-cell *matHeaderCellDef class="barre-header-cell"></th>
-  <td mat-cell *matCellDef="let row" class="barre-cell">
-    <div *ngIf="!row.readCustomer" class="barre-inline"></div>
-  </td>
-</ng-container>
+.icon-wrapper {
+  display: flex;
+  align-items: center;
+  position: relative;
 
-.barre-header-cell {
-  width: 6px;
-  padding: 0;
-}
-
-.barre-cell {
-  width: 6px;
-  padding: 0;
-}
-
-.barre-inline {
-  width: 4px;
-  height: 100%;
-  background-color: $canard-clair;
-  border-radius: 2px;
+  &.has-bar::before {
+    content: '';
+    display: inline-block;
+    width: 5px;
+    height: 10px;
+    background-color: $canard-clair;
+    border-radius: 2px;
+    margin-right: 4px;
+  }
 }
