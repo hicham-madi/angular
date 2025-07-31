@@ -1,12 +1,14 @@
 public ngAfterViewInit(): void {
-  const interval = setInterval(() => {
-    // Si au moins une ligne est présente dans le DOM
-    const hasRows = document.querySelectorAll('table mat-row').length > 0;
+  setTimeout(() => {
+    // Recalcule la taille du viewport pour forcer le rendu du virtual scroll
+    this.cdkVirtualScroll?.checkViewportSize();
 
-    if (hasRows && this.cdkVirtualScroll) {
-      this.cdkVirtualScroll.checkViewportSize();
-      this.cdr.detectChanges();
-      clearInterval(interval); // Stop le polling
-    }
-  }, 50);
+    // Charge les templates de colonnes une fois la vue stabilisée
+    this.columnTemplates = {
+      ...this.tableConfigFactory.getBaseTemplates(this),
+    };
+
+    // Déclenche une détection de changements manuelle
+    this.cdr.detectChanges();
+  }, 0);
 }
