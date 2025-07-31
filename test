@@ -1,23 +1,13 @@
-ngOnInit(): void {
-  this.route.queryParams.subscribe((params) => {
-    const typeParam = params['card'];
-    if (typeParam && Object.values(FilterCardType).includes(typeParam)) {
-      this.activeCard = typeParam as FilterCardType;
-      this.loadTicketsByCard(this.activeCard);
-    }
-  });
-}
+this.route.queryParams.subscribe((params) => {
+  const card = params['card'] as FilterCardType;
+  const selectedCard = card && Object.values(FilterCardType).includes(card) ? card : FilterCardType.NONE;
+  this.loadTickets(selectedCard, this.onCardClicked, TicketContext.SOLICITATIONS);
+});
 
-onCardClicked(type: FilterCardType): void {
+if (this.router) {
   this.router.navigate([], {
     relativeTo: this.route,
     queryParams: { card: type },
     queryParamsHandling: 'merge',
   });
-}
-
-public loadTicketsByCard(type: FilterCardType, context: TicketContext, page: number = 0) {
-  const params = { ...this.listService.getCurrentParams(), currentPages: page, context };
-  params.cardType = FilterCardType[type];
-  return this.mbotService.getTicketsByCard(params);
 }
