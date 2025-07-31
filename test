@@ -1,17 +1,23 @@
-.progress-resize {
-  position: relative;
-  height: 6px;
-  border-radius: 4px;
-  overflow: hidden;
+ngOnInit(): void {
+  this.route.queryParams.subscribe((params) => {
+    const typeParam = params['card'];
+    if (typeParam && Object.values(FilterCardType).includes(typeParam)) {
+      this.activeCard = typeParam as FilterCardType;
+      this.loadTicketsByCard(this.activeCard);
+    }
+  });
+}
 
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 6px; // ← ajuste la largeur du "padding visuel" souhaité
-    height: 100%;
-    background-color: white; // ou la couleur du fond
-    z-index: 2;
-  }
+onCardClicked(type: FilterCardType): void {
+  this.router.navigate([], {
+    relativeTo: this.route,
+    queryParams: { card: type },
+    queryParamsHandling: 'merge',
+  });
+}
+
+public loadTicketsByCard(type: FilterCardType, context: TicketContext, page: number = 0) {
+  const params = { ...this.listService.getCurrentParams(), currentPages: page, context };
+  params.cardType = FilterCardType[type];
+  return this.mbotService.getTicketsByCard(params);
 }
