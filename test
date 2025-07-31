@@ -1,7 +1,7 @@
 protected onCardClicked(type: FilterCardType, context: TicketContext): void {
   this.cardClickedOnce = true;
 
-  // Si on clique sur la même carte, on désactive
+  // Toggle de sélection
   if (this.activeCard === type) {
     this.activeCard = FilterCardType.NONE;
   } else {
@@ -17,18 +17,6 @@ protected onCardClicked(type: FilterCardType, context: TicketContext): void {
     queryParamsHandling: 'merge',
   });
 
-  // Recharge les tickets
-  this.loadTickets(this.activeCard, this.cardClicked, context);
-}
-ngOnInit(): void {
-  this.route.queryParams.subscribe((params) => {
-    const cardParam = params['card'] as string;
-    const matchedCard = Object.values(FilterCardType).includes(cardParam as FilterCardType)
-      ? (cardParam as FilterCardType)
-      : FilterCardType.NONE;
-
-    this.activeCard = matchedCard;
-
-    this.loadTickets(this.activeCard, this.cardClicked, TicketContext.SOLICITATIONS);
-  });
+  // Recharge les tickets sans émettre d’event
+  this.loadTickets(this.activeCard, undefined, context);
 }
