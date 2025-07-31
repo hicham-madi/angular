@@ -1,14 +1,10 @@
-public ngAfterViewInit(): void {
-  setTimeout(() => {
-    // Recalcule la taille du viewport pour forcer le rendu du virtual scroll
-    this.cdkVirtualScroll?.checkViewportSize();
+setTimeout(() => {
+  const elements = document.querySelectorAll('.barre');
+  elements.forEach(el => {
+    // Forcer le reflow en accédant à offsetHeight
+    void (el as HTMLElement).offsetHeight;
+  });
 
-    // Charge les templates de colonnes une fois la vue stabilisée
-    this.columnTemplates = {
-      ...this.tableConfigFactory.getBaseTemplates(this),
-    };
-
-    // Déclenche une détection de changements manuelle
-    this.cdr.detectChanges();
-  }, 0);
-}
+  this.cdkVirtualScroll?.checkViewportSize();
+  this.cdr.detectChanges();
+}, 50);
