@@ -10,12 +10,3 @@ public ngAfterViewInit(): void {
     }
   }, 50);
 }
-
-@ViewChild(CdkVirtualScrollViewport) cdkVirtualScroll!: CdkVirtualScrollViewport;
-
-public ngOnChanges(): void {
-  setTimeout(() => {
-    this.cdkVirtualScroll?.checkViewportSize();
-    this.cdr.detectChanges();
-  });
-}
