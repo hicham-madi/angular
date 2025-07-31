@@ -1,22 +1,14 @@
-protected onCardClicked(type: FilterCardType, context: TicketContext): void {
-  this.cardClickedOnce = true;
+ngOnInit(): void {
+  this.route.queryParamMap
+    .pipe(take(1))
+    .subscribe((params) => {
+      const cardParam = params.get('card') as FilterCardType;
+      if (cardParam && Object.values(FilterCardType).includes(cardParam)) {
+        this.activeCard = cardParam;
+      } else {
+        this.activeCard = FilterCardType.NONE;
+      }
 
-  // Toggle de sélection
-  if (this.activeCard === type) {
-    this.activeCard = FilterCardType.NONE;
-  } else {
-    this.activeCard = type;
-  }
-
-  // Mise à jour de l'URL
-  this.router.navigate([], {
-    relativeTo: this.route,
-    queryParams: {
-      card: this.activeCard !== FilterCardType.NONE ? this.activeCard : null,
-    },
-    queryParamsHandling: 'merge',
-  });
-
-  // Recharge les tickets sans émettre d’event
-  this.loadTickets(this.activeCard, undefined, context);
+      this.loadTickets(this.activeCard, undefined, this.context); // ou context = TicketContext.SOLICITATIONS
+    });
 }
