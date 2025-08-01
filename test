@@ -1,40 +1,8 @@
-private fromTab: Tab | null = null;
-
-setOpenedFromTab(tab: Tab): void {
-  this.fromTab = tab;
+protected getDsTreatmentDate(row: Ticket): Date | null {
+  if (!row?.ds?.timeline) return null;
+  const endItem = row.ds.timeline.find(t => t.shortLabel === 'end');
+  return endItem?.treatmentDate ?? null;
 }
-
-getOpenedFromTab(): Tab | null {
-  return this.fromTab;
-}
-
-clearOpenedFromTab(): void {
-  this.fromTab = null;
-}
-
-goToView(ticket: Ticket): void {
-  this.ticketService.setOpenedFromTab(this.activeTab); // <--- AJOUT
-  this.router.navigate(['/ticket-view', ticket.id, ticket.readCustomer]);
-}
-
-protected goToList(): void {
-  if (!this.listService.loadingResolver) {
-    this.listService.getCurrentParams().claimCodeFilter = [];
-    this.listService.setCurrentSelectedTicket('');
-    this.listService.loadingResolver = true;
-    this.closeTicket(false);
-
-    const fromTab = this.ticketService.getOpenedFromTab();
-
-    if (fromTab === Tab.MY_TEAM) {
-      this.router.navigate(['/ticket-list/team-list']);
-    } else if (this.ticket) {
-      const statusRoute = this.constantsService.getRouteStatusByStatus(this.ticket.status);
-      this.router.navigate(['ticket-list', statusRoute]);
-    } else {
-      this.router.navigate(['ticket-list']);
-    }
-
     this.ticketService.clearOpenedFromTab(); // nettoyage
   }
 }
