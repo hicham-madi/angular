@@ -1,13 +1,84 @@
-ngOnInit(): void {
-  this.router.events.subscribe(event => {
-    if (event instanceof NavigationEnd) {
-      const match = Array.from(this.tabsUrls).find(([tab, url]) =>
-        event.urlAfterRedirects.includes(url)
-      );
+@Component({
+  selector: 'metabot-page-header',
+  templateUrl: './page-header.component.html',
+  styleUrls: ['./page-header.component.scss'],
+  standalone: true,
+  imports: [CommonModule, MatIconModule],
+})
+export class PageHeaderComponent {
+  @Input() public currentCount: number | undefined;
 
-      if (match) {
-        this.activeTab = match[0];
+  protected tabs: Tab[] = Object.values(Tab);
+  protected activeTab: Tab = this.tabs[0];
+
+  private readonly tabsUrls: Map<Tab, string> = new Map<Tab, string>()
+    .set(Tab.SOLICITING, 'ticket-list')
+    .set(Tab.MY_TEAM, 'ticket-list/team-list');
+
+  public constructor(
+    private readonly router: Router,
+    private readonly jwtService: JwtService,
+    private readonly metabotBridge: MetabotBridgeService
+  ) {}
+
+  public ngOnInit(): void {
+    this.updateActiveTab(this.router.url);
+
+    this.router.events.subscribe(event => {
+      if (event instanceof NavigationEnd) {
+        this.updateActiveTab(event.urlAfterRedirects);
       }
+    });
+  }
+
+  private updateActiveTab(url: string): void {
+    const match = Array.from(this.tabsUrls).find(([_, path]) =>
+      url.includes(path)
+    );
+    if (match) {
+      this.activeTab = match[0];
     }
-  });
+  }
+
+  protected showBadge(tab: string): boolean {
+    return tab === Tab.SOLICITING;
+  }
+
+  protected goToCreate(): void {
+    this.maximize();
+    this.router.navigate(['/ticket-create/new']);
+  }
+
+  protected handleTabClick(tab: Tab): void {
+    this.activeTab = tab;
+    this.maximize();
+  }
+
+  private maximize(): void {
+    this.metabotBridge.maximize();
+  }
 }
+
+<div class="uk-grid uk-grid-collapse uk-child-width-auto">
+  <ng-container *ngFor="let tab of tabs; trackBy: trackTab">
+    <button
+      class="text-button tab border-none no-radius padding-small"
+      [ngClass]="{ 'active-tab': tab === activeTab }"
+      (click)="handleTabClick(tab)"
+    >
+      <div>{{ tab }}</div>
+      <ng-container *ngIf="showBadge(tab)">
+        <span class="uk-margin-small-left sticker-canard-moyen sticker-padding">
+          {{ currentCount }}
+        </span>
+      </ng-container>
+    </button>
+  </ng-container>
+
+  <div class="uk-width-expand uk-text-right padding-small tab">
+    <button class="canard-fonce-button" (click)="goToCreate()">
+      <span class="material-symbols-outlined">add_box</span>
+      <div>nouvelle sollicitation</div>
+    </button>
+  </div>
+</div>
