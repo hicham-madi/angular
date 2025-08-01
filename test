@@ -1,8 +1,15 @@
-this.timelineRep = this.timeLine.find((e) => e.shortLabel === 'REP') 
-  ?? this.timeLine.find((e) => e.shortLabel === 'end');
+constructor(private router: Router) {}
 
-this.countDay = this.getCountDay();
+ngOnInit(): void {
+  this.router.events.subscribe(event => {
+    if (event instanceof NavigationEnd) {
+      const currentUrl = event.urlAfterRedirects;
 
-this.bufferValue = this.timelineRep?.dayInBetweenDates != null
-  ? Math.abs(this.timelineRep.dayInBetweenDates)
-  : this.treatmentDelay ?? 0;
+      if (currentUrl.includes('team-list')) {
+        this.activeTab = 'Mon équipe';
+      } else {
+        this.activeTab = 'Mes sollicitations';
+      }
+    }
+  });
+}
