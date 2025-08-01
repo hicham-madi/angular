@@ -1,14 +1,12 @@
-constructor(private router: Router) {}
-
 ngOnInit(): void {
   this.router.events.subscribe(event => {
     if (event instanceof NavigationEnd) {
-      const currentUrl = event.urlAfterRedirects;
+      const match = Array.from(this.tabsUrls).find(([tab, url]) =>
+        event.urlAfterRedirects.includes(url)
+      );
 
-      if (currentUrl.includes('team-list')) {
-        this.activeTab = 'Mon équipe';
-      } else {
-        this.activeTab = 'Mes sollicitations';
+      if (match) {
+        this.activeTab = match[0];
       }
     }
   });
