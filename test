@@ -1,8 +1,6 @@
-protected getDsTreatmentDate(row: Ticket): Date | null {
-  if (!row?.ds?.timeline) return null;
-  const endItem = row.ds.timeline.find(t => t.shortLabel === 'end');
-  return endItem?.treatmentDate ?? null;
-}
-    this.ticketService.clearOpenedFromTab(); // nettoyage
-  }
+if (this.timelineRep?.dayInBetweenDates != null) {
+  this.bufferValue = Math.abs(this.timelineRep.dayInBetweenDates);
+} else {
+  this.timelineRep = this.timeLine.find((t) => t.shortLabel === 'end') ?? undefined;
+  this.bufferValue = this.treatmentDelay ?? 0;
 }
