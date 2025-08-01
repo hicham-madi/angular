@@ -1,17 +1,13 @@
-@Component({
-  selector: 'metabot-page-header',
-  templateUrl: './page-header.component.html',
-  styleUrls: ['./page-header.component.scss'],
-  standalone: true,
-  imports: [CommonModule, MatIconModule],
-})
-export class PageHeaderComponent {
+import { NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs/operators';
+
+export class PageHeaderComponent implements OnInit {
   @Input() public currentCount: number | undefined;
 
   protected tabs: Tab[] = Object.values(Tab);
   protected activeTab: Tab = this.tabs[0];
 
-  private readonly tabsUrls: Map<Tab, string> = new Map<Tab, string>()
+  private readonly tabUrls: Map<Tab, string> = new Map<Tab, string>()
     .set(Tab.SOLICITING, 'ticket-list')
     .set(Tab.MY_TEAM, 'ticket-list/team-list');
 
@@ -22,19 +18,23 @@ export class PageHeaderComponent {
   ) {}
 
   public ngOnInit(): void {
-    this.updateActiveTab(this.router.url);
+    this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe(() => this.setActiveTabFromUrl());
 
-    this.router.events.subscribe(event => {
-      if (event instanceof NavigationEnd) {
-        this.updateActiveTab(event.urlAfterRedirects);
-      }
-    });
+    // appel initial
+    this.setActiveTabFromUrl();
   }
 
-  private updateActiveTab(url: string): void {
-    const match = Array.from(this.tabsUrls).find(([_, path]) =>
-      url.includes(path)
+  private setActiveTabFromUrl(): void {
+    const found = Array.from(this.tabUrls.entries()).find(([tab, url]) =>
+      this.router.url.includes(url)
     );
+    if (found) {
+      this.activeTab = found[0];
+    }
+  }
+}    );
     if (match) {
       this.activeTab = match[0];
     }
