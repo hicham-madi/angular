@@ -1,20 +1,40 @@
-getDsEndTimeline(row: Ticket): any[] {
-  return row?.ds?.timeline?.filter(t => t.shortLabel === 'end') ?? [];
+private fromTab: Tab | null = null;
+
+setOpenedFromTab(tab: Tab): void {
+  this.fromTab = tab;
 }
 
-getDsTreatmentDate(row: Ticket): Date | null {
-  const end = this.getDsEndTimeline(row)[0];
-  return end?.fromValue ? new Date(end.fromValue) : null;
+getOpenedFromTab(): Tab | null {
+  return this.fromTab;
 }
 
-getDsRemainingDays(row: Ticket): number | null {
-  const end = this.getDsEndTimeline(row)[0];
-  return end?.remainingDays ?? null;
+clearOpenedFromTab(): void {
+  this.fromTab = null;
 }
 
-<metabot-bar-timeline
-  *ngIf="getDsEndTimeline(row).length > 0"
-  [treatmentDate]="getDsTreatmentDate(row)"
-  [timeline]="getDsEndTimeline(row)"
-  [date]="getDsRemainingDays(row)">
-</metabot-bar-timeline>
+goToView(ticket: Ticket): void {
+  this.ticketService.setOpenedFromTab(this.activeTab); // <--- AJOUT
+  this.router.navigate(['/ticket-view', ticket.id, ticket.readCustomer]);
+}
+
+protected goToList(): void {
+  if (!this.listService.loadingResolver) {
+    this.listService.getCurrentParams().claimCodeFilter = [];
+    this.listService.setCurrentSelectedTicket('');
+    this.listService.loadingResolver = true;
+    this.closeTicket(false);
+
+    const fromTab = this.ticketService.getOpenedFromTab();
+
+    if (fromTab === Tab.MY_TEAM) {
+      this.router.navigate(['/ticket-list/team-list']);
+    } else if (this.ticket) {
+      const statusRoute = this.constantsService.getRouteStatusByStatus(this.ticket.status);
+      this.router.navigate(['ticket-list', statusRoute]);
+    } else {
+      this.router.navigate(['ticket-list']);
+    }
+
+    this.ticketService.clearOpenedFromTab(); // nettoyage
+  }
+}
