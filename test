@@ -15,3 +15,25 @@ ngOnInit(): void {
     }
   });
 }}
+
+if (this.activeCard && this.activeCard !== FilterCardType.NONE) {
+  this.ticketService.getTicketsByCard(this.buildPayload()).subscribe((data) => {
+    this.tickets = data.list;
+  });
+} else {
+  this.loadTickets(FilterCardType.NONE, TicketContext.SOLICITATIONS);
+}
+private loadTicketsFromCard(): void {
+  const payload = this.buildPayload(); // ou adaptez selon votre structure
+  payload.card = this.activeCard;
+
+  this.ticketService.getTicketsByCard(payload).subscribe((data) => {
+    this.tickets = data.list;
+  });
+}
+
+if (this.activeCard && this.activeCard !== FilterCardType.NONE) {
+  this.loadTicketsFromCard();
+} else {
+  this.loadTickets(FilterCardType.NONE, TicketContext.SOLICITATIONS);
+}
