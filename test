@@ -1,10 +1,33 @@
-override onCardClicked(type: FilterCardType, context: TicketContext): void {
-  this.router.navigate([], {
-    relativeTo: this.route,
-    queryParams: { card: type },
-    queryParamsHandling: 'merge',
+public override ngOnInit(): void {
+  this.route.queryParamMap.pipe(take(1)).subscribe((params: ParamMap) => {
+    const cardParam = params.get('card');
+
+    if (cardParam && typeof cardParam === 'string' && cardParam in FilterCardType) {
+      this.activeCard = FilterCardType[cardParam as keyof typeof FilterCardType];
+    } else {
+      this.activeCard = FilterCardType.NONE;
+    }
+
+    this.cardClickedOnce = true;
+
+    // Appel explicite à la méthode héritée pour déclencher le bon WS
+    this.onCardClicked(this.activeCard, TicketContext.SOLICITATIONS);
   });
 
-  // Appel au comportement hérité
-  super.onCardClicked(type, context);
+  const config = this.tableConfigFactory.getBaseColumns();
+  if (!this.displayedColumns?.length) {
+    this.displayedColumns = config.displayedColumns;
+  }
+
+  if (!Object.keys(this.columnConfig || {}).length) {
+    this.columnConfig = config.columnConfig;
+  }
+
+  this.statusTabs = [
+    { label: 'En cours', value: 'ongoing' },
+    { label: 'Terminées', value: 'completed' },
+  ];
+
+  this.subscriptionEnvConfig = this.getEnvConf();
+  this.cdr.detectChanges();
 }
