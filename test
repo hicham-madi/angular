@@ -1,74 +1,17 @@
-public ngOnInit(): void {
-  this.route.queryParamMap.pipe(take(1)).subscribe((params: ParamMap) => {
-    const cardParam = params.get('card');
+if (card !== FilterCardType.NONE && this.cardClickedOnce) {
+  params.cardType = card;
 
-    if (cardParam && typeof cardParam === 'string' && cardParam in FilterCardType) {
-      this.activeCard = FilterCardType[cardParam as keyof typeof FilterCardType];
-      this.cardClickedOnce = true;
-
-      const requestPayload = {
-        ...this.listService.reinitParam(), // même logique que loadTickets()
-        context: TicketContext.SOLICITATIONS,
-        card: this.activeCard,
-        sortKey: 'lastActivityTimestamp',
-        isAsc: false,
-      };
-
-      this.isLoading = true;
-
-      this.mbotService.getTicketsByCard(requestPayload).subscribe({
-        next: (response) => {
-          this.handleTicketResponse(response, TicketContext.SOLICITATIONS);
-
-          // reprise partielle de loadTickets pour mettre à jour les stats & colonnes
-          this.ticketCardInfos = response.stats;
-
-          const cards = this.cardConfigFactory.countCards(
-            this.ticketCardInfos,
-            this.activeCard,
-            true // équivalent this.cardClickedOnce
-          );
-          this.smallCards = cards.smallCards;
-
-          const disabledCardTypes = new Set<string>();
-          if (!this.enableReclamation) disabledCardTypes.add('CLAIMS');
-          if (!this.enableDiscussionGroupForCustomer) disabledCardTypes.add('DISCUSSION_GROUPS');
-          if (!this.enableDs) disabledCardTypes.add('REQUESTS_EXPERT_SERVICE');
-
-          this.largeCards = cards.largeCards.filter(
-            (card) => !disabledCardTypes.has(card.type)
-          );
-
-          this.isLoading = false;
-          this.cdr.detectChanges();
-        },
-        error: (err) => {
-          console.error('Erreur lors du chargement des tickets par carte :', err);
-          this.isLoading = false;
-        },
-      });
-
-    } else {
-      this.activeCard = FilterCardType.NONE;
-      this.cardClickedOnce = true;
-      this.loadTickets(this.activeCard, TicketContext.SOLICITATIONS);
-    }
+  this.mbotService.getTicketsByCard(params).subscribe({
+    next: (response) => {
+      this.handleTicketResponse(response, context);
+      this.cdr.detectChanges(); // optionnel ici
+    },
+    error: (err) => {
+      console.error('Erreur lors du chargement des tickets par carte :', err);
+    },
+    complete: () => {
+      this.isLoading = false;
+    },
   });
-
-  const config = this.tableConfigFactory.getBaseColumns();
-  if (!this.displayedColumns?.length) {
-    this.displayedColumns = config.displayedColumns;
-  }
-
-  if (!Object.keys(this.columnConfig || {}).length) {
-    this.columnConfig = config.columnConfig;
-  }
-
-  this.statusTabs = [
-    { label: 'En cours', value: 'ongoing' },
-    { label: 'Terminées', value: 'completed' },
-  ];
-
-  this.subscriptionEnvConfig = this.getEnvConf();
-  this.cdr.detectChanges();
+  return;
 }
