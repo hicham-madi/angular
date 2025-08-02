@@ -1,17 +1,31 @@
-if (card !== FilterCardType.NONE && this.cardClickedOnce) {
-  params.cardType = card;
+public ngOnInit(): void {
+  this.route.queryParamMap.pipe(take(1)).subscribe((params: ParamMap) => {
+    const cardParam = params.get('card');
 
-  this.mbotService.getTicketsByCard(params).subscribe({
-    next: (response) => {
-      this.handleTicketResponse(response, context);
-      this.cdr.detectChanges(); // optionnel ici
-    },
-    error: (err) => {
-      console.error('Erreur lors du chargement des tickets par carte :', err);
-    },
-    complete: () => {
-      this.isLoading = false;
-    },
+    if (cardParam && typeof cardParam === 'string' && cardParam in FilterCardType) {
+      this.activeCard = FilterCardType[cardParam as keyof typeof FilterCardType];
+    } else {
+      this.activeCard = FilterCardType.NONE;
+    }
+
+    this.cardClickedOnce = true;
+    this.loadTickets(this.activeCard, TicketContext.SOLICITATIONS);
   });
-  return;
+
+  const config = this.tableConfigFactory.getBaseColumns();
+  if (!this.displayedColumns?.length) {
+    this.displayedColumns = config.displayedColumns;
+  }
+
+  if (!Object.keys(this.columnConfig || {}).length) {
+    this.columnConfig = config.columnConfig;
+  }
+
+  this.statusTabs = [
+    { label: 'En cours', value: 'ongoing' },
+    { label: 'Terminées', value: 'completed' },
+  ];
+
+  this.subscriptionEnvConfig = this.getEnvConf();
+  this.cdr.detectChanges();
 }
