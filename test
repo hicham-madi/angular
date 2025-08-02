@@ -1,39 +1,74 @@
-ngOnInit(): void {
-  this.route.queryParamMap.subscribe((params) => {
-    const card = params.get('card');
-    const payload = this.buildPayload(); // méthode existante si vous avez déjà
+public ngOnInit(): void {
+  this.route.queryParamMap.pipe(take(1)).subscribe((params: ParamMap) => {
+    const cardParam = params.get('card');
 
-    if (card) {
-      payload.card = card;
-      this.ticketService.getTicketsByCard(payload).subscribe((data) => {
-        this.tickets = data.list;
+    if (cardParam && typeof cardParam === 'string' && cardParam in FilterCardType) {
+      this.activeCard = FilterCardType[cardParam as keyof typeof FilterCardType];
+      this.cardClickedOnce = true;
+
+      const requestPayload = {
+        ...this.listService.reinitParam(), // même logique que loadTickets()
+        context: TicketContext.SOLICITATIONS,
+        card: this.activeCard,
+        sortKey: 'lastActivityTimestamp',
+        isAsc: false,
+      };
+
+      this.isLoading = true;
+
+      this.mbotService.getTicketsByCard(requestPayload).subscribe({
+        next: (response) => {
+          this.handleTicketResponse(response, TicketContext.SOLICITATIONS);
+
+          // reprise partielle de loadTickets pour mettre à jour les stats & colonnes
+          this.ticketCardInfos = response.stats;
+
+          const cards = this.cardConfigFactory.countCards(
+            this.ticketCardInfos,
+            this.activeCard,
+            true // équivalent this.cardClickedOnce
+          );
+          this.smallCards = cards.smallCards;
+
+          const disabledCardTypes = new Set<string>();
+          if (!this.enableReclamation) disabledCardTypes.add('CLAIMS');
+          if (!this.enableDiscussionGroupForCustomer) disabledCardTypes.add('DISCUSSION_GROUPS');
+          if (!this.enableDs) disabledCardTypes.add('REQUESTS_EXPERT_SERVICE');
+
+          this.largeCards = cards.largeCards.filter(
+            (card) => !disabledCardTypes.has(card.type)
+          );
+
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error('Erreur lors du chargement des tickets par carte :', err);
+          this.isLoading = false;
+        },
       });
+
     } else {
-      this.ticketService.getTicketListV2(payload).subscribe((data) => {
-        this.tickets = data.list;
-      });
+      this.activeCard = FilterCardType.NONE;
+      this.cardClickedOnce = true;
+      this.loadTickets(this.activeCard, TicketContext.SOLICITATIONS);
     }
   });
-}}
 
-if (this.activeCard && this.activeCard !== FilterCardType.NONE) {
-  this.ticketService.getTicketsByCard(this.buildPayload()).subscribe((data) => {
-    this.tickets = data.list;
-  });
-} else {
-  this.loadTickets(FilterCardType.NONE, TicketContext.SOLICITATIONS);
-}
-private loadTicketsFromCard(): void {
-  const payload = this.buildPayload(); // ou adaptez selon votre structure
-  payload.card = this.activeCard;
+  const config = this.tableConfigFactory.getBaseColumns();
+  if (!this.displayedColumns?.length) {
+    this.displayedColumns = config.displayedColumns;
+  }
 
-  this.ticketService.getTicketsByCard(payload).subscribe((data) => {
-    this.tickets = data.list;
-  });
-}
+  if (!Object.keys(this.columnConfig || {}).length) {
+    this.columnConfig = config.columnConfig;
+  }
 
-if (this.activeCard && this.activeCard !== FilterCardType.NONE) {
-  this.loadTicketsFromCard();
-} else {
-  this.loadTickets(FilterCardType.NONE, TicketContext.SOLICITATIONS);
+  this.statusTabs = [
+    { label: 'En cours', value: 'ongoing' },
+    { label: 'Terminées', value: 'completed' },
+  ];
+
+  this.subscriptionEnvConfig = this.getEnvConf();
+  this.cdr.detectChanges();
 }
