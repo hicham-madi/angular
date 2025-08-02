@@ -1,37 +1,17 @@
-import { NavigationEnd, Router } from '@angular/router';
-import { filter } from 'rxjs/operators';
+ngOnInit(): void {
+  this.route.queryParamMap.subscribe((params) => {
+    const card = params.get('card');
+    const payload = this.buildPayload(); // méthode existante si vous avez déjà
 
-export class PageHeaderComponent implements OnInit {
-  @Input() public currentCount: number | undefined;
-
-  protected tabs: Tab[] = Object.values(Tab);
-  protected activeTab: Tab = this.tabs[0];
-
-  private readonly tabUrls: Map<Tab, string> = new Map<Tab, string>()
-    .set(Tab.SOLICITING, 'ticket-list')
-    .set(Tab.MY_TEAM, 'ticket-list/team-list');
-
-  public constructor(
-    private readonly router: Router,
-    private readonly jwtService: JwtService,
-    private readonly metabotBridge: MetabotBridgeService
-  ) {}
-
-  public ngOnInit(): void {
-    this.router.events
-      .pipe(filter(event => event instanceof NavigationEnd))
-      .subscribe(() => this.setActiveTabFromUrl());
-
-    // appel initial
-    this.setActiveTabFromUrl();
-  }
-
-  private setActiveTabFromUrl(): void {
-    const found = Array.from(this.tabUrls.entries()).find(([tab, url]) =>
-      this.router.url.includes(url)
-    );
-    if (found) {
-      this.activeTab = found[0];
+    if (card) {
+      payload.card = card;
+      this.ticketService.getTicketsByCard(payload).subscribe((data) => {
+        this.tickets = data.list;
+      });
+    } else {
+      this.ticketService.getTicketListV2(payload).subscribe((data) => {
+        this.tickets = data.list;
+      });
     }
-  }
-}
+  });
+}}
