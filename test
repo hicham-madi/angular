@@ -1,28 +1,26 @@
-public static com.hazelcast.query.Predicate<Object, Ticket> requests(
-    String customerId,
-    boolean isPrivate,
-    boolean isFullSet
-) {
-    List<String> statuses = isFullSet
-        ? List.of(
-            StatusTicket.NEW.toString(),
-            StatusTicket.PROCESSING.toString(),
-            StatusTicket.APPROVAL_PENDING.toString(),
-            StatusTicket.APPROVAL_REFUSED.toString(),
-            StatusTicket.PENDING.toString()
-        )
-        : List.of(
-            StatusTicket.NEW.toString(),
-            StatusTicket.PROCESSING.toString(),
-            StatusTicket.PENDING.toString()
-        );
+constructor(private router: Router) {}
 
-    return Predicates.and(
-        Predicates.equal(CLAIM_TYPE_CODE_FIELD, ClaimTypeCode.DC.toString()),
-        Predicates.in(STATUS_FIELD, statuses.toArray()),
-        isPrivate ? Predicates.equal(PRIVATE_FIELD, true) : Predicates.alwaysTrue(),
-        (StringUtils.isNotEmpty(customerId)
-            ? Predicates.equal(CUSTOMER_ID, customerId)
-            : Predicates.alwaysTrue())
-    );
+ngOnInit(): void {
+  const currentUrl = this.router.url;
+  const matchedTab = this.tabs.find(tab => currentUrl.includes(tab.value));
+  this.selected = matchedTab?.value ?? this.tabs[0]?.value;
 }
+
+public onTabClicked(tabValue: string): void {
+  const url = this.router.url;
+  const isTeamTab = url.includes('team-list');
+
+  const basePath = ['ticket-list'];
+  if (isTeamTab) {
+    basePath.push('team-list');
+  }
+
+  basePath.push(tabValue);
+  this.router.navigate(basePath);
+}
+
+<metabot-status-tabs
+  [tabs]="statusList"
+  [currentCount]="currentCount"
+  (tabChange)="onTabClicked($event)">
+</metabot-status-tabs>
