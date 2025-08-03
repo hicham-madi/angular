@@ -1,33 +1,28 @@
-public override ngOnInit(): void {
-  this.route.queryParamMap.pipe(take(1)).subscribe((params: ParamMap) => {
-    const cardParam = params.get('card');
+public static com.hazelcast.query.Predicate<Object, Ticket> requests(
+    String customerId,
+    boolean isPrivate,
+    boolean isFullSet
+) {
+    List<String> statuses = isFullSet
+        ? List.of(
+            StatusTicket.NEW.toString(),
+            StatusTicket.PROCESSING.toString(),
+            StatusTicket.APPROVAL_PENDING.toString(),
+            StatusTicket.APPROVAL_REFUSED.toString(),
+            StatusTicket.PENDING.toString()
+        )
+        : List.of(
+            StatusTicket.NEW.toString(),
+            StatusTicket.PROCESSING.toString(),
+            StatusTicket.PENDING.toString()
+        );
 
-    if (cardParam && typeof cardParam === 'string' && cardParam in FilterCardType) {
-      this.activeCard = FilterCardType[cardParam as keyof typeof FilterCardType];
-    } else {
-      this.activeCard = FilterCardType.NONE;
-    }
-
-    this.cardClickedOnce = true;
-
-    // Appel explicite à la méthode héritée pour déclencher le bon WS
-    this.onCardClicked(this.activeCard, TicketContext.SOLICITATIONS);
-  });
-
-  const config = this.tableConfigFactory.getBaseColumns();
-  if (!this.displayedColumns?.length) {
-    this.displayedColumns = config.displayedColumns;
-  }
-
-  if (!Object.keys(this.columnConfig || {}).length) {
-    this.columnConfig = config.columnConfig;
-  }
-
-  this.statusTabs = [
-    { label: 'En cours', value: 'ongoing' },
-    { label: 'Terminées', value: 'completed' },
-  ];
-
-  this.subscriptionEnvConfig = this.getEnvConf();
-  this.cdr.detectChanges();
+    return Predicates.and(
+        Predicates.equal(CLAIM_TYPE_CODE_FIELD, ClaimTypeCode.DC.toString()),
+        Predicates.in(STATUS_FIELD, statuses.toArray()),
+        isPrivate ? Predicates.equal(PRIVATE_FIELD, true) : Predicates.alwaysTrue(),
+        (StringUtils.isNotEmpty(customerId)
+            ? Predicates.equal(CUSTOMER_ID, customerId)
+            : Predicates.alwaysTrue())
+    );
 }
