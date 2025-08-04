@@ -1,20 +1,19 @@
-constructor(
-  private readonly router: Router,
-  private readonly cdr: ChangeDetectorRef,
-  private readonly zone: NgZone
-) {}
+import { Component, Input, OnChanges, SimpleChanges, ChangeDetectorRef } from '@angular/core';
 
-ngOnInit(): void {
-  this.router.events.subscribe((event) => {
-    if (event instanceof NavigationEnd) {
-      const match = Array.from(this.tabsUrls).find(([_, path]) =>
-        event.urlAfterRedirects.includes(path)
-      );
+export class PageHeaderComponent implements OnChanges {
+  @Input() currentCount?: number;
 
-      this.zone.run(() => {
-        this.activeTab = match?.[0] ?? this.tabs[0];
-        this.cdr.detectChanges();
-      });
+  protected tabs: Tab[] = Object.values(Tab);
+  protected activeTab: Tab = this.tabs[0];
+
+  constructor(private readonly cdr: ChangeDetectorRef) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['currentCount']) {
+      // Force Angular à re-render quand currentCount est défini
+      this.cdr.detectChanges();
     }
-  });
+  }
+
+  // Le reste inchangé
 }
