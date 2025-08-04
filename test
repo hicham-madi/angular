@@ -1,6 +1,3 @@
-import { Router, NavigationEnd } from '@angular/router';
-import { filter } from 'rxjs/operators';
-
 public ngOnInit(): void {
   this.router.events.pipe(
     filter(event => event instanceof NavigationEnd)
@@ -10,7 +7,7 @@ public ngOnInit(): void {
     );
     if (tab) {
       this.activeTab = tab[0];
-      this.cdr.markForCheck(); // notifier Angular du changement
+      this.cdr.markForCheck();
     }
   });
 }
