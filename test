@@ -1,13 +1,15 @@
-onTabClicked(tabValue: string): void {
-  const url = this.router.url;
-  const isTeam = url.includes('team-list');
-
-  if (tabValue === 'terminated-list') {
+public onTabChange(tabValue: string): void {
+  if (tabValue === 'completed') {
     this.router.navigate(['/ticket-list/terminated-list']);
   } else {
-    const base = isTeam ? ['/ticket-list', 'team-list'] : ['/ticket-list'];
-    this.router.navigate([...base, 'status', tabValue]);
+    this.router.navigate(['/ticket-list'], { queryParams: { status: tabValue } });
   }
 }
 
-{ label: 'Terminées', value: 'terminated-list' }
+public onTabChange(tabValue: string): void {
+  if (tabValue === 'current') {
+    this.router.navigate(['/ticket-list'], { queryParams: { status: tabValue } });
+  } else {
+    this.router.navigate(['/ticket-list/terminated-list']);
+  }
+}
