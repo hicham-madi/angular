@@ -1,26 +1,13 @@
-constructor(private router: Router) {}
-
-ngOnInit(): void {
-  const currentUrl = this.router.url;
-  const matchedTab = this.tabs.find(tab => currentUrl.includes(tab.value));
-  this.selected = matchedTab?.value ?? this.tabs[0]?.value;
-}
-
-public onTabClicked(tabValue: string): void {
+onTabClicked(tabValue: string): void {
   const url = this.router.url;
-  const isTeamTab = url.includes('team-list');
+  const isTeam = url.includes('team-list');
 
-  const basePath = ['ticket-list'];
-  if (isTeamTab) {
-    basePath.push('team-list');
+  if (tabValue === 'terminated-list') {
+    this.router.navigate(['/ticket-list/terminated-list']);
+  } else {
+    const base = isTeam ? ['/ticket-list', 'team-list'] : ['/ticket-list'];
+    this.router.navigate([...base, 'status', tabValue]);
   }
-
-  basePath.push(tabValue);
-  this.router.navigate(basePath);
 }
 
-<metabot-status-tabs
-  [tabs]="statusList"
-  [currentCount]="currentCount"
-  (tabChange)="onTabClicked($event)">
-</metabot-status-tabs>
+{ label: 'Terminées', value: 'terminated-list' }
