@@ -1,17 +1,15 @@
-public onTabChange(tabValue: string): void {
-  const currentUrl = this.router.url;
+ngOnInit(): void {
+  this.router.events
+    .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+    .subscribe(() => {
+      this.currentTab = this.router.url.includes('terminated-list') ? 'completed' : 'ongoing';
+    });
+}
 
-  const targetUrl =
-    tabValue === 'completed'
-      ? '/ticket-list/terminated-list'
-      : `/ticket-list?status=${tabValue}`;
-
-  if (currentUrl === targetUrl) {
-    // Si on clique sur l'onglet déjà actif, on force la navigation
-    this.router
-      .navigateByUrl('/', { skipLocationChange: true })
-      .then(() => this.router.navigateByUrl(targetUrl));
-  } else {
-    this.router.navigateByUrl(targetUrl);
-  }
+ngOnInit(): void {
+  this.router.events
+    .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+    .subscribe(() => {
+      this.currentTab = this.router.url.includes('terminated-list') ? 'completed' : 'ongoing';
+    });
 }
