@@ -1,32 +1,6 @@
-protected sort = {
-  active: null as string | null,
-  direction: null as 'asc' | 'desc' | null
-};
+Voici un commentaire concis que tu peux poster en réponse :
 
-if (this.sort.active !== column) {
-  this.sort.active = column;
-  this.sort.direction = 'asc';
-} else {
-  switch (this.sort.direction) {
-    case 'asc':
-      this.sort.direction = 'desc';
-      break;
-    case 'desc':
-      this.sort.direction = null;
-      this.sort.active = 'lastActivityTimestamp';
-      this.fetchTickets('lastActivityTimestamp', 'desc');
-      return;
-    default:
-      this.sort.direction = 'asc';
-  }
-}
+> listService ne peut pas être private car il est utilisé dans la classe parente TicketsPageBase. Le mot-clé private restreint son accès à TeamPageComponent uniquement, ce qui provoque une erreur de compatibilité lors de l’héritage. Il faut utiliser protected ou public.
 
-this.fetchTickets(
-  this.sort.direction ? column : null,
-  this.sort.direction
-);
 
-if (!this.sort || this.sort.active !== column || !this.sort.direction) {
-  return 'unfold_more';
-}
-return this.sort.direction === 'asc' ? 'arrow_upward' : 'arrow_downward';
+
