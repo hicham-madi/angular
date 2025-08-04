@@ -1,19 +1,16 @@
-private _currentCount: number | undefined;
+import { Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
 
-@Input()
-public set currentCount(value: number | undefined) {
-  this._currentCount = value;
-  this.cdr.markForCheck(); // force le rafraîchissement même si le composant est déjà affiché
+public ngOnInit(): void {
+  this.router.events.pipe(
+    filter(event => event instanceof NavigationEnd)
+  ).subscribe((event: NavigationEnd) => {
+    let tab: [Tab, string] | undefined = Array.from(this.tabsUrls).find(pair =>
+      event.urlAfterRedirects.includes(pair[1])
+    );
+    if (tab) {
+      this.activeTab = tab[0];
+      this.cdr.markForCheck(); // notifier Angular du changement
+    }
+  });
 }
-
-public get currentCount(): number | undefined {
-  return this._currentCount;
-}
-
-constructor(
-  private readonly router: Router,
-  private readonly jwtService: JwtService,
-  private readonly metabotBridge: MetabotBridgeService,
-  private readonly cdr: ChangeDetectorRef
-) {}
-
