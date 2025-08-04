@@ -1,12 +1,13 @@
-public ngAfterViewInit(): void {
-  setTimeout(() => {
-    const tab: [Tab, string] | undefined = Array.from(this.tabsUrls).find(([_, path]) =>
-      this.router.url.includes(path)
-    );
-
-    if (tab) {
-      this.activeTab = tab[0];
-      this.cdr.detectChanges();
+ngOnInit(): void {
+  this.router.events.subscribe((event) => {
+    if (event instanceof NavigationEnd) {
+      const match = Array.from(this.tabsUrls).find(([_, path]) =>
+        event.urlAfterRedirects.includes(path)
+      );
+      if (match) {
+        this.activeTab = match[0];
+        this.cdr.markForCheck(); // ou detectChanges()
+      }
     }
   });
 }
