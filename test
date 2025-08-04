@@ -1,10 +1,19 @@
 private _currentCount: number | undefined;
 
 @Input()
-set currentCount(value: number | undefined) {
+public set currentCount(value: number | undefined) {
   this._currentCount = value;
-  setTimeout(() => this.cdr.detectChanges());
+  this.cdr.markForCheck(); // force le rafraîchissement même si le composant est déjà affiché
 }
-get currentCount(): number | undefined {
+
+public get currentCount(): number | undefined {
   return this._currentCount;
 }
+
+constructor(
+  private readonly router: Router,
+  private readonly jwtService: JwtService,
+  private readonly metabotBridge: MetabotBridgeService,
+  private readonly cdr: ChangeDetectorRef
+) {}
+
