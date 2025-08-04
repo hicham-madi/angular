@@ -1,15 +1,32 @@
-ngOnInit(): void {
-  this.router.events
-    .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
-    .subscribe(() => {
-      this.currentTab = this.router.url.includes('terminated-list') ? 'completed' : 'ongoing';
-    });
+protected sort = {
+  active: null as string | null,
+  direction: null as 'asc' | 'desc' | null
+};
+
+if (this.sort.active !== column) {
+  this.sort.active = column;
+  this.sort.direction = 'asc';
+} else {
+  switch (this.sort.direction) {
+    case 'asc':
+      this.sort.direction = 'desc';
+      break;
+    case 'desc':
+      this.sort.direction = null;
+      this.sort.active = 'lastActivityTimestamp';
+      this.fetchTickets('lastActivityTimestamp', 'desc');
+      return;
+    default:
+      this.sort.direction = 'asc';
+  }
 }
 
-ngOnInit(): void {
-  this.router.events
-    .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
-    .subscribe(() => {
-      this.currentTab = this.router.url.includes('terminated-list') ? 'completed' : 'ongoing';
-    });
+this.fetchTickets(
+  this.sort.direction ? column : null,
+  this.sort.direction
+);
+
+if (!this.sort || this.sort.active !== column || !this.sort.direction) {
+  return 'unfold_more';
 }
+return this.sort.direction === 'asc' ? 'arrow_upward' : 'arrow_downward';
