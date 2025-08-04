@@ -1,6 +1,12 @@
-Voici un commentaire concis que tu peux poster en réponse :
+public ngAfterViewInit(): void {
+  setTimeout(() => {
+    const tab: [Tab, string] | undefined = Array.from(this.tabsUrls).find(([_, path]) =>
+      this.router.url.includes(path)
+    );
 
-> listService ne peut pas être private car il est utilisé dans la classe parente TicketsPageBase. Le mot-clé private restreint son accès à TeamPageComponent uniquement, ce qui provoque une erreur de compatibilité lors de l’héritage. Il faut utiliser protected ou public.
-
-
-
+    if (tab) {
+      this.activeTab = tab[0];
+      this.cdr.detectChanges();
+    }
+  });
+}
