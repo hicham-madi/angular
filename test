@@ -1,15 +1,17 @@
 public onTabChange(tabValue: string): void {
-  if (tabValue === 'completed') {
-    this.router.navigate(['/ticket-list/terminated-list']);
-  } else {
-    this.router.navigate(['/ticket-list'], { queryParams: { status: tabValue } });
-  }
-}
+  const currentUrl = this.router.url;
 
-public onTabChange(tabValue: string): void {
-  if (tabValue === 'current') {
-    this.router.navigate(['/ticket-list'], { queryParams: { status: tabValue } });
+  const targetUrl =
+    tabValue === 'completed'
+      ? '/ticket-list/terminated-list'
+      : `/ticket-list?status=${tabValue}`;
+
+  if (currentUrl === targetUrl) {
+    // Si on clique sur l'onglet déjà actif, on force la navigation
+    this.router
+      .navigateByUrl('/', { skipLocationChange: true })
+      .then(() => this.router.navigateByUrl(targetUrl));
   } else {
-    this.router.navigate(['/ticket-list/terminated-list']);
+    this.router.navigateByUrl(targetUrl);
   }
 }
