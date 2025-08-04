@@ -1,13 +1,20 @@
+constructor(
+  private readonly router: Router,
+  private readonly cdr: ChangeDetectorRef,
+  private readonly zone: NgZone
+) {}
+
 ngOnInit(): void {
   this.router.events.subscribe((event) => {
     if (event instanceof NavigationEnd) {
       const match = Array.from(this.tabsUrls).find(([_, path]) =>
         event.urlAfterRedirects.includes(path)
       );
-      if (match) {
-        this.activeTab = match[0];
-        this.cdr.markForCheck(); // ou detectChanges()
-      }
+
+      this.zone.run(() => {
+        this.activeTab = match?.[0] ?? this.tabs[0];
+        this.cdr.detectChanges();
+      });
     }
   });
 }
