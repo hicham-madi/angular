@@ -1,39 +1,17 @@
-protected onScroll(scrolled: EventEmitter<void>, context: TicketContext): void {
-  // 👉 Ne pas charger plus si toutes les pages ont été récupérées
-  if (this.currentPage + 1 >= this.totalPages || this.isLoading) {
-    return;
-  }
+@Output() scrolled = new EventEmitter<void>();
 
-  const page = ++this.currentPage;
-  this.isLoading = true;
+@ViewChild(CdkVirtualScrollViewport)
+viewport!: CdkVirtualScrollViewport;
 
-  const complete = () => {
-    this.isLoading = false;
-    this.currentPage = page;
-    scrolled.emit();
-  };
-
-  if (this.activeCard === FilterCardType.NONE) {
-    this.cardConfigFactory.loadTicketsByCard(FilterCardType.NONE, context, page).subscribe({
-      next: (response) => {
-        this.handleTicketResponse(response, context);
-        complete();
-      },
-      error: (err) => {
-        console.error('Erreur lors du scroll (sans filtre) :', err);
-        complete();
-      },
-    });
-  } else {
-    this.cardConfigFactory.loadTicketsByCard(this.activeCard, context, page).subscribe({
-      next: (response) => {
-        this.handleTicketResponse(response, context);
-        complete();
-      },
-      error: (err) => {
-        console.error('Erreur lors du scroll (avec filtre) :', err);
-        complete();
-      },
-    });
+ngAfterViewInit(): void {
+  this.viewport.elementScrolled().pipe(
+    throttleTime(100),
+    map(() => this.viewport.measureScrollOffset('bottom')),
+    filter(offset => offset === 0), // 👈 Émet uniquement si on est en bas
+    distinctUntilChanged()
+  ).subscribe(() => {
+    this.scrolled.emit(); // 👉 n’émet qu’à la fin de scroll
+  });
+}    });
   }
 }
