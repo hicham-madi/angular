@@ -1,18 +1,9 @@
-ngOnInit(): void {
-  this.route.queryParamMap.subscribe((params) => {
-    const cardType = params.get('card') as FilterCardType;
-    if (cardType) {
-      this.onCardClicked(cardType, TicketContext.SOLICITATIONS); // ou TEAM si c’est le contexte
-    }
-  });
-}
-
-constructor(private router: Router, private route: ActivatedRoute) {}
-
 protected onCardClicked(type: FilterCardType, context: TicketContext): void {
   this.cardClickedOnce = true;
 
-  // 🟡 Mise à jour de l'URL
+  // 🔐 Sauvegarder le filtre actif
+  localStorage.setItem('lastActiveCard', type);
+
   this.router.navigate([], {
     relativeTo: this.route,
     queryParams: { card: type },
@@ -31,7 +22,21 @@ protected onCardClicked(type: FilterCardType, context: TicketContext): void {
     this.activeCard = type;
     this.cardConfigFactory.loadTicketsByCard(type, context).subscribe({
       next: (response) => this.handleTicketResponse(response, context),
-      error: (err) => console.error('Erreur lors du chargement des tickets pour la carte sélectionnée :', err),
+      error: (err) => console.error('Erreur lors du chargement des tickets :', err),
     });
   }
+}
+
+ngOnInit(): void {
+  this.route.queryParamMap.subscribe((params) => {
+    const cardParam = params.get('card') as FilterCardType;
+
+    const savedCard = localStorage.getItem('lastActiveCard') as FilterCardType;
+
+    const cardToApply = cardParam ?? savedCard;
+
+    if (cardToApply) {
+      this.onCardClicked(cardToApply, TicketContext.SOLICITATIONS); // ou TEAM selon ton composant
+    }
+  });
 }
