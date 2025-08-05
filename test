@@ -1,17 +1,61 @@
-@Output() scrolled = new EventEmitter<void>();
+protected onScroll(scrolled: EventEmitter<void>, context: TicketContext): void {
+  if (this.isLoading || this.currentPage >= this.totalPages - 1) {
+    return;
+  }
 
-@ViewChild(CdkVirtualScrollViewport)
-viewport!: CdkVirtualScrollViewport;
+  const page = this.currentPage + 1;
+  this.isLoading = true;
 
-ngAfterViewInit(): void {
-  this.viewport.elementScrolled().pipe(
-    throttleTime(100),
-    map(() => this.viewport.measureScrollOffset('bottom')),
-    filter(offset => offset === 0), // 👈 Émet uniquement si on est en bas
-    distinctUntilChanged()
-  ).subscribe(() => {
-    this.scrolled.emit(); // 👉 n’émet qu’à la fin de scroll
+  const complete = () => {
+    this.isLoading = false;
+    this.currentPage = page;
+    scrolled.emit();
+  };
+
+  const request = this.activeCard === FilterCardType.NONE
+    ? this.cardConfigFactory.loadTicketsByCard(FilterCardType.NONE, context, page)
+    : this.cardConfigFactory.loadTicketsByCard(this.activeCard, context, page);
+
+  request.subscribe({
+    next: (response) => {
+      this.handleTicketResponse(response, context);
+      complete();
+    },
+    error: (err) => {
+      console.error('Erreur lors du scroll :', err);
+      complete();
+    }
   });
-}    });
+}
+private handleTicketResponse(response: MbotListV2, context: TicketContext): void {
+  try {
+    const page = response.tickets?.number ?? 0;
+    const size = response.tickets?.size ?? 20;
+    const content = response.tickets?.content ?? [];
+    const totalElements = response.tickets?.totalElements ?? 0;
+    const totalPages = Math.ceil(totalElements / size);
+
+    this.totalPages = totalPages;
+
+    switch (context) {
+      case TicketContext.SOLICITATIONS:
+        this.tableConfigFactory.ticketsCountSolicitations = totalElements;
+        break;
+      case TicketContext.TEAM:
+        this.ticketsCountTeam = totalElements;
+        break;
+    }
+
+    if (page === 0) {
+      this.tickets = content;
+    } else {
+      const existingIds = new Set(this.tickets.map(t => t.id));
+      const uniqueNewTickets = content.filter(t => !existingIds.has(t.id));
+      this.tickets = [...this.tickets, ...uniqueNewTickets];
+    }
+
+    this.listService.loadingResolver = false;
+  } catch (e) {
+    console.error('Erreur dans handleTicketResponse :', e);
   }
 }
