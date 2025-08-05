@@ -1,38 +1,31 @@
-protected onCardClicked(type: FilterCardType, context: TicketContext): void {
-  this.cardClickedOnce = true;
+ngOnInit(): void {
+  this.route.queryParamMap.subscribe((params) => {
+    const cardType = params.get('card') as FilterCardType;
 
-  // Mise à jour de l’URL
-  if (this.activeCard === type) {
-    // Désélection de la carte → suppression du paramètre
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { card: null },
-      queryParamsHandling: 'merge',
-    });
-    this.activeCard = FilterCardType.NONE;
-  } else {
-    // Sélection d'une nouvelle carte → ajout dans l'URL
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { card: type },
-      queryParamsHandling: 'merge',
-    });
-    this.activeCard = type;
+    if (cardType && this.activeCard !== cardType) {
+      this.onCardClicked(cardType, TicketContext.SOLICITATIONS);
+    } else if (!cardType) {
+      this.activeCard = FilterCardType.NONE;
+      this.loadTickets(this.activeCard, TicketContext.SOLICITATIONS);
+    }
+
+    this.cardClickedOnce = true;
+  });
+
+  // reste inchangé
+  const config = this.tableConfigFactory.getBaseColumns();
+  if (!this.displayedColumns?.length) {
+    this.displayedColumns = config.displayedColumns;
+  }
+  if (!Object.keys(this.columnConfig ?? {}).length) {
+    this.columnConfig = config.columnConfig;
   }
 
-  this.currentPage = 0;
-  this.scrollCompleted = false;
-  this.tickets = [];
-  this.ticketsCountTeam = 0;
+  this.statusTabs = [
+    { label: 'En cours', value: 'ongoing' },
+    { label: 'Terminées', value: 'completed' }
+  ];
 
-  if (this.activeCard === FilterCardType.NONE) {
-    this.loadFullTicketList(context);
-  } else {
-    this.cardConfigFactory.loadTicketsByCard(type, context).subscribe({
-      next: (response) => {
-        this.handleTicketResponse(response, context);
-      },
-      error: (err) => console.error('Erreur lors du chargement des tickets pour la carte sélectionnée :', err),
-    });
-  }
+  this.subscriptionEnvConfig = this.getEnvConf();
+  this.cdr.detectChanges();
 }
