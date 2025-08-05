@@ -1,10 +1,26 @@
+if (this.isLoading || this.currentPage >= this.totalPages - 1 || !this.hasReachedScrollEnd()) {
+  return;
+}
+
+private hasReachedScrollEnd(): boolean {
+  const el = this.scrollViewport?.elementRef?.nativeElement;
+  if (!el) return false;
+
+  const scrollTop = el.scrollTop;
+  const scrollHeight = el.scrollHeight;
+  const clientHeight = el.clientHeight;
+
+  // On attend que l'utilisateur atteigne 80% de scroll vers le bas
+  return scrollTop + clientHeight >= scrollHeight * 0.8;
+}
+
 protected onScroll(scrolled: EventEmitter<void>, context: TicketContext): void {
-  if (this.isLoading || this.currentPage >= this.totalPages - 1) {
+  if (this.isLoading || this.currentPage >= this.totalPages - 1 || !this.hasReachedScrollEnd()) {
     return;
   }
 
-  const page = this.currentPage + 1;
   this.isLoading = true;
+  const page = this.currentPage + 1;
 
   const complete = () => {
     this.isLoading = false;
@@ -27,35 +43,65 @@ protected onScroll(scrolled: EventEmitter<void>, context: TicketContext): void {
     }
   });
 }
-private handleTicketResponse(response: MbotListV2, context: TicketContext): void {
-  try {
-    const page = response.tickets?.number ?? 0;
-    const size = response.tickets?.size ?? 20;
-    const content = response.tickets?.content ?? [];
-    const totalElements = response.tickets?.totalElements ?? 0;
-    const totalPages = Math.ceil(totalElements / size);
 
-    this.totalPages = totalPages;
+<cdk-virtual-scroll-viewport
+  itemSize="80"
+  class="ticket-scroll-viewport"
+  (scrolledIndexChange)="onScroll($event)"
+  [minBufferPx]="400"
+  [maxBufferPx]="800"
+>
+  <ng-container *cdkVirtualFor="let ticket of tickets">
+    <app-ticket-card [ticket]="ticket"></app-ticket-card>
+  </ng-container>
+</cdk-virtual-scroll-viewport>
 
-    switch (context) {
-      case TicketContext.SOLICITATIONS:
-        this.tableConfigFactory.ticketsCountSolicitations = totalElements;
-        break;
-      case TicketContext.TEAM:
-        this.ticketsCountTeam = totalElements;
-        break;
-    }
-
-    if (page === 0) {
-      this.tickets = content;
-    } else {
-      const existingIds = new Set(this.tickets.map(t => t.id));
-      const uniqueNewTickets = content.filter(t => !existingIds.has(t.id));
-      this.tickets = [...this.tickets, ...uniqueNewTickets];
-    }
-
-    this.listService.loadingResolver = false;
-  } catch (e) {
-    console.error('Erreur dans handleTicketResponse :', e);
-  }
+.ticket-scroll-viewport {
+  height: calc(100vh - 250px); // Ajuste selon le header, filters, etc.
+  width: 100%;
 }
+
+onScroll(_: number): void {
+  if (
+    this.isLoading ||
+    this.currentPage >= this.totalPages - 1 ||
+    !this.hasReachedScrollEnd()
+  ) {
+    return;
+  }
+
+  this.loadNextPage();
+}
+
+private hasReachedScrollEnd(): boolean {
+  const el = this.scrollViewport?.elementRef?.nativeElement;
+  if (!el) return false;
+
+  const scrollTop = el.scrollTop;
+  const scrollHeight = el.scrollHeight;
+  const clientHeight = el.clientHeight;
+
+  return scrollTop + clientHeight >= scrollHeight * 0.9;
+}
+
+private loadNextPage(): void {
+  this.isLoading = true;
+  const pageToLoad = this.currentPage + 1;
+
+  this.cardConfigFactory
+    .loadTicketsByCard(this.activeCard, this.context, pageToLoad)
+    .subscribe({
+      next: (response) => {
+        this.handleTicketResponse(response, this.context);
+        this.currentPage = pageToLoad;
+        this.isLoading = false;
+      },
+      error: () => {
+        this.isLoading = false;
+      }
+    });
+}
+
+@ViewChild(CdkVirtualScrollViewport)
+scrollViewport: CdkVirtualScrollViewport | undefined;
+
