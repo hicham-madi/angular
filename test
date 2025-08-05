@@ -1,43 +1,38 @@
 protected onCardClicked(type: FilterCardType, context: TicketContext): void {
   this.cardClickedOnce = true;
 
+  // Mise à jour de l’URL
   if (this.activeCard === type) {
-    this.activeCard = FilterCardType.NONE;
-
-    // ✅ Supprimer le paramètre ?card de l'URL
+    // Désélection de la carte → suppression du paramètre
     this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: {},
+      queryParams: { card: null },
       queryParamsHandling: 'merge',
-      // 🔁 remove card key
-      queryParams: { card: null }
     });
-
-    this.currentPage = 0;
-    this.scrollCompleted = false;
-    this.tickets = [];
-    this.ticketsCountTeam = 0;
-
-    this.loadFullTicketList(context);
-    return;
+    this.activeCard = FilterCardType.NONE;
+  } else {
+    // Sélection d'une nouvelle carte → ajout dans l'URL
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { card: type },
+      queryParamsHandling: 'merge',
+    });
+    this.activeCard = type;
   }
-
-  this.activeCard = type;
-
-  // ✅ Mettre à jour l'URL avec la nouvelle carte sélectionnée
-  this.router.navigate([], {
-    relativeTo: this.route,
-    queryParams: { card: type },
-    queryParamsHandling: 'merge'
-  });
 
   this.currentPage = 0;
   this.scrollCompleted = false;
   this.tickets = [];
   this.ticketsCountTeam = 0;
 
-  this.cardConfigFactory.loadTicketsByCard(type, context).subscribe({
-    next: (response) => this.handleTicketResponse(response, context),
-    error: (err) => console.error('Erreur lors du chargement des tickets pour la carte sélectionnée :', err)
-  });
+  if (this.activeCard === FilterCardType.NONE) {
+    this.loadFullTicketList(context);
+  } else {
+    this.cardConfigFactory.loadTicketsByCard(type, context).subscribe({
+      next: (response) => {
+        this.handleTicketResponse(response, context);
+      },
+      error: (err) => console.error('Erreur lors du chargement des tickets pour la carte sélectionnée :', err),
+    });
+  }
 }
