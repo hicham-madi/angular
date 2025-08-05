@@ -1,37 +1,21 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+this.router.navigate(['/ticket-list'], {
+  queryParams: { filter: 'IN_PROGRESS' }
+});
 
-@Injectable({
-  providedIn: 'root',
-})
-export class TicketCountService {
-  private solicitationsCountSubject = new BehaviorSubject<number>(0);
-  solicitationsCount$ = this.solicitationsCountSubject.asObservable();
+constructor(private route: ActivatedRoute) {}
 
-  setSolicitationsCount(count: number): void {
-    this.solicitationsCountSubject.next(count);
-  }
-
-  getSolicitationsCount(): number {
-    return this.solicitationsCountSubject.getValue();
+ngOnInit(): void {
+  const filterFromUrl = this.route.snapshot.queryParamMap.get('filter');
+  if (filterFromUrl) {
+    this.selectedFilter = filterFromUrl;
+    this.applyFilter(filterFromUrl); // Appelle ta méthode de filtrage ici
   }
 }
 
-constructor(
-  private readonly ticketCountService: TicketCountService
-) {}
-
-...
-
-case TicketContext.SOLICITATIONS:
-  this.ticketCountService.setSolicitationsCount(totalElements);
-  break;
-
-
-constructor(private ticketCountService: TicketCountService) {}
-
-ngOnInit(): void {
-  this.ticketCountService.solicitationsCount$.subscribe(count => {
-    this.currentCount = count;
+onFilterChanged(filterValue: string): void {
+  this.selectedFilter = filterValue;
+  this.router.navigate([], {
+    queryParams: { filter: filterValue },
+    queryParamsHandling: 'merge', // pour garder les autres paramètres
   });
 }
