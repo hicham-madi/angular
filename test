@@ -1,21 +1,37 @@
-this.router.navigate(['/ticket-list'], {
-  queryParams: { filter: 'IN_PROGRESS' }
-});
-
-constructor(private route: ActivatedRoute) {}
-
 ngOnInit(): void {
-  const filterFromUrl = this.route.snapshot.queryParamMap.get('filter');
-  if (filterFromUrl) {
-    this.selectedFilter = filterFromUrl;
-    this.applyFilter(filterFromUrl); // Appelle ta méthode de filtrage ici
-  }
+  this.route.queryParamMap.subscribe((params) => {
+    const cardType = params.get('card') as FilterCardType;
+    if (cardType) {
+      this.onCardClicked(cardType, TicketContext.SOLICITATIONS); // ou TEAM si c’est le contexte
+    }
+  });
 }
 
-onFilterChanged(filterValue: string): void {
-  this.selectedFilter = filterValue;
+constructor(private router: Router, private route: ActivatedRoute) {}
+
+protected onCardClicked(type: FilterCardType, context: TicketContext): void {
+  this.cardClickedOnce = true;
+
+  // 🟡 Mise à jour de l'URL
   this.router.navigate([], {
-    queryParams: { filter: filterValue },
-    queryParamsHandling: 'merge', // pour garder les autres paramètres
+    relativeTo: this.route,
+    queryParams: { card: type },
+    queryParamsHandling: 'merge',
   });
+
+  this.currentPage = 0;
+  this.scrollCompleted = false;
+  this.tickets = [];
+  this.ticketsCountTeam = 0;
+
+  if (this.activeCard === type) {
+    this.activeCard = FilterCardType.NONE;
+    this.loadFullTicketList(context);
+  } else {
+    this.activeCard = type;
+    this.cardConfigFactory.loadTicketsByCard(type, context).subscribe({
+      next: (response) => this.handleTicketResponse(response, context),
+      error: (err) => console.error('Erreur lors du chargement des tickets pour la carte sélectionnée :', err),
+    });
+  }
 }
