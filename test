@@ -1,13 +1,34 @@
 protected onCardClicked(type: FilterCardType, context: TicketContext): void {
   this.cardClickedOnce = true;
 
-  // 🔐 Sauvegarder le filtre actif
-  localStorage.setItem('lastActiveCard', type);
+  if (this.activeCard === type) {
+    this.activeCard = FilterCardType.NONE;
 
+    // ✅ Supprimer le paramètre ?card de l'URL
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {},
+      queryParamsHandling: 'merge',
+      // 🔁 remove card key
+      queryParams: { card: null }
+    });
+
+    this.currentPage = 0;
+    this.scrollCompleted = false;
+    this.tickets = [];
+    this.ticketsCountTeam = 0;
+
+    this.loadFullTicketList(context);
+    return;
+  }
+
+  this.activeCard = type;
+
+  // ✅ Mettre à jour l'URL avec la nouvelle carte sélectionnée
   this.router.navigate([], {
     relativeTo: this.route,
     queryParams: { card: type },
-    queryParamsHandling: 'merge',
+    queryParamsHandling: 'merge'
   });
 
   this.currentPage = 0;
@@ -15,28 +36,8 @@ protected onCardClicked(type: FilterCardType, context: TicketContext): void {
   this.tickets = [];
   this.ticketsCountTeam = 0;
 
-  if (this.activeCard === type) {
-    this.activeCard = FilterCardType.NONE;
-    this.loadFullTicketList(context);
-  } else {
-    this.activeCard = type;
-    this.cardConfigFactory.loadTicketsByCard(type, context).subscribe({
-      next: (response) => this.handleTicketResponse(response, context),
-      error: (err) => console.error('Erreur lors du chargement des tickets :', err),
-    });
-  }
-}
-
-ngOnInit(): void {
-  this.route.queryParamMap.subscribe((params) => {
-    const cardParam = params.get('card') as FilterCardType;
-
-    const savedCard = localStorage.getItem('lastActiveCard') as FilterCardType;
-
-    const cardToApply = cardParam ?? savedCard;
-
-    if (cardToApply) {
-      this.onCardClicked(cardToApply, TicketContext.SOLICITATIONS); // ou TEAM selon ton composant
-    }
+  this.cardConfigFactory.loadTicketsByCard(type, context).subscribe({
+    next: (response) => this.handleTicketResponse(response, context),
+    error: (err) => console.error('Erreur lors du chargement des tickets pour la carte sélectionnée :', err)
   });
 }
