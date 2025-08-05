@@ -1,74 +1,37 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { Router, NavigationEnd } from '@angular/router';
-import { filter } from 'rxjs/operators';
+import { Injectable } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
 
-export class PageHeaderComponent implements OnInit {
+@Injectable({
+  providedIn: 'root',
+})
+export class TicketCountService {
+  private solicitationsCountSubject = new BehaviorSubject<number>(0);
+  solicitationsCount$ = this.solicitationsCountSubject.asObservable();
 
-  protected activeTab: Tab;
-  protected tabs: Tab[] = Object.values(Tab);
-  private tabsUrls: Map<Tab, string> = new Map<Tab, string>([
-    [Tab.SOLICITING, 'ticket-list'],
-    [Tab.MY_TEAM, 'ticket-list/team-list'],
-  ]);
-
-  constructor(
-    private router: Router,
-    private cdr: ChangeDetectorRef,
-  ) {}
-
-  ngOnInit(): void {
-    // Synchroniser activeTab sur chaque changement d'URL
-    this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd)
-    ).subscribe((event: NavigationEnd) => {
-      const found = Array.from(this.tabsUrls).find(([_, url]) =>
-        event.urlAfterRedirects.includes(url)
-      );
-      if (found) {
-        this.activeTab = found[0];
-        this.cdr.markForCheck();
-      }
-    });
-
-    // Initialiser activeTab à la valeur correspondant à l'URL au chargement
-    const current = Array.from(this.tabsUrls).find(([_, url]) =>
-      this.router.url.includes(url)
-    );
-    this.activeTab = current ? current[0] : this.tabs[0];
+  setSolicitationsCount(count: number): void {
+    this.solicitationsCountSubject.next(count);
   }
 
-  protected handleTabClick(tab: Tab): void {
-    this.maximize();
-    // Décaler la navigation pour que Angular applique les changements
-    setTimeout(() => {
-      this.router.navigate([this.tabsUrls.get(tab)]);
-    });
+  getSolicitationsCount(): number {
+    return this.solicitationsCountSubject.getValue();
   }
-
-  protected maximize(): void {
-    // Ton code actuel pour maximize
-  }
-
-  // ... autres méthodes
 }
 
-<div class="uk-grid uk-grid-collapse uk-child-width-auto">
-  <button
-    *ngFor="let tab of tabs; trackBy: trackByTab"
-    class="text-button tab border-none no-radius padding-small"
-    [ngClass]="{ 'active-tab': tab === activeTab }"
-    (click)="handleTabClick(tab)"
-  >
-    <div>{{ tab }}</div>
-    <span *ngIf="showBadge(tab)" class="uk-margin-small-left sticker-canard-moyen sticker-padding">
-      {{ currentCount }}
-    </span>
-  </button>
+constructor(
+  private readonly ticketCountService: TicketCountService
+) {}
 
-  <div class="uk-width-expand uk-text-right padding-small tab">
-    <button class="canard-fonce-button" (click)="goToCreate()">
-      <span class="material-symbols-outlined">add_box</span>
-      <div>nouvelle sollicitation</div>
-    </button>
-  </div>
-</div>
+...
+
+case TicketContext.SOLICITATIONS:
+  this.ticketCountService.setSolicitationsCount(totalElements);
+  break;
+
+
+constructor(private ticketCountService: TicketCountService) {}
+
+ngOnInit(): void {
+  this.ticketCountService.solicitationsCount$.subscribe(count => {
+    this.currentCount = count;
+  });
+}
