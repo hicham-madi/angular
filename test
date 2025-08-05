@@ -1,31 +1,34 @@
-ngOnInit(): void {
-  this.route.queryParamMap.subscribe((params) => {
-    const cardType = params.get('card') as FilterCardType;
+protected onScroll(scrolled: EventEmitter<void>, context: TicketContext): void {
+  const page = ++this.currentPage;
+  this.isLoading = true;
 
-    if (cardType && this.activeCard !== cardType) {
-      this.onCardClicked(cardType, TicketContext.SOLICITATIONS);
-    } else if (!cardType) {
-      this.activeCard = FilterCardType.NONE;
-      this.loadTickets(this.activeCard, TicketContext.SOLICITATIONS);
-    }
+  const complete = () => {
+    this.isLoading = false;
+    this.currentPage = page;
+    scrolled.emit();
+  };
 
-    this.cardClickedOnce = true;
-  });
-
-  // reste inchangé
-  const config = this.tableConfigFactory.getBaseColumns();
-  if (!this.displayedColumns?.length) {
-    this.displayedColumns = config.displayedColumns;
+  if (this.activeCard === FilterCardType.NONE) {
+    this.cardConfigFactory.loadTicketsByCard(FilterCardType.NONE, context, page).subscribe({
+      next: (response) => {
+        this.handleTicketResponse(response, context);
+        complete();
+      },
+      error: (err) => {
+        console.error('Erreur lors du scroll (sans filtre) :', err);
+        complete();
+      }
+    });
+  } else {
+    this.cardConfigFactory.loadTicketsByCard(this.activeCard, context, page).subscribe({
+      next: (response) => {
+        this.handleTicketResponse(response, context);
+        complete();
+      },
+      error: (err) => {
+        console.error('Erreur lors du scroll (avec filtre) :', err);
+        complete();
+      }
+    });
   }
-  if (!Object.keys(this.columnConfig ?? {}).length) {
-    this.columnConfig = config.columnConfig;
-  }
-
-  this.statusTabs = [
-    { label: 'En cours', value: 'ongoing' },
-    { label: 'Terminées', value: 'completed' }
-  ];
-
-  this.subscriptionEnvConfig = this.getEnvConf();
-  this.cdr.detectChanges();
 }
