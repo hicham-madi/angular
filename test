@@ -1,107 +1,11 @@
-if (this.isLoading || this.currentPage >= this.totalPages - 1 || !this.hasReachedScrollEnd()) {
-  return;
-}
-
-private hasReachedScrollEnd(): boolean {
-  const el = this.scrollViewport?.elementRef?.nativeElement;
-  if (!el) return false;
-
-  const scrollTop = el.scrollTop;
-  const scrollHeight = el.scrollHeight;
-  const clientHeight = el.clientHeight;
-
-  // On attend que l'utilisateur atteigne 80% de scroll vers le bas
-  return scrollTop + clientHeight >= scrollHeight * 0.8;
-}
-
-protected onScroll(scrolled: EventEmitter<void>, context: TicketContext): void {
-  if (this.isLoading || this.currentPage >= this.totalPages - 1 || !this.hasReachedScrollEnd()) {
-    return;
+protected readCustomer(ticket: Ticket): boolean {
+  if (ticket.discussionGroup?.users?.some(u => u.ticketRead)) {
+    return true;
   }
 
-  this.isLoading = true;
-  const page = this.currentPage + 1;
-
-  const complete = () => {
-    this.isLoading = false;
-    this.currentPage = page;
-    scrolled.emit();
-  };
-
-  const request = this.activeCard === FilterCardType.NONE
-    ? this.cardConfigFactory.loadTicketsByCard(FilterCardType.NONE, context, page)
-    : this.cardConfigFactory.loadTicketsByCard(this.activeCard, context, page);
-
-  request.subscribe({
-    next: (response) => {
-      this.handleTicketResponse(response, context);
-      complete();
-    },
-    error: (err) => {
-      console.error('Erreur lors du scroll :', err);
-      complete();
-    }
-  });
-}
-
-<cdk-virtual-scroll-viewport
-  itemSize="80"
-  class="ticket-scroll-viewport"
-  (scrolledIndexChange)="onScroll($event)"
-  [minBufferPx]="400"
-  [maxBufferPx]="800"
->
-  <ng-container *cdkVirtualFor="let ticket of tickets">
-    <app-ticket-card [ticket]="ticket"></app-ticket-card>
-  </ng-container>
-</cdk-virtual-scroll-viewport>
-
-.ticket-scroll-viewport {
-  height: calc(100vh - 250px); // Ajuste selon le header, filters, etc.
-  width: 100%;
-}
-
-onScroll(_: number): void {
-  if (
-    this.isLoading ||
-    this.currentPage >= this.totalPages - 1 ||
-    !this.hasReachedScrollEnd()
-  ) {
-    return;
+  if (!ticket.readCustomer) {
+    return true;
   }
 
-  this.loadNextPage();
+  return false;
 }
-
-private hasReachedScrollEnd(): boolean {
-  const el = this.scrollViewport?.elementRef?.nativeElement;
-  if (!el) return false;
-
-  const scrollTop = el.scrollTop;
-  const scrollHeight = el.scrollHeight;
-  const clientHeight = el.clientHeight;
-
-  return scrollTop + clientHeight >= scrollHeight * 0.9;
-}
-
-private loadNextPage(): void {
-  this.isLoading = true;
-  const pageToLoad = this.currentPage + 1;
-
-  this.cardConfigFactory
-    .loadTicketsByCard(this.activeCard, this.context, pageToLoad)
-    .subscribe({
-      next: (response) => {
-        this.handleTicketResponse(response, this.context);
-        this.currentPage = pageToLoad;
-        this.isLoading = false;
-      },
-      error: () => {
-        this.isLoading = false;
-      }
-    });
-}
-
-@ViewChild(CdkVirtualScrollViewport)
-scrollViewport: CdkVirtualScrollViewport | undefined;
-
