@@ -1,11 +1,14 @@
-protected readCustomer(ticket: Ticket): boolean {
-  if (ticket.discussionGroup?.users?.some(u => u.ticketRead)) {
-    return true;
-  }
-
-  if (!ticket.readCustomer) {
-    return true;
-  }
-
-  return false;
+set ticketsCountSolicitations(value: number) {
+  localStorage.setItem('ticketsCountSolicitations', value.toString());
+  this._ticketsCountSolicitations = value;
 }
+
+get ticketsCountSolicitations(): number {
+  if (this._ticketsCountSolicitations === undefined) {
+    const stored = localStorage.getItem('ticketsCountSolicitations');
+    this._ticketsCountSolicitations = stored ? +stored : 0;
+  }
+  return this._ticketsCountSolicitations;
+}
+
+private _ticketsCountSolicitations?: number;
