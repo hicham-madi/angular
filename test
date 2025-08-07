@@ -1,73 +1,28 @@
-<div *ngIf="activeCard === FilterCardType.TERMINATED" class="uk-margin-small">
-  <mat-form-field appearance="fill">
-    <mat-label>Plage de dates</mat-label>
-    <mat-date-range-input [rangePicker]="picker" (dateChange)="onDateRangeChange($event)">
-      <input matStartDate placeholder="Date de début" [value]="startDate" readonly>
-      <input matEndDate placeholder="Date de fin" [value]="endDate" readonly>
-    </mat-date-range-input>
-    <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-    <mat-date-range-picker #picker></mat-date-range-picker>
-  </mat-form-field>
+<!-- Ligne contenant les tabs et le datepicker -->
+<div class="uk-flex uk-flex-middle uk-flex-between uk-margin-small-bottom">
+  <!-- Onglets -->
+  <metabot-status-tabs
+    [tabs]="statusTabs"
+    (tabChange)="onTabChange($event)"
+    [currentCount]="tableConfigFactory.ticketCountSolicitations"
+    [selectedTab]="currentTab">
+  </metabot-status-tabs>
+
+  <!-- Date range picker affiché uniquement pour l'onglet "Terminées" -->
+  <div *ngIf="currentTab === FilterCardType.TERMINATED" class="uk-margin-left">
+    <mat-form-field appearance="fill" class="date-picker-terminated">
+      <mat-label>Plage de dates</mat-label>
+      <mat-date-range-input [rangePicker]="picker" (dateChange)="onDateRangeChange($event)">
+        <input matStartDate placeholder="Début" [value]="startDate" readonly>
+        <input matEndDate placeholder="Fin" [value]="endDate" readonly>
+      </mat-date-range-input>
+      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-date-range-picker #picker></mat-date-range-picker>
+    </mat-form-field>
+  </div>
 </div>
 
-import { Component, OnInit } from '@angular/core';
-import { DateRange, MatDateRangeSelectionChangedEvent } from '@angular/material/datepicker';
-
-@Component({
-  // ...
-})
-export class TeamPageComponent implements OnInit {
-
-  public startDate: Date;
-  public endDate: Date;
-
-  ngOnInit(): void {
-    const today = new Date();
-    const ninetyDaysAgo = new Date();
-    ninetyDaysAgo.setDate(today.getDate() - 90);
-
-    this.startDate = ninetyDaysAgo;
-    this.endDate = today;
-
-    // Appel initial
-    this.loadTerminatedTickets(this.startDate, this.endDate);
-  }
-
-  onDateRangeChange(event: MatDateRangeSelectionChangedEvent): void {
-    const start = event.value?.start;
-    const end = event.value?.end;
-
-    if (start && end) {
-      this.startDate = start;
-      this.endDate = end;
-      this.loadTerminatedTickets(start, end);
-    }
-  }
-
-  private loadTerminatedTickets(start: Date, end: Date): void {
-    const filters = {
-      dateStart: start.toISOString(),
-      dateEnd: end.toISOString(),
-      // ...ajoute d'autres filtres si nécessaire
-    };
-
-    this.ticketService.getTerminatedTickets(filters).subscribe(tickets => {
-      this.tickets = tickets;
-    });
-  }
+.date-picker-terminated {
+  min-width: 300px;
+  margin-left: 16px;
 }
-
-
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-
-@NgModule({
-  imports: [
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatFormFieldModule,
-    MatInputModule
-  ]
-})
