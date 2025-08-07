@@ -1,7 +1,17 @@
-get ticketsCountSolicitations(): number {
-  if (this._ticketsCountSolicitations === undefined || this._ticketsCountSolicitations === 0) {
-    const stored = localStorage.getItem('ticketsCountSolicitations');
-    this._ticketsCountSolicitations = stored ? +stored : 0;
-  }
-  return this._ticketsCountSolicitations;
+const queryParams = this.listService.getCurrentParams();
+
+if (fromTab === Tab.MY_TEAM) {
+  this.router.navigate(['ticket-list/team-list'], { queryParams });
+} else if (fromTab === Tab.TERMINATED) {
+  this.router.navigate(['ticket-list/terminated-list'], { queryParams });
+} else if (this.ticket) {
+  const statusRoute = this.constantsService.getRouteStatusByStatus(this.ticket.status);
+  this.router.navigate(['ticket-list', statusRoute], { queryParams });
+} else {
+  this.router.navigate(['ticket-list'], { queryParams });
 }
+
+this.route.queryParams.subscribe((params) => {
+  this.filterParams = params;
+  // et recharge la liste avec les filtres
+});
