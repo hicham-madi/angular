@@ -1,14 +1,7 @@
-set ticketsCountSolicitations(value: number) {
-  localStorage.setItem('ticketsCountSolicitations', value.toString());
-  this._ticketsCountSolicitations = value;
-}
-
 get ticketsCountSolicitations(): number {
-  if (this._ticketsCountSolicitations === undefined) {
+  if (this._ticketsCountSolicitations === undefined || this._ticketsCountSolicitations === 0) {
     const stored = localStorage.getItem('ticketsCountSolicitations');
     this._ticketsCountSolicitations = stored ? +stored : 0;
   }
   return this._ticketsCountSolicitations;
 }
-
-private _ticketsCountSolicitations?: number;
