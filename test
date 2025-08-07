@@ -1,90 +1,18 @@
-import { Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
-import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
-import { ChangeDetectorRef } from '@angular/core';
-import { Ticket, TicketContext, FilterCardType } from '@models'; // adapte si besoin
+public onCdkScroll(): void {
+  const viewport = this.cdkVirtualScroll;
+  const { end } = viewport.getRenderedRange();     // index affiché à l’écran
+  const total = viewport.getDataLength();          // nb total d’éléments
+  const pageSize = 20;                             // adapte si variable
+  const currentPageEnd = (Math.floor(total / pageSize) - (this.hasPendingPage ? 1 : 0)) * pageSize;
 
-@Component({
-  selector: 'metabot-solicitings-table',
-  templateUrl: './solicitings-table.component.html'
-})
-export class SolicitingsTableComponent {
-  @ViewChild('virtualScroll') public cdkVirtualScroll!: CdkVirtualScrollViewport;
-
-  @Input() public tickets: Ticket[] = [];
-  @Input() public displayedColumns: string[] = [];
-  @Input() public columnConfig: Record<string, ColumnDefinition> = {};
-  @Input() public columnTemplates: Record<string, TemplateRef<unknown>> = {};
-  @Input() public rowClick!: (row: Ticket) => void;
-  @Input() public context!: TicketContext;
-  @Input() public selectedCard!: FilterCardType;
-
-  @Output() public scrolled = new EventEmitter<void>();
-
-  constructor(private readonly cdr: ChangeDetectorRef) {}
-
-  public onCdkScroll(): void {
-    const viewport = this.cdkVirtualScroll;
-    const { end } = viewport.getRenderedRange();
-    const total = viewport.getDataLength();
-
-    if (end === total) {
-      this.scrolled.emit(); // 🔁 Appel uniquement à la fin
-    }
+  // ⚠️ N'appeler que si on atteint la fin de la dernière page récupérée
+  if (end >= currentPageEnd + pageSize) {
+    this.scrolled.emit();
   }
-
-  // ... le reste (sort, detectChanges, etc.)
-}
-
-<cdk-virtual-scroll-viewport
-  itemSize="50"
-  class="cdk-height scrollbar-ui"
-  (scrolledIndexChange)="onCdkScroll()"
-  #virtualScroll
->
-  <!-- ton tableau ici -->
-</cdk-virtual-scroll-viewport>
-
-protected currentPage = 0;
-protected isLoading = false;
-protected allPagesLoaded = false;
-
-protected onScroll(): void {
-  if (this.isLoading || this.allPagesLoaded) return;
-
-  this.isLoading = true;
-  const nextPage = this.currentPage + 1;
-
-  this.cardConfigFactory
-    .loadTicketsByCard(this.activeCard, this.context, nextPage)
-    .subscribe({
-      next: (response) => {
-        const newTickets = response?.tickets?.content ?? [];
-        if (newTickets.length > 0) {
-          this.tickets = [...this.tickets, ...newTickets];
-          this.currentPage = nextPage;
-
-          if (newTickets.length < response.tickets.pageable.pageSize) {
-            this.allPagesLoaded = true;
-          }
-        } else {
-          this.allPagesLoaded = true;
-        }
-
-        this.isLoading = false;
-      },
-      error: () => {
-        this.isLoading = false;
-      }
-    });
 }
 
 <metabot-solicitings-table
-  [tickets]="tickets"
-  [displayedColumns]="displayedColumns"
-  [columnConfig]="columnConfig"
-  [columnTemplates]="columnTemplates"
-  [rowClick]="rowClickFn"
-  [context]="TicketContext.SOLICITATIONS"
-  [selectedCard]="activeCard"
+  ...
+  [hasPendingPage]="!allPagesLoaded"
   (scrolled)="onScroll()"
 />
