@@ -1,18 +1,89 @@
-public onCdkScroll(): void {
-  const viewport = this.cdkVirtualScroll;
-  const { end } = viewport.getRenderedRange();     // index affiché à l’écran
-  const total = viewport.getDataLength();          // nb total d’éléments
-  const pageSize = 20;                             // adapte si variable
-  const currentPageEnd = (Math.floor(total / pageSize) - (this.hasPendingPage ? 1 : 0)) * pageSize;
+// observe-last.directive.ts
+import {
+  Directive, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output,
+} from '@angular/core';
 
-  // ⚠️ N'appeler que si on atteint la fin de la dernière page récupérée
-  if (end >= currentPageEnd + pageSize) {
-    this.scrolled.emit();
+@Directive({
+  selector: '[appObserveLast]',
+})
+export class ObserveLastDirective implements OnInit, OnDestroy {
+  @Input() isDisabled = false;
+  @Output() visible = new EventEmitter<void>();
+
+  private observer?: IntersectionObserver;
+
+  constructor(private el: ElementRef) {}
+
+  ngOnInit(): void {
+    if (this.isDisabled) return;
+
+    this.observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        this.visible.emit();
+      }
+    }, { threshold: 1.0 });
+
+    this.observer.observe(this.el.nativeElement);
+  }
+
+  ngOnDestroy(): void {
+    this.observer?.disconnect();
   }
 }
 
-<metabot-solicitings-table
-  ...
-  [hasPendingPage]="!allPagesLoaded"
-  (scrolled)="onScroll()"
-/>
+<tr *ngFor="let ticket of tickets; let i = index">
+  <ng-container *ngIf="i < tickets.length - 1">
+    <app-soliciting-row [ticket]="ticket"></app-soliciting-row>
+  </ng-container>
+  <ng-container *ngIf="i === tickets.length - 1">
+    <app-soliciting-row
+      [ticket]="ticket"
+      appObserveLast
+      (visible)="onScroll()"
+    ></app-soliciting-row>
+  </ng-container>
+</tr>
+
+protected onScroll(): void {
+  if (this.isLoading || this.allPagesLoaded) return;
+
+  this.isLoading = true;
+  const nextPage = this.currentPage + 1;
+
+  this.cardConfigFactory
+    .loadTicketsByCard(this.activeCard, TicketContext.SOLICITATIONS, nextPage)
+    .subscribe({
+      next: (response) => {
+        const newTickets = response?.tickets?.content ?? [];
+        if (newTickets.length > 0) {
+          this.tickets = [...this.tickets, ...newTickets];
+          this.currentPage = nextPage;
+        }
+
+        if (newTickets.length < response.tickets.size) {
+          this.allPagesLoaded = true;
+        }
+
+        this.totalElements = response.tickets.totalElements;
+        this.loadedElements += response.tickets.content.length;
+        this.hasPendingPage = this.loadedElements < this.totalElements;
+        this.isLoading = false;
+      },
+      error: () => {
+        this.isLoading = false;
+      },
+    });
+}
+<tr *ngFor="let ticket of tickets; let i = index">
+  <ng-container *ngIf="i < tickets.length - 1">
+    <app-soliciting-row [ticket]="ticket"></app-soliciting-row>
+  </ng-container>
+
+  <ng-container *ngIf="i === tickets.length - 1">
+    <app-soliciting-row
+      [ticket]="ticket"
+      appObserveLast
+      (visible)="onScroll()"
+    ></app-soliciting-row>
+  </ng-container>
+</tr>
