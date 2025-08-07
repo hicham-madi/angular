@@ -1,89 +1,141 @@
-// observe-last.directive.ts
+<tr *ngFor="let ticket of tickets; let i = index">
+  <ng-container *ngIf="i < tickets.length - 1">
+    <app-soliciting-row [ticket]="ticket"></app-soliciting-row>
+  </ng-container>
+
+  <ng-container *ngIf="i === tickets.length - 1">
+    <app-soliciting-row
+      [ticket]="ticket"
+      #lastTicket
+    ></app-soliciting-row>
+  </ng-container>
+</tr>
+
 import {
-  Directive, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output,
+  Component, ElementRef, ViewChild, AfterViewInit, OnDestroy
 } from '@angular/core';
 
-@Directive({
-  selector: '[appObserveLast]',
-})
-export class ObserveLastDirective implements OnInit, OnDestroy {
-  @Input() isDisabled = false;
-  @Output() visible = new EventEmitter<void>();
+export class SolicitingsTableComponent implements AfterViewInit, OnDestroy {
+  @ViewChild('lastTicket', { static: false, read: ElementRef }) lastTicketRef?: ElementRef;
 
   private observer?: IntersectionObserver;
 
-  constructor(private el: ElementRef) {}
-
-  ngOnInit(): void {
-    if (this.isDisabled) return;
-
-    this.observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        this.visible.emit();
-      }
-    }, { threshold: 1.0 });
-
-    this.observer.observe(this.el.nativeElement);
+  ngAfterViewInit(): void {
+    this.observeLastTicket();
   }
 
   ngOnDestroy(): void {
     this.observer?.disconnect();
   }
-}
 
-<tr *ngFor="let ticket of tickets; let i = index">
-  <ng-container *ngIf="i < tickets.length - 1">
-    <app-soliciting-row [ticket]="ticket"></app-soliciting-row>
-  </ng-container>
-  <ng-container *ngIf="i === tickets.length - 1">
-    <app-soliciting-row
-      [ticket]="ticket"
-      appObserveLast
-      (visible)="onScroll()"
-    ></app-soliciting-row>
-  </ng-container>
-</tr>
+  private observeLastTicket(): void {
+    if (!this.lastTicketRef) return;
 
-protected onScroll(): void {
-  if (this.isLoading || this.allPagesLoaded) return;
-
-  this.isLoading = true;
-  const nextPage = this.currentPage + 1;
-
-  this.cardConfigFactory
-    .loadTicketsByCard(this.activeCard, TicketContext.SOLICITATIONS, nextPage)
-    .subscribe({
-      next: (response) => {
-        const newTickets = response?.tickets?.content ?? [];
-        if (newTickets.length > 0) {
-          this.tickets = [...this.tickets, ...newTickets];
-          this.currentPage = nextPage;
-        }
-
-        if (newTickets.length < response.tickets.size) {
-          this.allPagesLoaded = true;
-        }
-
-        this.totalElements = response.tickets.totalElements;
-        this.loadedElements += response.tickets.content.length;
-        this.hasPendingPage = this.loadedElements < this.totalElements;
-        this.isLoading = false;
-      },
-      error: () => {
-        this.isLoading = false;
-      },
+    this.observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        this.onScroll(); // Appel seulement si visible
+      }
+    }, {
+      rootMargin: '0px',
+      threshold: 1.0,
     });
+
+    this.observer.observe(this.lastTicketRef.nativeElement);
+  }
+
+  // Si la liste est rechargée, on doit ré-observer le nouvel élément
+  ngAfterViewChecked(): void {
+    this.observer?.disconnect();
+    this.observeLastTicket();
+  }
+
+  onScroll(): void {
+    // ton traitement ici
+  }
 }
+
 <tr *ngFor="let ticket of tickets; let i = index">
   <ng-container *ngIf="i < tickets.length - 1">
     <app-soliciting-row [ticket]="ticket"></app-soliciting-row>
   </ng-container>
 
   <ng-container *ngIf="i === tickets.length - 1">
-    <app-soliciting-row
-      [ticket]="ticket"
-      appObserveLast
-      (visible)="onScroll()"
-    ></app-soliciting-row>
+    <app-soliciting-row [ticket]="ticket" #lastTicket></app-soliciting-row>
   </ng-container>
 </tr>
+import {
+  Component,
+  ElementRef,
+  ViewChild,
+  AfterViewInit,
+  AfterViewChecked,
+  OnDestroy
+} from '@angular/core';
+
+export class SolicitingsTableComponent implements AfterViewInit, AfterViewChecked, OnDestroy {
+  @ViewChild('lastTicket', { static: false, read: ElementRef }) lastTicketRef?: ElementRef;
+
+  private observer?: IntersectionObserver;
+
+  ngAfterViewInit(): void {
+    this.observeLastTicket();
+  }
+
+  ngAfterViewChecked(): void {
+    this.observer?.disconnect();
+    this.observeLastTicket();
+  }
+
+  ngOnDestroy(): void {
+    this.observer?.disconnect();
+  }
+
+  private observeLastTicket(): void {
+    if (!this.lastTicketRef) return;
+
+    this.observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        this.onScroll();
+      }
+    }, {
+      rootMargin: '0px',
+      threshold: 1.0,
+    });
+
+    this.observer.observe(this.lastTicketRef.nativeElement);
+  }
+
+  protected onScroll(): void {
+    if (this.isLoading || this.allPagesLoaded) return;
+
+    this.isLoading = true;
+    const nextPage = this.currentPage + 1;
+
+    this.cardConfigFactory
+      .loadTicketsByCard(this.activeCard, TicketContext.SOLICITATIONS, nextPage)
+      .subscribe({
+        next: (response) => {
+          const newTickets = response?.tickets?.content ?? [];
+
+          if (newTickets.length > 0) {
+            this.tickets = [...this.tickets, ...newTickets];
+            this.currentPage = nextPage;
+
+            if (newTickets.length < response.tickets.size) {
+              this.allPagesLoaded = true;
+            }
+          } else {
+            this.allPagesLoaded = true;
+          }
+
+          this.totalElements = response.tickets.totalElements;
+          this.loadedElements += response.tickets.content.length;
+          this.hasPendingPage = this.loadedElements < this.totalElements;
+          this.isLoading = false;
+        },
+        error: () => {
+          this.isLoading = false;
+        },
+      });
+  }
+}
