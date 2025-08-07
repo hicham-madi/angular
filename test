@@ -1,12 +1,37 @@
 if (type !== FilterCardType.NONE) {
   localStorage.setItem('lastSelectedCard', type.toString());
+} else {
+  localStorage.removeItem('lastSelectedCard');
 }
 
-const lastCard = localStorage.getItem('lastSelectedCard');
+protected goToList(): void {
+  if (!this.listService.loadingResolver) {
+    this.listService.getCurrentParams().claimCodeFilter = [];
+    this.listService.setCurrentSelectedTicket('');
+    this.listService.loadingResolver = true;
+    this.closeTicket(false);
+  }
 
-if (lastCard) {
-  this.router.navigate(['ticket-list'], { queryParams: { card: lastCard }, queryParamsHandling: 'merge' });
-} else if (this.ticket) {
-  const statusRoute = this.constantsService.getRouteStatusByStatus(this.ticket.status);
-  this.router.navigate(['ticket-list', statusRoute]);
+  const fromTab = this.mbotService.getOpenedFromTab();
+
+  if (fromTab === Tab.MY_TEAM) {
+    this.router.navigate(['ticket-list/team-list']);
+  } else if (fromTab === Tab.TERMINATED) {
+    this.router.navigate(['ticket-list/terminated-list']);
+  } else {
+    const lastCard = localStorage.getItem('lastSelectedCard');
+    if (lastCard) {
+      this.router.navigate(['ticket-list'], {
+        queryParams: { card: lastCard },
+        queryParamsHandling: 'merge'
+      });
+    } else if (this.ticket) {
+      const statusRoute = this.constantsService.getRouteStatusByStatus(this.ticket.status);
+      this.router.navigate(['ticket-list', statusRoute]);
+    } else {
+      this.router.navigate(['ticket-list']);
+    }
+  }
+
+  this.mbotService.clearOpenedFromTab();
 }
