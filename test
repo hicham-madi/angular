@@ -1,28 +1,35 @@
-periodeTermineeField = {
-  key: 'periodeTerminee',
-  type: 'daterangepicker',
-  props: {
-    label: 'Période',
-    daterangepickerOptions: {
-      startView: 'month'
+private static FilterContext getResult(List<Ticket> filteredContextList) {
+    Set<String> statuses = new HashSet<>();
+    Set<String> agencies = new HashSet<>();
+    Set<String> collaborators = new HashSet<>();
+    Set<String> campaigns = new HashSet<>();
+    boolean hasToBeClosed = false;
+
+    for (Ticket ticket : filteredContextList) {
+        if (ticket.getStatus() != null)
+            statuses.add(ticket.getStatus());
+
+        if (ticket.getCustomer() != null && isNotEmpty(ticket.getCustomer().getEdsName()))
+            agencies.add(ticket.getCustomer().getEdsName());
+
+        if (ticket.getCustomer() != null && isNotEmpty(ticket.getCustomer().getName()))
+            collaborators.add(ticket.getCustomer().getName());
+
+        if (ticket.getDs() != null && isNotEmpty(ticket.getDs().getCampaign().getLabel()))
+            campaigns.add(ticket.getDs().getCampaign().getLabel());
+
+        if (!hasToBeClosed && Boolean.TRUE.equals(ticket.getToBeClosed()))
+            hasToBeClosed = true;
     }
-  },
-  dataType: 'DateRange', // ou DataType.DateRange si tu as l'import
-  value: null
-};
 
-<div class="uk-flex uk-flex-between uk-flex-middle">
-  <metabot-status-tabs
-    [tabs]="statusTabs"
-    (tabChange)="onTabChange($event)"
-    [currentCount]="tableConfigFactory.ticketsCountSolicitations"
-    [selectedTab]="currentTab"
-  ></metabot-status-tabs>
+    if (hasToBeClosed)
+        statuses.add(TO_BE_CLOSED);
 
-  <ticketing-form-field-details-period
-    [field]="periodeTermineeField"
-    [readOnly]="false"
-    class="uk-margin-left"
-  ></ticketing-form-field-details-period>
-</div>
+    // Convert to sorted list
+    List<String> sortedStatuses = statuses.stream().sorted().toList();
+    List<String> sortedAgencies = agencies.stream().sorted().toList();
+    List<String> sortedCollaborators = collaborators.stream().sorted().toList();
+    List<String> sortedCampaigns = campaigns.stream().sorted().toList();
 
+    return new FilterContext(sortedStatuses, sortedAgencies, sortedCollaborators, sortedCampaigns);
+}
