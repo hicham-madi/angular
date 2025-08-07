@@ -1,28 +1,90 @@
-<!-- Ligne contenant les tabs et le datepicker -->
-<div class="uk-flex uk-flex-middle uk-flex-between uk-margin-small-bottom">
-  <!-- Onglets -->
-  <metabot-status-tabs
-    [tabs]="statusTabs"
-    (tabChange)="onTabChange($event)"
-    [currentCount]="tableConfigFactory.ticketCountSolicitations"
-    [selectedTab]="currentTab">
-  </metabot-status-tabs>
+import { Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
+import { ChangeDetectorRef } from '@angular/core';
+import { Ticket, TicketContext, FilterCardType } from '@models'; // adapte si besoin
 
-  <!-- Date range picker affiché uniquement pour l'onglet "Terminées" -->
-  <div *ngIf="currentTab === FilterCardType.TERMINATED" class="uk-margin-left">
-    <mat-form-field appearance="fill" class="date-picker-terminated">
-      <mat-label>Plage de dates</mat-label>
-      <mat-date-range-input [rangePicker]="picker" (dateChange)="onDateRangeChange($event)">
-        <input matStartDate placeholder="Début" [value]="startDate" readonly>
-        <input matEndDate placeholder="Fin" [value]="endDate" readonly>
-      </mat-date-range-input>
-      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-      <mat-date-range-picker #picker></mat-date-range-picker>
-    </mat-form-field>
-  </div>
-</div>
+@Component({
+  selector: 'metabot-solicitings-table',
+  templateUrl: './solicitings-table.component.html'
+})
+export class SolicitingsTableComponent {
+  @ViewChild('virtualScroll') public cdkVirtualScroll!: CdkVirtualScrollViewport;
 
-.date-picker-terminated {
-  min-width: 300px;
-  margin-left: 16px;
+  @Input() public tickets: Ticket[] = [];
+  @Input() public displayedColumns: string[] = [];
+  @Input() public columnConfig: Record<string, ColumnDefinition> = {};
+  @Input() public columnTemplates: Record<string, TemplateRef<unknown>> = {};
+  @Input() public rowClick!: (row: Ticket) => void;
+  @Input() public context!: TicketContext;
+  @Input() public selectedCard!: FilterCardType;
+
+  @Output() public scrolled = new EventEmitter<void>();
+
+  constructor(private readonly cdr: ChangeDetectorRef) {}
+
+  public onCdkScroll(): void {
+    const viewport = this.cdkVirtualScroll;
+    const { end } = viewport.getRenderedRange();
+    const total = viewport.getDataLength();
+
+    if (end === total) {
+      this.scrolled.emit(); // 🔁 Appel uniquement à la fin
+    }
+  }
+
+  // ... le reste (sort, detectChanges, etc.)
 }
+
+<cdk-virtual-scroll-viewport
+  itemSize="50"
+  class="cdk-height scrollbar-ui"
+  (scrolledIndexChange)="onCdkScroll()"
+  #virtualScroll
+>
+  <!-- ton tableau ici -->
+</cdk-virtual-scroll-viewport>
+
+protected currentPage = 0;
+protected isLoading = false;
+protected allPagesLoaded = false;
+
+protected onScroll(): void {
+  if (this.isLoading || this.allPagesLoaded) return;
+
+  this.isLoading = true;
+  const nextPage = this.currentPage + 1;
+
+  this.cardConfigFactory
+    .loadTicketsByCard(this.activeCard, this.context, nextPage)
+    .subscribe({
+      next: (response) => {
+        const newTickets = response?.tickets?.content ?? [];
+        if (newTickets.length > 0) {
+          this.tickets = [...this.tickets, ...newTickets];
+          this.currentPage = nextPage;
+
+          if (newTickets.length < response.tickets.pageable.pageSize) {
+            this.allPagesLoaded = true;
+          }
+        } else {
+          this.allPagesLoaded = true;
+        }
+
+        this.isLoading = false;
+      },
+      error: () => {
+        this.isLoading = false;
+      }
+    });
+}
+
+<metabot-solicitings-table
+  [tickets]="tickets"
+  [displayedColumns]="displayedColumns"
+  [columnConfig]="columnConfig"
+  [columnTemplates]="columnTemplates"
+  [rowClick]="rowClickFn"
+  [context]="TicketContext.SOLICITATIONS"
+  [selectedCard]="activeCard"
+  (scrolled)="onScroll()"
+/>
