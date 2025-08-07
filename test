@@ -1,35 +1,33 @@
-private static FilterContext getResult(List<Ticket> filteredContextList) {
-    Set<String> statuses = new HashSet<>();
-    Set<String> agencies = new HashSet<>();
-    Set<String> collaborators = new HashSet<>();
-    Set<String> campaigns = new HashSet<>();
-    boolean hasToBeClosed = false;
+<div class="uk-flex uk-flex-middle uk-flex-between">
+  <metabot-status-tabs
+    [tabs]="statusTabs"
+    (tabChange)="onTabChange($event)"
+    [currentCount]="tableConfigFactory.ticketsCountSolicitations"
+    [selectedTab]="currentTab"
+  ></metabot-status-tabs>
 
-    for (Ticket ticket : filteredContextList) {
-        if (ticket.getStatus() != null)
-            statuses.add(ticket.getStatus());
+  <!-- Rangepicker : Filtre de période -->
+  <ticketing-form-field-details-period
+    [readOnly]="true"
+    [field]="{
+      key: 'daterangepicker',
+      type: 'daterangepicker',
+      props: {
+        label: 'Sélecteur de période',
+        daterangepickerOptions: { startView: 'month' }
+      }
+    }"
+    [displayOrValidationRuleFields]="[]"
+  ></ticketing-form-field-details-period>
+</div>
 
-        if (ticket.getCustomer() != null && isNotEmpty(ticket.getCustomer().getEdsName()))
-            agencies.add(ticket.getCustomer().getEdsName());
-
-        if (ticket.getCustomer() != null && isNotEmpty(ticket.getCustomer().getName()))
-            collaborators.add(ticket.getCustomer().getName());
-
-        if (ticket.getDs() != null && isNotEmpty(ticket.getDs().getCampaign().getLabel()))
-            campaigns.add(ticket.getDs().getCampaign().getLabel());
-
-        if (!hasToBeClosed && Boolean.TRUE.equals(ticket.getToBeClosed()))
-            hasToBeClosed = true;
+public dateRangeField: Field = {
+  key: 'daterangepicker',
+  type: 'daterangepicker',
+  props: {
+    label: 'Sélecteur de période',
+    daterangepickerOptions: {
+      startView: 'month'
     }
-
-    if (hasToBeClosed)
-        statuses.add(TO_BE_CLOSED);
-
-    // Convert to sorted list
-    List<String> sortedStatuses = statuses.stream().sorted().toList();
-    List<String> sortedAgencies = agencies.stream().sorted().toList();
-    List<String> sortedCollaborators = collaborators.stream().sorted().toList();
-    List<String> sortedCampaigns = campaigns.stream().sorted().toList();
-
-    return new FilterContext(sortedStatuses, sortedAgencies, sortedCollaborators, sortedCampaigns);
-}
+  }
+};
