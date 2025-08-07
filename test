@@ -1,31 +1,11 @@
+ngOnInit(): void {
+  const matchedEntry = Array.from(this.tabsUrls).find(
+    ([_, url]) => this.router.url.startsWith(url)
+  );
 
-protected goToList(): void {
-  if (!this.listService.loadingResolver) {
-    this.listService.getCurrentParams().claimCodeFilter = [];
-    this.listService.setCurrentSelectedTicket('');
-    this.listService.loadingResolver = true;
-    this.closeTicket(false);
+  if (matchedEntry) {
+    this.activeTab = matchedEntry[0];
   }
-
-  const fromTab = this.mbotService.getOpenedFromTab();
-  const lastCard = localStorage.getItem('lastSelectedCard');
-
-  let route: string[] = ['ticket-list'];
-  let queryParams: any = lastCard ? { card: lastCard } : undefined;
-
-  if (fromTab === Tab.MY_TEAM) {
-    route.push('team-list');
-  } else if (fromTab === Tab.TERMINATED) {
-    route.push('terminated-list');
-  } else if (this.ticket) {
-    const statusRoute = this.constantsService.getRouteStatusByStatus(this.ticket.status);
-    route.push(statusRoute);
-  }
-
-  this.router.navigate(route, {
-    ...(queryParams && { queryParams }),
-    ...(queryParams && { queryParamsHandling: 'merge' })
-  });
-
-  this.mbotService.clearOpenedFromTab();
 }
+
+this.activeTab = matchedEntry?.[0] ?? Tab.SOLICITING;
