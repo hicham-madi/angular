@@ -1,11 +1,44 @@
-ngOnInit(): void {
-  const matchedEntry = Array.from(this.tabsUrls).find(
-    ([_, url]) => this.router.url.startsWith(url)
-  );
+<div *ngIf="activeCard === FilterCardType.TERMINATED" class="uk-margin-small">
+  <app-input-control
+    [type]="'INPUT_DATE_RANGE'"
+    [control]="dateRangeControl"
+    (dateRangeChange)="onDateRangeChanged($event[0], $event[1])">
+  </app-input-control>
+</div>
 
-  if (matchedEntry) {
-    this.activeTab = matchedEntry[0];
+public dateRangeControl = new FormControl();
+
+public startDate: Date | null = null;
+public endDate: Date | null = null;
+
+ngOnInit(): void {
+  const today = new Date();
+  const past90Days = new Date();
+  past90Days.setDate(today.getDate() - 90);
+
+  this.startDate = past90Days;
+  this.endDate = today;
+
+  this.dateRangeControl.setValue({ start: past90Days, end: today });
+
+  if (this.activeCard === FilterCardType.TERMINATED) {
+    this.loadTicketsWithDateRange(this.startDate, this.endDate);
   }
 }
+onDateRangeChanged(start: Date, end: Date): void {
+  this.startDate = start;
+  this.endDate = end;
+  this.loadTicketsWithDateRange(start, end);
+}
+private loadTicketsWithDateRange(start: Date, end: Date): void {
+  const filters = {
+    ...this.getCurrentFilters(),
+    dateStart: start,
+    dateEnd: end,
+  };
 
-this.activeTab = matchedEntry?.[0] ?? Tab.SOLICITING;
+  this.ticketService.getTerminatedTickets(filters).subscribe(tickets => {
+    this.tickets = tickets;
+  });
+}
+
