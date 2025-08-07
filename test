@@ -1,12 +1,12 @@
-localStorage.setItem('ticketFilters', JSON.stringify(this.listService.getCurrentParams()));
-
-const savedFilters = localStorage.getItem('ticketFilters');
-if (savedFilters) {
-  const filters = JSON.parse(savedFilters);
-  this.listService.setFilters(filters); // méthode à créer si elle n’existe pas
+if (type !== FilterCardType.NONE) {
+  localStorage.setItem('lastSelectedCard', type.toString());
 }
 
-public setFilters(filters: any): void {
-  this.currentParams = filters;
-  // ou directement appliquer les filtres si nécessaire
+const lastCard = localStorage.getItem('lastSelectedCard');
+
+if (lastCard) {
+  this.router.navigate(['ticket-list'], { queryParams: { card: lastCard }, queryParamsHandling: 'merge' });
+} else if (this.ticket) {
+  const statusRoute = this.constantsService.getRouteStatusByStatus(this.ticket.status);
+  this.router.navigate(['ticket-list', statusRoute]);
 }
