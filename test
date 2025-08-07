@@ -1,72 +1,28 @@
-protected onScroll(scrolled: EventEmitter<void>, context: TicketContext): void {
-  if (this.isLoading || this.allPagesLoaded) return;
-
-  const nextPage = ++this.currentPage;
-  this.isLoading = true;
-
-  const complete = () => {
-    this.isLoading = false;
-    this.currentPage = nextPage;
-    scrolled.emit();
-  };
-
-  const handleResponse = (response: MBotListv2) => {
-    this.handleTicketResponse(response, context);
-    complete();
-  };
-
-  const handleError = (err: any) => {
-    console.error('Erreur lors du scroll :', err);
-    complete();
-  };
-
-  const observable = this.activeCard === FilterCardType.NONE
-    ? this.cardConfigFactory.loadTicketsByCard(FilterCardType.NONE, context, nextPage)
-    : this.cardConfigFactory.loadTicketsByCard(this.activeCard, context, nextPage);
-
-  observable.subscribe({
-    next: handleResponse,
-    error: handleError,
-  });
-}
-private handleTicketResponse(response: MBotListv2, context: TicketContext): void {
-  try {
-    const page = response.tickets?.number ?? 0;
-    const size = response.tickets?.size ?? 20;
-    const content = response.tickets?.content ?? [];
-    const totalElements = response.tickets?.totalElements ?? 0;
-
-    this.totalPages = Math.ceil(totalElements / size);
-    this.totalElements = totalElements;
-
-    // Injection dans les services en fonction du contexte
-    switch (context) {
-      case TicketContext.SOLICITATIONS:
-        if (totalElements > 0) {
-          this.tableConfigFactory.ticketsCountSolicitations = totalElements;
-        }
-        break;
-      case TicketContext.TEAM:
-        this.ticketsCountTeam = totalElements;
-        break;
+periodeTermineeField = {
+  key: 'periodeTerminee',
+  type: 'daterangepicker',
+  props: {
+    label: 'Période',
+    daterangepickerOptions: {
+      startView: 'month'
     }
+  },
+  dataType: 'DateRange', // ou DataType.DateRange si tu as l'import
+  value: null
+};
 
-    // Ajout des tickets
-    if (page === 0) {
-      this.tickets = content;
-    } else {
-      const existingIds = new Set(this.tickets.map(t => t.id));
-      const uniqueNewTickets = content.filter(t => !existingIds.has(t.id));
-      this.tickets = [...this.tickets, ...uniqueNewTickets];
-    }
+<div class="uk-flex uk-flex-between uk-flex-middle">
+  <metabot-status-tabs
+    [tabs]="statusTabs"
+    (tabChange)="onTabChange($event)"
+    [currentCount]="tableConfigFactory.ticketsCountSolicitations"
+    [selectedTab]="currentTab"
+  ></metabot-status-tabs>
 
-    // Calcul des éléments chargés
-    this.loadedElements += content.length;
-    this.hasPendingPage = this.loadedElements < this.totalElements;
-    this.allPagesLoaded = !this.hasPendingPage;
+  <ticketing-form-field-details-period
+    [field]="periodeTermineeField"
+    [readOnly]="false"
+    class="uk-margin-left"
+  ></ticketing-form-field-details-period>
+</div>
 
-    this.listService.loadingResolver = false;
-  } catch (e) {
-    console.error('Erreur dans handleTicketResponse :', e);
-  }
-}
