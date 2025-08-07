@@ -1,141 +1,72 @@
-<tr *ngFor="let ticket of tickets; let i = index">
-  <ng-container *ngIf="i < tickets.length - 1">
-    <app-soliciting-row [ticket]="ticket"></app-soliciting-row>
-  </ng-container>
+protected onScroll(scrolled: EventEmitter<void>, context: TicketContext): void {
+  if (this.isLoading || this.allPagesLoaded) return;
 
-  <ng-container *ngIf="i === tickets.length - 1">
-    <app-soliciting-row
-      [ticket]="ticket"
-      #lastTicket
-    ></app-soliciting-row>
-  </ng-container>
-</tr>
+  const nextPage = ++this.currentPage;
+  this.isLoading = true;
 
-import {
-  Component, ElementRef, ViewChild, AfterViewInit, OnDestroy
-} from '@angular/core';
+  const complete = () => {
+    this.isLoading = false;
+    this.currentPage = nextPage;
+    scrolled.emit();
+  };
 
-export class SolicitingsTableComponent implements AfterViewInit, OnDestroy {
-  @ViewChild('lastTicket', { static: false, read: ElementRef }) lastTicketRef?: ElementRef;
+  const handleResponse = (response: MBotListv2) => {
+    this.handleTicketResponse(response, context);
+    complete();
+  };
 
-  private observer?: IntersectionObserver;
+  const handleError = (err: any) => {
+    console.error('Erreur lors du scroll :', err);
+    complete();
+  };
 
-  ngAfterViewInit(): void {
-    this.observeLastTicket();
-  }
+  const observable = this.activeCard === FilterCardType.NONE
+    ? this.cardConfigFactory.loadTicketsByCard(FilterCardType.NONE, context, nextPage)
+    : this.cardConfigFactory.loadTicketsByCard(this.activeCard, context, nextPage);
 
-  ngOnDestroy(): void {
-    this.observer?.disconnect();
-  }
-
-  private observeLastTicket(): void {
-    if (!this.lastTicketRef) return;
-
-    this.observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        this.onScroll(); // Appel seulement si visible
-      }
-    }, {
-      rootMargin: '0px',
-      threshold: 1.0,
-    });
-
-    this.observer.observe(this.lastTicketRef.nativeElement);
-  }
-
-  // Si la liste est rechargée, on doit ré-observer le nouvel élément
-  ngAfterViewChecked(): void {
-    this.observer?.disconnect();
-    this.observeLastTicket();
-  }
-
-  onScroll(): void {
-    // ton traitement ici
-  }
+  observable.subscribe({
+    next: handleResponse,
+    error: handleError,
+  });
 }
+private handleTicketResponse(response: MBotListv2, context: TicketContext): void {
+  try {
+    const page = response.tickets?.number ?? 0;
+    const size = response.tickets?.size ?? 20;
+    const content = response.tickets?.content ?? [];
+    const totalElements = response.tickets?.totalElements ?? 0;
 
-<tr *ngFor="let ticket of tickets; let i = index">
-  <ng-container *ngIf="i < tickets.length - 1">
-    <app-soliciting-row [ticket]="ticket"></app-soliciting-row>
-  </ng-container>
+    this.totalPages = Math.ceil(totalElements / size);
+    this.totalElements = totalElements;
 
-  <ng-container *ngIf="i === tickets.length - 1">
-    <app-soliciting-row [ticket]="ticket" #lastTicket></app-soliciting-row>
-  </ng-container>
-</tr>
-import {
-  Component,
-  ElementRef,
-  ViewChild,
-  AfterViewInit,
-  AfterViewChecked,
-  OnDestroy
-} from '@angular/core';
+    // Injection dans les services en fonction du contexte
+    switch (context) {
+      case TicketContext.SOLICITATIONS:
+        if (totalElements > 0) {
+          this.tableConfigFactory.ticketsCountSolicitations = totalElements;
+        }
+        break;
+      case TicketContext.TEAM:
+        this.ticketsCountTeam = totalElements;
+        break;
+    }
 
-export class SolicitingsTableComponent implements AfterViewInit, AfterViewChecked, OnDestroy {
-  @ViewChild('lastTicket', { static: false, read: ElementRef }) lastTicketRef?: ElementRef;
+    // Ajout des tickets
+    if (page === 0) {
+      this.tickets = content;
+    } else {
+      const existingIds = new Set(this.tickets.map(t => t.id));
+      const uniqueNewTickets = content.filter(t => !existingIds.has(t.id));
+      this.tickets = [...this.tickets, ...uniqueNewTickets];
+    }
 
-  private observer?: IntersectionObserver;
+    // Calcul des éléments chargés
+    this.loadedElements += content.length;
+    this.hasPendingPage = this.loadedElements < this.totalElements;
+    this.allPagesLoaded = !this.hasPendingPage;
 
-  ngAfterViewInit(): void {
-    this.observeLastTicket();
-  }
-
-  ngAfterViewChecked(): void {
-    this.observer?.disconnect();
-    this.observeLastTicket();
-  }
-
-  ngOnDestroy(): void {
-    this.observer?.disconnect();
-  }
-
-  private observeLastTicket(): void {
-    if (!this.lastTicketRef) return;
-
-    this.observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        this.onScroll();
-      }
-    }, {
-      rootMargin: '0px',
-      threshold: 1.0,
-    });
-
-    this.observer.observe(this.lastTicketRef.nativeElement);
-  }
-
-  protected onScroll(): void {
-    if (this.isLoading || this.allPagesLoaded) return;
-
-    this.isLoading = true;
-    const nextPage = this.currentPage + 1;
-
-    this.cardConfigFactory
-      .loadTicketsByCard(this.activeCard, TicketContext.SOLICITATIONS, nextPage)
-      .subscribe({
-        next: (response) => {
-          const newTickets = response?.tickets?.content ?? [];
-
-          if (newTickets.length > 0) {
-            this.tickets = [...this.tickets, ...newTickets];
-            this.currentPage = nextPage;
-
-            if (newTickets.length < response.tickets.size) {
-              this.allPagesLoaded = true;
-            }
-          } else {
-            this.allPagesLoaded = true;
-          }
-
-          this.totalElements = response.tickets.totalElements;
-          this.loadedElements += response.tickets.content.length;
-          this.hasPendingPage = this.loadedElements < this.totalElements;
-          this.isLoading = false;
-        },
-        error: () => {
-          this.isLoading = false;
-        },
-      });
+    this.listService.loadingResolver = false;
+  } catch (e) {
+    console.error('Erreur dans handleTicketResponse :', e);
   }
 }
