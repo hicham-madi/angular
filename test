@@ -1,17 +1,12 @@
-const queryParams = this.listService.getCurrentParams();
+localStorage.setItem('ticketFilters', JSON.stringify(this.listService.getCurrentParams()));
 
-if (fromTab === Tab.MY_TEAM) {
-  this.router.navigate(['ticket-list/team-list'], { queryParams });
-} else if (fromTab === Tab.TERMINATED) {
-  this.router.navigate(['ticket-list/terminated-list'], { queryParams });
-} else if (this.ticket) {
-  const statusRoute = this.constantsService.getRouteStatusByStatus(this.ticket.status);
-  this.router.navigate(['ticket-list', statusRoute], { queryParams });
-} else {
-  this.router.navigate(['ticket-list'], { queryParams });
+const savedFilters = localStorage.getItem('ticketFilters');
+if (savedFilters) {
+  const filters = JSON.parse(savedFilters);
+  this.listService.setFilters(filters); // méthode à créer si elle n’existe pas
 }
 
-this.route.queryParams.subscribe((params) => {
-  this.filterParams = params;
-  // et recharge la liste avec les filtres
-});
+public setFilters(filters: any): void {
+  this.currentParams = filters;
+  // ou directement appliquer les filtres si nécessaire
+}
