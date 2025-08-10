@@ -1,103 +1,93 @@
-ilprivate readonly sortKeyMap: Record<string, string> = {
-  id: 'ID',
-  lastActivityTimestamp: 'LAST_ACTIVITY_TIMESTAMP',
-  partLabel: 'PART_LABEL',
-  domainLabel: 'DOMAIN_LABEL',
-  objectLabel: 'OBJECT_LABEL',
-  claimTypeLabel: 'CLAIM_TYPE_LABEL',
-  slaLabel: 'SLA_LABEL',
-  status: 'STATUS',
-};
+export class SolicitingsTableComponent {
+  // pagination
+  private currentPage = 0;
+  private readonly pageSize = 20;
+  private isLoading = false;
+  private hasMore = true;
 
-protected sortData(column: string): void {
-  if (this.sort.active !== column) {
-    this.sort.active = column;
-    this.sort.direction = 'asc';
-  } else {
-    switch (this.sort.direction) {
-      case 'asc':  this.sort.direction = 'desc'; break;
-      case 'desc': this.sort.direction = null;   break;
-      default:     this.sort.direction = 'asc';
-    }
-  }
+  // tri courant
+  private sortActive: string | null = null;          // ex: 'lastActivityTimestamp'
+  private sortDirection: 'asc' | 'desc' | null = null;
 
-  // reset listing & pagination avant d'appliquer le tri
-  this.tickets = [];
-  // si tu as currentPage/loadedElements ailleurs, remets-les à 0 ici aussi
-  // this.currentPage = 0; this.loadedElements = 0; etc.
-
-  // si le tri est nul, on appelle sans tri
-  const sortBy = this.sort.direction ? (this.sortKeyMap[this.sort.active] ?? null) : null;
-  this.fetchTickets(sortBy, this.sort.direction);
-}
-
-private fetchTickets(sortBy: string | null, sortDirection: 'asc' | 'desc' | null): void {
-  const request: any = {
-    page: 0,
-    pageSize: 20,
-    totalItems: this.tickets.length, // 0 après reset
-    context: this.context,
-    status: '',
-    ...(sortBy && sortDirection ? { sortKey: sortBy, isAsc: sortDirection === 'asc' } : {}),
+  // (optionnel) mapping front -> back
+  private readonly sortKeyMap: Record<string, string> = {
+    id: 'ID',
+    lastActivityTimestamp: 'LAST_ACTIVITY_TIMESTAMP',
+    partLabel: 'PART_LABEL',
+    domainLabel: 'DOMAIN_LABEL',
+    objectLabel: 'OBJECT_LABEL',
+    claimTypeLabel: 'CLAIM_TYPE_LABEL',
+    slaLabel: 'SLA_LABEL',
+    status: 'STATUS',
   };
 
-  if (TicketContext.TERMINATED === this.context) {
-    request.status = TicketStatus.CLOSED;
-  }
-
-  this.mbotService.getTicketListV2(request).subscribe((response) => {
-    const newTickets = response.tickets?.content ?? [];
-    this.tickets = newTickets; // pas d’append pour un tri initial
-    this.detectChanges();
-  });
-}
-
-import java.util.Locale;
-import java.util.regex.Pattern;
-
-public Comparator<Ticket> getComparator(String sortKey, boolean isAsc) {
-    if (sortKey == null || sortKey.isBlank()) {
-        return null;
+  protected sortData(column: string): void {
+    // cycle asc -> desc -> null
+    if (this.sortActive !== column) {
+      this.sortActive = column;
+      this.sortDirection = 'asc';
+    } else {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc'
+                       : this.sortDirection === 'desc' ? null : 'asc';
     }
 
-    // camelCase -> UPPER_SNAKE_CASE
-    String key = sortKey
-            .replaceAll("([a-z])([A-Z])", "$1_$2")
-            .toUpperCase(Locale.ROOT);
+    // reset listing & pagination
+    this.tickets = [];
+    this.currentPage = 0;
+    this.hasMore = true;
 
-    Comparator<Ticket> comparator = switch (key) {
-        case "ID" -> Comparator.comparing(Ticket::getId);
-        case "LAST_ACTIVITY_TIMESTAMP" -> Comparator.comparing(
-                Ticket::getLastActivityTimestamp,
-                Comparator.nullsLast(Comparator.naturalOrder())
-        );
-        case "PART_LABEL" -> Comparator.comparing(
-                t -> t.getPart() != null && !StringUtils.isEmpty(t.getPart().getLabel())
-                        ? t.getPart().getLabel() : null,
-                Comparator.nullsLast(String::compareToIgnoreCase)
-        );
-        case "DOMAIN_LABEL" -> Comparator.comparing(
-                t -> t.getDomain() != null ? t.getDomain().getLabel() : null,
-                Comparator.nullsLast(String::compareToIgnoreCase)
-        );
-        case "OBJECT_LABEL" -> Comparator.comparing(
-                t -> t.getObject() != null ? t.getObject().getLabel() : null,
-                Comparator.nullsLast(String::compareToIgnoreCase)
-        );
-        case "CLAIM_TYPE_LABEL" -> Comparator.comparing(
-                t -> t.getClaimType() != null ? t.getClaimType().getLabel() : null,
-                Comparator.nullsLast(String::compareToIgnoreCase)
-        );
-        case "SLA_LABEL" -> Comparator.comparing(
-                t -> t.getSla() != null ? t.getSla().getLabel() : null,
-                Comparator.nullsLast(String::compareToIgnoreCase)
-        );
-        case "STATUS" -> Comparator.comparing(
-                Ticket::getStatus,
-                Comparator.nullsLast(String::compareToIgnoreCase)
-        );
-        default -> null;
+    this.loadPage(0); // recharge la 1ère page avec le tri courant
+  }
+
+  public onCdkScroll(): void {
+    if (this.isLoading || !this.hasMore) return;
+
+    // ton calcul d’arrivée en bas reste inchangé…
+    const viewport = this.cdkVirtualScroll!;
+    const end = viewport.getRenderedRange().end;
+    const total = viewport.getDataLength();
+
+    if (end >= total - 1) {
+      this.loadPage(this.currentPage + 1);
+    }
+  }
+
+  private loadPage(page: number): void {
+    this.isLoading = true;
+
+    const sortKey =
+      this.sortDirection && this.sortActive
+        ? (this.sortKeyMap[this.sortActive] ?? this.sortActive) // si le back normalise, c’est ok
+        : null;
+
+    const request: any = {
+      page,
+      pageSize: this.pageSize,
+      totalItems: this.tickets.length,
+      context: this.context,
+      status: '',
+      ...(sortKey
+        ? { sortKey, isAsc: this.sortDirection === 'asc' }
+        : {}),
     };
 
-    return (comparator != null && !isAsc) ? comparator.reversed() : comparator;
+    if (TicketContext.TERMINATED === this.context) {
+      request.status = TicketStatus.CLOSED;
+    }
+
+    this.mbotService.getTicketListV2(request).subscribe({
+      next: (response) => {
+        const newTickets = response.tickets?.content ?? [];
+        // append si page > 0
+        this.tickets = page === 0 ? newTickets : [...this.tickets, ...newTickets];
+        this.currentPage = page;
+        this.hasMore = newTickets.length === this.pageSize; // stop si page incomplète
+        this.isLoading = false;
+        this.detectChanges();
+      },
+      error: () => {
+        this.isLoading = false;
+      },
+    });
+  }
 }
