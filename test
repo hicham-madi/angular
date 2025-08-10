@@ -1,47 +1,22 @@
-public loadTicketsByCard(
-  type: FilterCardType,
-  context: TicketContext,
-  page: number = 0,
-  opts?: { sortKey?: string | null; isAsc?: boolean | null }
-): Observable<MbotListV2> {
-  const params = { ...this.listService.getCurrentParams() };
+@Output() public loadMore = new EventEmitter<{ sortKey: string|null; isAsc: boolean|null }>();
 
-  // ✅ le backend attend "page"
-  params.page = page;
-  params.context = context;
+public onCdkScroll(): void {
+  const end = this.cdkVirtualScroll.getRenderedRange().end;
+  const total = this.cdkVirtualScroll.getDataLength();
+  const pageSize = 20;
 
-  if (TicketContext.TERMINATED === context) {
-    params.status = TicketStatus.CLOSED;
-    params.claimCodeFilter = FilterCardTypeMap.get(FilterCardType[type]);
-  } else {
-    params.cardType = FilterCardType[type];
+  // seuil simple : on est “au bout” de la page visible
+  const threshold = Math.ceil(total / pageSize) * pageSize;
+
+  if (end >= threshold - 2) {
+    // debug temporaire
+    console.log('[table] loadMore emit', { end, total, threshold, hasPending: this.hasPendingPage });
+
+    if (this.hasPendingPage) {
+      this.loadMore.emit({
+        sortKey: this.sort.direction ? this.sort.active : null,
+        isAsc:   this.sort.direction ? this.sort.direction === 'asc' : null,
+      });
+    }
   }
-
-  if (opts?.sortKey != null && opts?.isAsc != null) {
-    params.sortKey = opts.sortKey;
-    params.isAsc = opts.isAsc;
-  }
-
-  return this.mbotService.getTicketListV2(params);
-}
-
-protected onScroll(sort: { sortKey: string | null; isAsc: boolean | null }, context: TicketContext): void {
-  if (this.isLoading || this.allPagesLoaded) return;
-
-  const nextPage = this.currentPage + 1;
-  this.isLoading = true;
-
-  const opts = (sort?.sortKey != null && sort?.isAsc != null)
-    ? { sortKey: sort.sortKey, isAsc: sort.isAsc }
-    : {};
-
-  const card = this.activeCard ?? FilterCardType.NONE;
-
-  this.cardConfigFactory
-    .loadTicketsByCard(card, context, nextPage, opts)
-    .subscribe({
-      next: (response) => { this.handleTicketResponse(response, context); },
-      error: (err) => console.error('Erreur lors du scroll :', err),
-      complete: () => { this.isLoading = false; this.currentPage = nextPage; }
-    });
 }
