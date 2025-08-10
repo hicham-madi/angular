@@ -1,2 +1,13 @@
 Correction du maintien du tri lors du scroll et après changement de tri
 
+const hasValidSort =
+  this.currentSort.sortKey !== null &&
+  this.currentSort.isAsc !== null;
+
+const effective = hasValidSort
+  ? this.currentSort
+  : null;
+
+const opts = effective
+  ? { sortKey: effective.sortKey!, isAsc: effective.isAsc! }
+  : {};
