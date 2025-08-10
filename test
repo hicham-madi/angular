@@ -1,53 +1,27 @@
-@Output() public loadMore = new EventEmitter<{ sortKey: string|null; isAsc: boolean|null }>();
+// in SolicitingsTableComponent
+
+public ngAfterViewInit(): void {
+  queueMicrotask(() => this.cdkVirtualScroll?.checkViewportSize());
+}
 
 public onCdkScroll(): void {
-  const end = this.cdkVirtualScroll.getRenderedRange().end;
-  const total = this.cdkVirtualScroll.getDataLength();
-  const pageSize = 20;
+  if (!this.cdkVirtualScroll) return;
 
-  // seuil simple : on est “au bout” de la page visible
-  const threshold = Math.ceil(total / pageSize) * pageSize;
+  const end   = this.cdkVirtualScroll.getRenderedRange().end;
+  const total = this.tickets?.length ?? 0; // <— use the data array, not getDataLength()
 
-  if (end >= threshold - 2) {
-    // debug temporaire
-    console.log('[table] loadMore emit', { end, total, threshold, hasPending: this.hasPendingPage });
+  if (total === 0) return;
 
-    if (this.hasPendingPage) {
-      this.loadMore.emit({
-        sortKey: this.sort.direction ? this.sort.active : null,
-        isAsc:   this.sort.direction ? this.sort.direction === 'asc' : null,
-      });
-    }
+  // near bottom of currently loaded items
+  if (end >= total - 2 /* && this.hasPendingPage */) {   // keep the second guard only if parent sets it correctly
+    this.loadMore.emit({
+      sortKey: this.sort.direction ? this.sort.active : null,
+      isAsc:   this.sort.direction ? this.sort.direction === 'asc' : null,
+    });
   }
 }
 
-
-protected onScroll(
-  sort: { sortKey: string | null; isAsc: boolean | null },
-  context: TicketContext
-): void {
-  if (this.isLoading || this.allPagesLoaded) return;
-
-  const nextPage = this.currentPage + 1;
-  this.isLoading = true;
-
-  const complete = () => {
-    this.isLoading = false;
-    this.currentPage = nextPage;
-  };
-
-  const effective = (sort && sort.sortKey != null && sort.isAsc != null) ? sort : null;
-  const opts = effective ? { sortKey: effective.sortKey, isAsc: effective.isAsc } : {};
-
-  const card = this.activeCard ?? FilterCardType.NONE;
-
-  // debug temporaire
-  console.log('[page] onScroll ->', { nextPage, opts, hasPending: this.hasPendingPage });
-
-  this.cardConfigFactory
-    .loadTicketsByCard(card, context, nextPage, opts)
-    .subscribe({
-      next: (response) => { this.handleTicketResponse(response, context); complete(); },
-      error: (err) => { console.error('Erreur lors du scroll :', err); complete(); },
-    });
+private detectChanges(): void {
+  this.cdr.detectChanges();
+  setTimeout(() => this.cdkVirtualScroll?.checkViewportSize());
 }
