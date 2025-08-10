@@ -1,27 +1,59 @@
-// in SolicitingsTableComponent
-
-public ngAfterViewInit(): void {
-  queueMicrotask(() => this.cdkVirtualScroll?.checkViewportSize());
+// ✅ nouveau helper
+private resetInfiniteScrollState(): void {
+  this.currentPage = 0;
+  this.totalPages = 0;
+  this.totalElements = 0;
+  this.loadedElements = 0;
+  this.hasPendingPage = true;   // on suppose qu’il reste des pages tant qu’on n’a pas la 1ʳᵉ réponse
+  this.allPagesLoaded = false;
+  this.scrollCompleted = false;
 }
 
-public onCdkScroll(): void {
-  if (!this.cdkVirtualScroll) return;
+// ... dans onCardClicked(...)
+protected onCardClicked(type: FilterCardType, context: TicketContext): void {
+  this.cardClickedOnce = true;
 
-  const end   = this.cdkVirtualScroll.getRenderedRange().end;
-  const total = this.tickets?.length ?? 0; // <— use the data array, not getDataLength()
+  // navigation (inchangé) …
+  // …
 
-  if (total === 0) return;
+  // 🔧 important : reset complet AVANT de (re)charger
+  this.tickets = [];
+  this.ticketsCountTeam = 0;
+  this.resetInfiniteScrollState();
 
-  // near bottom of currently loaded items
-  if (end >= total - 2 /* && this.hasPendingPage */) {   // keep the second guard only if parent sets it correctly
-    this.loadMore.emit({
-      sortKey: this.sort.direction ? this.sort.active : null,
-      isAsc:   this.sort.direction ? this.sort.direction === 'asc' : null,
+  if (this.activeCard === FilterCardType.NONE) {
+    this.loadFullTicketList(context);
+  } else {
+    this.cardConfigFactory.loadTicketsByCard(type, context).subscribe({
+      next: (response) => {
+        this.handleTicketResponse(response, context);
+        // (le reste inchangé)
+      },
+      error: (err) => console.error('Erreur lors du chargement des tickets pour la carte sélectionnée :', err),
     });
   }
 }
 
-private detectChanges(): void {
-  this.cdr.detectChanges();
-  setTimeout(() => this.cdkVirtualScroll?.checkViewportSize());
+private handleTicketResponse(response: MbotListV2, context: TicketContext): void {
+  const page  = response.tickets?.number ?? 0;
+  const size  = response.tickets?.size   ?? 20;
+  const content = response.tickets?.content ?? [];
+  const totalElements = response.tickets?.totalElements ?? 0;
+
+  this.totalPages = Math.ceil(totalElements / size);
+  this.totalElements = totalElements;
+
+  if (page === 0) {
+    this.tickets = content;
+  } else {
+    const existingIds = new Set(this.tickets.map(t => t.id));
+    const uniqueNew   = content.filter(t => !existingIds.has(t.id));
+    this.tickets = [...this.tickets, ...uniqueNew];
+  }
+
+  this.loadedElements += content.length;
+  this.hasPendingPage = this.loadedElements < this.totalElements;
+  this.allPagesLoaded = !this.hasPendingPage;
+
+  // …
 }
