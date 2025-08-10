@@ -1,87 +1,71 @@
-export class SolicitingsTableComponent {
-  @Output() scrolled = new EventEmitter<{ sortKey: string | null; isAsc: boolean | null }>();
+@Output() public scrolled = new EventEmitter<{ sortKey: string|null; isAsc: boolean|null }>();
 
-  protected sort = {
-    active: null as string | null,
-    direction: null as 'asc' | 'desc' | null,
-  };
-
-  protected sortData(column: string): void {
-    if (this.sort.active !== column) {
-      this.sort.active = column;
-      this.sort.direction = 'asc';
-    } else {
-      this.sort.direction =
-        this.sort.direction === 'asc' ? 'desc' :
-        this.sort.direction === 'desc' ? null : 'asc';
-    }
-
-    this.fetchTickets(this.sort.active, this.sort.direction); // page 0 triée
-  }
-
-  public onCdkScroll(): void {
-    const viewport = this.cdkVirtualScroll!;
-    const end = viewport.getRenderedRange().end;
-    const total = viewport.getDataLength();
-    const pageSize = 20;
-    const currentPageEnd = Math.floor(total / pageSize) * pageSize;
-
-    if (end >= currentPageEnd + pageSize) {
-      this.scrolled.emit({
-        sortKey: this.sort.direction ? this.sort.active : null,
-        isAsc:  this.sort.direction ? this.sort.direction === 'asc' : null,
-      });
-    }
-  }
-
-  private fetchTickets(sortBy: string | null, sortDirection: 'asc' | 'desc' | null): void {
-    const request: any = {
-      page: 0,
-      pageSize: 20,
-      totalItems: this.tickets.length,
-      context: this.context,
-      status: '',
-      ...(sortBy && sortDirection ? { sortKey: sortBy, isAsc: sortDirection === 'asc' } : {}),
-    };
-
-    if (TicketContext.TERMINATED === this.context) request.status = TicketStatus.CLOSED;
-
-    this.mbotService.getTicketListV2(request).subscribe((response) => {
-      const newTickets = response.tickets?.content ?? [];
-      this.tickets = newTickets;
-      this.detectChanges();
+public onCdkScroll(): void {
+  // ... calcul du seuil
+  if (end >= currentPageEnd + pageSize) {
+    this.scrolled.emit({
+      sortKey: this.sort.direction ? this.sort.active : null,
+      isAsc:  this.sort.direction ? this.sort.direction === 'asc' : null,
     });
   }
 }
+
 <metabot-solicitings-table
   ...
-  (scrolled)="onScroll($event, TicketContext.SOLICITATIONS)">
+  (scrolled)="onScroll(scrolled, TicketContext.SOLICITATIONS, $event)">
 </metabot-solicitings-table>
 
 protected onScroll(
-  e: { sortKey: string | null; isAsc: boolean | null } | void,
-  context: TicketContext
+  scrolled: EventEmitter<void>,
+  context: TicketContext,
+  sort?: { sortKey: string | null; isAsc: boolean | null }
 ): void {
-  if (this.isLoading || this.scrollCompleted) return;
+  if (this.isLoading || this.allPagesLoaded) return;
 
-  const page = ++this.currentPage;
+  const nextPage = this.currentPage + 1;
   this.isLoading = true;
 
-  const req: any = {
-    page,
-    pageSize: 20,
-    context,
-    status: context === TicketContext.TERMINATED ? TicketStatus.CLOSED : '',
-    ...(e && e.sortKey ? { sortKey: e.sortKey, isAsc: e.isAsc } : {}), // ⬅️ tri propagé
+  const complete = () => {
+    this.isLoading = false;
+    this.currentPage = nextPage;
+    scrolled.emit();
   };
 
-  this.mbotService.getTicketListV2(req).subscribe({
-    next: (resp) => {
-      const content = resp.tickets?.content ?? [];
-      this.tickets = [...this.tickets, ...content];
-      this.scrollCompleted = content.length < 20;
-      this.isLoading = false;
-    },
-    error: () => (this.isLoading = false),
+  const opts =
+    sort && sort.sortKey != null && sort.isAsc != null
+      ? { sortKey: sort.sortKey, isAsc: sort.isAsc }
+      : {};
+
+  const type = this.activeCard ?? FilterCardType.NONE;
+
+  const observable = this.cardConfigFactory.loadTicketsByCard(
+    type,
+    context,
+    nextPage,
+    opts                            // ⬅️ tri propagé
+  );
+
+  observable.subscribe({
+    next: (response) => { this.handleTicketResponse(response, context); complete(); },
+    error: (err) => { console.error('Erreur lors du scroll :', err); complete(); },
   });
+}
+
+loadTicketsByCard(
+  type: FilterCardType,
+  context: TicketContext,
+  page = 0,
+  opts?: { sortKey?: string | null; isAsc?: boolean | null }
+) {
+  const params: any = this.listService.reinitParam(page);
+  params.context = context;
+  if (context === TicketContext.TERMINATED) params.status = TicketStatus.CLOSED;
+
+  if (opts?.sortKey != null && opts?.isAsc != null) {
+    params.sortKey = opts.sortKey;
+    params.isAsc   = opts.isAsc;
+  }
+
+  // ... autres filtres déjà présents
+  return this.mbotService.getTicketListV2(params);
 }
