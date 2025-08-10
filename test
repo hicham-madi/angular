@@ -1,93 +1,87 @@
 export class SolicitingsTableComponent {
-  // pagination
-  private currentPage = 0;
-  private readonly pageSize = 20;
-  private isLoading = false;
-  private hasMore = true;
+  @Output() scrolled = new EventEmitter<{ sortKey: string | null; isAsc: boolean | null }>();
 
-  // tri courant
-  private sortActive: string | null = null;          // ex: 'lastActivityTimestamp'
-  private sortDirection: 'asc' | 'desc' | null = null;
-
-  // (optionnel) mapping front -> back
-  private readonly sortKeyMap: Record<string, string> = {
-    id: 'ID',
-    lastActivityTimestamp: 'LAST_ACTIVITY_TIMESTAMP',
-    partLabel: 'PART_LABEL',
-    domainLabel: 'DOMAIN_LABEL',
-    objectLabel: 'OBJECT_LABEL',
-    claimTypeLabel: 'CLAIM_TYPE_LABEL',
-    slaLabel: 'SLA_LABEL',
-    status: 'STATUS',
+  protected sort = {
+    active: null as string | null,
+    direction: null as 'asc' | 'desc' | null,
   };
 
   protected sortData(column: string): void {
-    // cycle asc -> desc -> null
-    if (this.sortActive !== column) {
-      this.sortActive = column;
-      this.sortDirection = 'asc';
+    if (this.sort.active !== column) {
+      this.sort.active = column;
+      this.sort.direction = 'asc';
     } else {
-      this.sortDirection = this.sortDirection === 'asc' ? 'desc'
-                       : this.sortDirection === 'desc' ? null : 'asc';
+      this.sort.direction =
+        this.sort.direction === 'asc' ? 'desc' :
+        this.sort.direction === 'desc' ? null : 'asc';
     }
 
-    // reset listing & pagination
-    this.tickets = [];
-    this.currentPage = 0;
-    this.hasMore = true;
-
-    this.loadPage(0); // recharge la 1ère page avec le tri courant
+    this.fetchTickets(this.sort.active, this.sort.direction); // page 0 triée
   }
 
   public onCdkScroll(): void {
-    if (this.isLoading || !this.hasMore) return;
-
-    // ton calcul d’arrivée en bas reste inchangé…
     const viewport = this.cdkVirtualScroll!;
     const end = viewport.getRenderedRange().end;
     const total = viewport.getDataLength();
+    const pageSize = 20;
+    const currentPageEnd = Math.floor(total / pageSize) * pageSize;
 
-    if (end >= total - 1) {
-      this.loadPage(this.currentPage + 1);
+    if (end >= currentPageEnd + pageSize) {
+      this.scrolled.emit({
+        sortKey: this.sort.direction ? this.sort.active : null,
+        isAsc:  this.sort.direction ? this.sort.direction === 'asc' : null,
+      });
     }
   }
 
-  private loadPage(page: number): void {
-    this.isLoading = true;
-
-    const sortKey =
-      this.sortDirection && this.sortActive
-        ? (this.sortKeyMap[this.sortActive] ?? this.sortActive) // si le back normalise, c’est ok
-        : null;
-
+  private fetchTickets(sortBy: string | null, sortDirection: 'asc' | 'desc' | null): void {
     const request: any = {
-      page,
-      pageSize: this.pageSize,
+      page: 0,
+      pageSize: 20,
       totalItems: this.tickets.length,
       context: this.context,
       status: '',
-      ...(sortKey
-        ? { sortKey, isAsc: this.sortDirection === 'asc' }
-        : {}),
+      ...(sortBy && sortDirection ? { sortKey: sortBy, isAsc: sortDirection === 'asc' } : {}),
     };
 
-    if (TicketContext.TERMINATED === this.context) {
-      request.status = TicketStatus.CLOSED;
-    }
+    if (TicketContext.TERMINATED === this.context) request.status = TicketStatus.CLOSED;
 
-    this.mbotService.getTicketListV2(request).subscribe({
-      next: (response) => {
-        const newTickets = response.tickets?.content ?? [];
-        // append si page > 0
-        this.tickets = page === 0 ? newTickets : [...this.tickets, ...newTickets];
-        this.currentPage = page;
-        this.hasMore = newTickets.length === this.pageSize; // stop si page incomplète
-        this.isLoading = false;
-        this.detectChanges();
-      },
-      error: () => {
-        this.isLoading = false;
-      },
+    this.mbotService.getTicketListV2(request).subscribe((response) => {
+      const newTickets = response.tickets?.content ?? [];
+      this.tickets = newTickets;
+      this.detectChanges();
     });
   }
+}
+<metabot-solicitings-table
+  ...
+  (scrolled)="onScroll($event, TicketContext.SOLICITATIONS)">
+</metabot-solicitings-table>
+
+protected onScroll(
+  e: { sortKey: string | null; isAsc: boolean | null } | void,
+  context: TicketContext
+): void {
+  if (this.isLoading || this.scrollCompleted) return;
+
+  const page = ++this.currentPage;
+  this.isLoading = true;
+
+  const req: any = {
+    page,
+    pageSize: 20,
+    context,
+    status: context === TicketContext.TERMINATED ? TicketStatus.CLOSED : '',
+    ...(e && e.sortKey ? { sortKey: e.sortKey, isAsc: e.isAsc } : {}), // ⬅️ tri propagé
+  };
+
+  this.mbotService.getTicketListV2(req).subscribe({
+    next: (resp) => {
+      const content = resp.tickets?.content ?? [];
+      this.tickets = [...this.tickets, ...content];
+      this.scrollCompleted = content.length < 20;
+      this.isLoading = false;
+    },
+    error: () => (this.isLoading = false),
+  });
 }
