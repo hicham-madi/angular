@@ -1,13 +1,47 @@
-Correction du maintien du tri lors du scroll et après changement de tri
+public loadTicketsByCard(
+  type: FilterCardType,
+  context: TicketContext,
+  page: number = 0,
+  opts?: { sortKey?: string | null; isAsc?: boolean | null }
+): Observable<MbotListV2> {
+  const params = { ...this.listService.getCurrentParams() };
 
-const hasValidSort =
-  this.currentSort.sortKey !== null &&
-  this.currentSort.isAsc !== null;
+  // ✅ le backend attend "page"
+  params.page = page;
+  params.context = context;
 
-const effective = hasValidSort
-  ? this.currentSort
-  : null;
+  if (TicketContext.TERMINATED === context) {
+    params.status = TicketStatus.CLOSED;
+    params.claimCodeFilter = FilterCardTypeMap.get(FilterCardType[type]);
+  } else {
+    params.cardType = FilterCardType[type];
+  }
 
-const opts = effective
-  ? { sortKey: effective.sortKey!, isAsc: effective.isAsc! }
-  : {};
+  if (opts?.sortKey != null && opts?.isAsc != null) {
+    params.sortKey = opts.sortKey;
+    params.isAsc = opts.isAsc;
+  }
+
+  return this.mbotService.getTicketListV2(params);
+}
+
+protected onScroll(sort: { sortKey: string | null; isAsc: boolean | null }, context: TicketContext): void {
+  if (this.isLoading || this.allPagesLoaded) return;
+
+  const nextPage = this.currentPage + 1;
+  this.isLoading = true;
+
+  const opts = (sort?.sortKey != null && sort?.isAsc != null)
+    ? { sortKey: sort.sortKey, isAsc: sort.isAsc }
+    : {};
+
+  const card = this.activeCard ?? FilterCardType.NONE;
+
+  this.cardConfigFactory
+    .loadTicketsByCard(card, context, nextPage, opts)
+    .subscribe({
+      next: (response) => { this.handleTicketResponse(response, context); },
+      error: (err) => console.error('Erreur lors du scroll :', err),
+      complete: () => { this.isLoading = false; this.currentPage = nextPage; }
+    });
+}
