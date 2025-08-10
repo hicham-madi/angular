@@ -1,33 +1,53 @@
-<div class="uk-flex uk-flex-middle uk-flex-between">
-  <metabot-status-tabs
-    [tabs]="statusTabs"
-    (tabChange)="onTabChange($event)"
-    [currentCount]="tableConfigFactory.ticketsCountSolicitations"
-    [selectedTab]="currentTab"
-  ></metabot-status-tabs>
+private readonly sortKeyMap: Record<string, string> = {
+  id: 'ID',
+  lastActivityTimestamp: 'LAST_ACTIVITY_TIMESTAMP',
+  partLabel: 'PART_LABEL',
+  domainLabel: 'DOMAIN_LABEL',
+  objectLabel: 'OBJECT_LABEL',
+  claimTypeLabel: 'CLAIM_TYPE_LABEL',
+  slaLabel: 'SLA_LABEL',
+  status: 'STATUS',
+};
 
-  <!-- Rangepicker : Filtre de période -->
-  <ticketing-form-field-details-period
-    [readOnly]="true"
-    [field]="{
-      key: 'daterangepicker',
-      type: 'daterangepicker',
-      props: {
-        label: 'Sélecteur de période',
-        daterangepickerOptions: { startView: 'month' }
-      }
-    }"
-    [displayOrValidationRuleFields]="[]"
-  ></ticketing-form-field-details-period>
-</div>
-
-public dateRangeField: Field = {
-  key: 'daterangepicker',
-  type: 'daterangepicker',
-  props: {
-    label: 'Sélecteur de période',
-    daterangepickerOptions: {
-      startView: 'month'
+protected sortData(column: string): void {
+  if (this.sort.active !== column) {
+    this.sort.active = column;
+    this.sort.direction = 'asc';
+  } else {
+    switch (this.sort.direction) {
+      case 'asc':  this.sort.direction = 'desc'; break;
+      case 'desc': this.sort.direction = null;   break;
+      default:     this.sort.direction = 'asc';
     }
   }
-};
+
+  // reset listing & pagination avant d'appliquer le tri
+  this.tickets = [];
+  // si tu as currentPage/loadedElements ailleurs, remets-les à 0 ici aussi
+  // this.currentPage = 0; this.loadedElements = 0; etc.
+
+  // si le tri est nul, on appelle sans tri
+  const sortBy = this.sort.direction ? (this.sortKeyMap[this.sort.active] ?? null) : null;
+  this.fetchTickets(sortBy, this.sort.direction);
+}
+
+private fetchTickets(sortBy: string | null, sortDirection: 'asc' | 'desc' | null): void {
+  const request: any = {
+    page: 0,
+    pageSize: 20,
+    totalItems: this.tickets.length, // 0 après reset
+    context: this.context,
+    status: '',
+    ...(sortBy && sortDirection ? { sortKey: sortBy, isAsc: sortDirection === 'asc' } : {}),
+  };
+
+  if (TicketContext.TERMINATED === this.context) {
+    request.status = TicketStatus.CLOSED;
+  }
+
+  this.mbotService.getTicketListV2(request).subscribe((response) => {
+    const newTickets = response.tickets?.content ?? [];
+    this.tickets = newTickets; // pas d’append pour un tri initial
+    this.detectChanges();
+  });
+}
