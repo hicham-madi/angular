@@ -1,24 +1,35 @@
-@Output() public scrolled = new EventEmitter<{ sortKey: string|null; isAsc: boolean|null }>();
+// solicitings-table.component.ts
+@Output() public loadMore = new EventEmitter<{ sortKey: string | null; isAsc: boolean | null }>();
+// (optionnel) si tu as encore besoin de scrolled "vide" pour autre chose, garde-le :
+@Output() public scrolled = new EventEmitter<void>();
 
 public onCdkScroll(): void {
-  // ... calcul du seuil
+  const viewport = this.cdkVirtualScroll!;
+  const { end } = viewport.getRenderedRange();
+  const total = viewport.getDataLength();
+  const pageSize = 20;
+  const currentPageEnd = (Math.floor(total / pageSize) - (this.hasPendingPage ? 1 : 0)) * pageSize;
+
   if (end >= currentPageEnd + pageSize) {
-    this.scrolled.emit({
+    this.loadMore.emit({
       sortKey: this.sort.direction ? this.sort.active : null,
-      isAsc:  this.sort.direction ? this.sort.direction === 'asc' : null,
+      isAsc: this.sort.direction ? this.sort.direction === 'asc' : null,
     });
+
+    // (optionnel) si quelqu’un écoute encore 'scrolled' sans payload :
+    this.scrolled.emit();
   }
 }
 
 <metabot-solicitings-table
+  [tickets]="tickets"
   ...
-  (scrolled)="onScroll(scrolled, TicketContext.SOLICITATIONS, $event)">
+  (loadMore)="onScroll($event, TicketContext.SOLICITATIONS)">
 </metabot-solicitings-table>
 
 protected onScroll(
-  scrolled: EventEmitter<void>,
-  context: TicketContext,
-  sort?: { sortKey: string | null; isAsc: boolean | null }
+  sort: { sortKey: string | null; isAsc: boolean | null },
+  context: TicketContext
 ): void {
   if (this.isLoading || this.allPagesLoaded) return;
 
@@ -28,7 +39,6 @@ protected onScroll(
   const complete = () => {
     this.isLoading = false;
     this.currentPage = nextPage;
-    scrolled.emit();
   };
 
   const opts =
@@ -36,19 +46,20 @@ protected onScroll(
       ? { sortKey: sort.sortKey, isAsc: sort.isAsc }
       : {};
 
-  const type = this.activeCard ?? FilterCardType.NONE;
+  const card = this.activeCard ?? FilterCardType.NONE;
 
-  const observable = this.cardConfigFactory.loadTicketsByCard(
-    type,
-    context,
-    nextPage,
-    opts                            // ⬅️ tri propagé
-  );
-
-  observable.subscribe({
-    next: (response) => { this.handleTicketResponse(response, context); complete(); },
-    error: (err) => { console.error('Erreur lors du scroll :', err); complete(); },
-  });
+  this.cardConfigFactory
+    .loadTicketsByCard(card, context, nextPage, opts)
+    .subscribe({
+      next: (response) => {
+        this.handleTicketResponse(response, context);
+        complete();
+      },
+      error: (err) => {
+        console.error('Erreur lors du scroll :', err);
+        complete();
+      },
+    });
 }
 
 loadTicketsByCard(
@@ -63,9 +74,8 @@ loadTicketsByCard(
 
   if (opts?.sortKey != null && opts?.isAsc != null) {
     params.sortKey = opts.sortKey;
-    params.isAsc   = opts.isAsc;
+    params.isAsc = opts.isAsc;
   }
 
-  // ... autres filtres déjà présents
   return this.mbotService.getTicketListV2(params);
 }
