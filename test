@@ -1,83 +1,64 @@
-// dynamic-size-strategy.ts
-import { FixedSizeVirtualScrollStrategy } from '@angular/cdk/scrolling';
+@ViewChild(CdkVirtualScrollViewport) private viewport!: CdkVirtualScrollViewport;
+@ViewChild('tableEl', { read: ElementRef }) private tableRef!: ElementRef<HTMLTableElement>;
 
-export class DynamicSizeStrategy extends FixedSizeVirtualScrollStrategy {
-  private _minBuffer = 400;
-  private _maxBuffer = 800;
+rowHeight = 56;              // valeur par défaut raisonnable
+headerHeight = 56;           // idem, ajusté plus bas
 
-  constructor() {
-    super(56, 400, 800); // valeur par défaut raisonnable
+ngAfterViewInit(): void {
+  queueMicrotask(() => {
+    this.syncSizes();
+  });
+}
+
+ngOnChanges(): void {
+  // si les données changent, on re-mesure
+  queueMicrotask(() => this.syncSizes());
+}
+
+private syncSizes(): void {
+  const table = this.tableRef?.nativeElement;
+  if (!table) return;
+
+  const firstRow = table.querySelector('.mat-mdc-row') as HTMLElement | null;
+  const header = table.querySelector('.mat-mdc-header-row') as HTMLElement | null;
+
+  const hRow = Math.ceil(firstRow?.getBoundingClientRect().height || 56);
+  const hHeader = Math.ceil(header?.getBoundingClientRect().height || 56);
+
+  let changed = false;
+
+  if (hRow && hRow !== this.rowHeight) {
+    this.rowHeight = hRow;
+    changed = true;
+  }
+  if (hHeader && hHeader !== this.headerHeight) {
+    this.headerHeight = hHeader;
+    changed = true;
   }
 
-  setItemSize(px: number): void {
-    this.updateItemAndBufferSize(px, this._minBuffer, this._maxBuffer);
+  if (changed) {
+    // Forcer recalcul du viewport
+    this.viewport?.checkViewportSize();
   }
 }
 
-// soliciting-table.component.ts
-import {
-  AfterViewInit, Component, ElementRef, ViewChild, Inject
-} from '@angular/core';
-import {
-  CdkVirtualScrollViewport, VIRTUAL_SCROLL_STRATEGY
-} from '@angular/cdk/scrolling';
-import { DynamicSizeStrategy } from './dynamic-size-strategy';
-
-@Component({
-  selector: 'metabot-solicitings-table',
-  templateUrl: './solicitings-table.component.html',
-  styleUrls: ['./solicitings-table.component.scss'],
-  providers: [
-    { provide: VIRTUAL_SCROLL_STRATEGY, useClass: DynamicSizeStrategy }
-  ]
-})
-export class SolicitingsTableComponent implements AfterViewInit {
-  @ViewChild('virtualScroll') private viewport!: CdkVirtualScrollViewport;
-  @ViewChild('tableEl', { read: ElementRef }) private tableRef!: ElementRef<HTMLTableElement>;
-
-  constructor(
-    @Inject(VIRTUAL_SCROLL_STRATEGY) private strategy: DynamicSizeStrategy
-  ) {}
-
-  ngAfterViewInit(): void {
-    // Mesure après rendu
-    queueMicrotask(() => this.syncItemSizeWithRow());
-  }
-
-  private syncItemSizeWithRow(): void {
-    const table = this.tableRef?.nativeElement;
-    const row = table?.querySelector('.mat-mdc-row') as HTMLElement | null;
-    if (!row) return;
-
-    const h = Math.ceil(row.getBoundingClientRect().height);
-    if (h > 0) {
-      this.strategy.setItemSize(h);          // ✅ met à jour la hauteur d’item
-      this.viewport?.checkViewportSize();    // ✅ force le recalcul
-    }
-  }
-
-  // Appelle aussi syncItemSizeWithRow() après chaque refresh de tickets si la hauteur peut changer
-  private refreshTicketsUI(): void {
-    // ... ton code d’update des tickets ...
-    queueMicrotask(() => this.syncItemSizeWithRow());
-  }
+:host {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 170px);
+  min-height: 0; // essentiel pour laisser le flex rétrécir
 }
 
-<cdk-virtual-scroll-viewport
-  class="table-viewport"
-  (scrolledIndexChange)="onCdkScroll()"
-  #virtualScroll>
+.table-scroll-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
 
-  <table mat-table [dataSource]="tickets" class="mat-elevation-z8 h-100" #tableEl>
-    <!-- … colonnes … -->
-  </table>
-</cdk-virtual-scroll-viewport>
-
-:host { min-height: 0; }
-.table-scroll-wrapper { min-height: 0; overflow: hidden; }
-.table-viewport { height: 100%; overflow: auto; }
-
-:host ::ng-deep .mat-mdc-row,
-:host ::ng-deep .mat-mdc-header-row {
-  box-sizing: border-box;
+.table-viewport {
+  // si vous ne voulez pas binder en TS, mettez la valeur du header ici (56px)
+  height: calc(100% - 56px);
+  overflow: auto;
 }
