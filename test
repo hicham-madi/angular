@@ -1,59 +1,31 @@
-// ✅ nouveau helper
-private resetInfiniteScrollState(): void {
-  this.currentPage = 0;
-  this.totalPages = 0;
-  this.totalElements = 0;
-  this.loadedElements = 0;
-  this.hasPendingPage = true;   // on suppose qu’il reste des pages tant qu’on n’a pas la 1ʳᵉ réponse
-  this.allPagesLoaded = false;
-  this.scrollCompleted = false;
-}
+<div class="badge"
+     [tooltip]="badge.tooltip"
+     [triggers]="'manual'"
+     show-delay="200"
+     hide-delay="100"
+     placement="top"
+     #tip="tooltip"
+     (mouseenter)="onTooltipEnter(tip)"
+     (mouseleave)="onTooltipLeave(tip)">
+  {{ badge.label }}
+</div>
 
-// ... dans onCardClicked(...)
-protected onCardClicked(type: FilterCardType, context: TicketContext): void {
-  this.cardClickedOnce = true;
+import { Component } from '@angular/core';
+import { TooltipDirective, TooltipService } from 'ng2-tooltip-directive';
 
-  // navigation (inchangé) …
-  // …
+@Component({
+  selector: 'app-dashboard-card',
+  templateUrl: './dashboard-card.component.html'
+})
+export class DashboardCardComponent {
+  constructor(private tooltipService: TooltipService) {}
 
-  // 🔧 important : reset complet AVANT de (re)charger
-  this.tickets = [];
-  this.ticketsCountTeam = 0;
-  this.resetInfiniteScrollState();
-
-  if (this.activeCard === FilterCardType.NONE) {
-    this.loadFullTicketList(context);
-  } else {
-    this.cardConfigFactory.loadTicketsByCard(type, context).subscribe({
-      next: (response) => {
-        this.handleTicketResponse(response, context);
-        // (le reste inchangé)
-      },
-      error: (err) => console.error('Erreur lors du chargement des tickets pour la carte sélectionnée :', err),
-    });
-  }
-}
-
-private handleTicketResponse(response: MbotListV2, context: TicketContext): void {
-  const page  = response.tickets?.number ?? 0;
-  const size  = response.tickets?.size   ?? 20;
-  const content = response.tickets?.content ?? [];
-  const totalElements = response.tickets?.totalElements ?? 0;
-
-  this.totalPages = Math.ceil(totalElements / size);
-  this.totalElements = totalElements;
-
-  if (page === 0) {
-    this.tickets = content;
-  } else {
-    const existingIds = new Set(this.tickets.map(t => t.id));
-    const uniqueNew   = content.filter(t => !existingIds.has(t.id));
-    this.tickets = [...this.tickets, ...uniqueNew];
+  onTooltipEnter(tip: TooltipDirective): void {
+    this.tooltipService.hideAll(); // Ferme les autres tooltips
+    tip.show();
   }
 
-  this.loadedElements += content.length;
-  this.hasPendingPage = this.loadedElements < this.totalElements;
-  this.allPagesLoaded = !this.hasPendingPage;
-
-  // …
+  onTooltipLeave(tip: TooltipDirective): void {
+    tip.hide();
+  }
 }
