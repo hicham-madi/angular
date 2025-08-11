@@ -1,13 +1,8 @@
-:host { min-height: 0; }
-.table-scroll-wrapper { min-height: 0; overflow: hidden; }
-.table-viewport { height: 100%; overflow: auto; }
-
-/* Évite que les marges internes fassent “gonfler” la ligne */
-:host ::ng-deep .mat-mdc-row,
-:host ::ng-deep .mat-mdc-header-row {
-  box-sizing: border-box;
+import { VIRTUAL_SCROLL_STRATEGY, AutoSizeVirtualScrollStrategy } from '@angular/cdk/scrolling';
+export function scrollStrategyFactory() {
+  return new AutoSizeVirtualScrollStrategy({ minBufferPx: 400, maxBufferPx: 800, averageItemSize: 56 });
 }
-
-/* Si tu veux figer une hauteur mini (optionnel) */
-// :host ::ng-deep .mat-mdc-row,
-// :host ::ng-deep .mat-mdc-header-row { min-height: 56px; }
+@Component({
+  providers: [{ provide: VIRTUAL_SCROLL_STRATEGY, useFactory: scrollStrategyFactory }]
+})
+export class SolicitingsTableComponent {}
