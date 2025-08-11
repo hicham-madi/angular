@@ -1,7 +1,7 @@
 <div
   class="object-soliciting"
   [ngClass]="{ 'font-weight-medium': !readCustomer(row) }"
-  [tooltip]="[row?.domain?.label, row?.subDomain?.label].filter(Boolean).join('\n')"
+  [tooltip]="getDomainTooltip(row)"
   tooltipClass="tooltip-multiline"
   triggers="hover"
   show-delay="150"
@@ -9,10 +9,20 @@
   {{ row?.object?.label }}
 </div>
 
-/* ng2-tooltip-directive applique cette classe au tooltip */
-:host ::ng-deep .tooltip-multiline {
-  white-space: pre-line; /* interprète \n comme un retour à la ligne */
-  line-height: 1.4;
-  max-width: 24rem;      /* optionnel : limite la largeur */
-  word-break: break-word;/* optionnel : casse les mots longs */
+getDomainTooltip(row: any): string {
+  if (!row) return '';
+  const lines: string[] = [];
+
+  const domain = row.domain?.label?.toString().trim();
+  const sub    = row.subDomain?.label?.toString().trim();
+
+  if (domain) lines.push(domain);
+  if (sub)    lines.push(sub);
+
+  return lines.join('\n'); // chaque valeur sur sa propre ligne
+}
+
+/* ng2-tooltip-directive */
+.tooltip-multiline .tooltip-inner {
+  white-space: pre-line;
 }
