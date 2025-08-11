@@ -1,64 +1,18 @@
-@ViewChild(CdkVirtualScrollViewport) private viewport!: CdkVirtualScrollViewport;
-@ViewChild('tableEl', { read: ElementRef }) private tableRef!: ElementRef<HTMLTableElement>;
+<cdk-virtual-scroll-viewport
+  [itemSize]="rowHeight"
+  class="table-viewport"
+  (scrolledIndexChange)="onCdkScroll()">
 
-rowHeight = 56;              // valeur par défaut raisonnable
-headerHeight = 56;           // idem, ajusté plus bas
+  <table #tableEl mat-table [dataSource]="tickets" class="mat-elevation-z8 h-100">
+    <!-- header + rows -->
+  </table>
 
-ngAfterViewInit(): void {
-  queueMicrotask(() => {
-    this.syncSizes();
-  });
-}
+  <!-- SPACER pour garantir la visibilité du dernier ticket -->
+  <div class="scroll-tail" [style.height.px]="rowHeight"></div>
+</cdk-virtual-scroll-viewport>
 
-ngOnChanges(): void {
-  // si les données changent, on re-mesure
-  queueMicrotask(() => this.syncSizes());
-}
+.scroll-tail { flex: 0 0 auto; }
 
-private syncSizes(): void {
-  const table = this.tableRef?.nativeElement;
-  if (!table) return;
-
-  const firstRow = table.querySelector('.mat-mdc-row') as HTMLElement | null;
-  const header = table.querySelector('.mat-mdc-header-row') as HTMLElement | null;
-
-  const hRow = Math.ceil(firstRow?.getBoundingClientRect().height || 56);
-  const hHeader = Math.ceil(header?.getBoundingClientRect().height || 56);
-
-  let changed = false;
-
-  if (hRow && hRow !== this.rowHeight) {
-    this.rowHeight = hRow;
-    changed = true;
-  }
-  if (hHeader && hHeader !== this.headerHeight) {
-    this.headerHeight = hHeader;
-    changed = true;
-  }
-
-  if (changed) {
-    // Forcer recalcul du viewport
-    this.viewport?.checkViewportSize();
-  }
-}
-
-:host {
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 170px);
-  min-height: 0; // essentiel pour laisser le flex rétrécir
-}
-
-.table-scroll-wrapper {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.table-viewport {
-  // si vous ne voulez pas binder en TS, mettez la valeur du header ici (56px)
-  height: calc(100% - 56px);
-  overflow: auto;
+:host ::ng-deep .cdk-virtual-scroll-content-wrapper {
+  padding-bottom: 56px; /* ou [rowHeight] si tu le bindes en inline */
 }
