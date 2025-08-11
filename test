@@ -74,3 +74,63 @@ reinitParam(page = 0): TicketListParams {
 
 getCurrentParams(): TicketListParams { return this.currentParams; }
 setCurrentParams(p: TicketListParams): void { this.currentParams = p; }
+
+// dashboard-card-config.factory.ts
+public loadTicketsByCard(
+  type: FilterCardType,
+  context: TicketContext,
+  page: number = 0,
+  opts?: { sortKey?: string | null; isAsc?: boolean | null }
+): Observable<MbotListV2> {
+
+  const params = { ...this.listService.getCurrentParams() };
+  params.currentPages = page;
+  params.context = context;
+
+  // ✅ ajouter un filtre carte uniquement si une carte est choisie
+  if (type !== FilterCardType.NONE) {
+    if (TicketContext.TERMINATED === context) {
+      params.status = TicketStatus.CLOSED;
+      params.claimCodeFilter = FilterCardTypeMap.get(FilterCardType[type]);
+    } else {
+      params.cardType = FilterCardType[type];
+    }
+  }
+
+  if (opts?.sortKey != null && opts?.isAsc != null) {
+    params.sortKey = opts.sortKey;
+    params.isAsc = opts.isAsc;
+  }
+
+  return this.mbotService.getTicketListV2(params);
+}
+
+// tickets-page.base.ts
+protected onScroll(): void {
+  if (this.isLoading || this.allPagesLoaded) return;
+
+  const nextPage = this.currentPage + 1;
+  this.isLoading = true;
+  const complete = () => { this.isLoading = false; this.currentPage = nextPage; };
+
+  const hasValidSort = this.currentSort.sortKey != null && this.currentSort.isAsc != null;
+  const opts = hasValidSort ? { sortKey: this.currentSort.sortKey!, isAsc: this.currentSort.isAsc! } : {};
+
+  const card = this.activeCard ?? FilterCardType.NONE;
+
+  if (card === FilterCardType.NONE) {
+    // ✅ pagination de la liste filtrée (sans carte), en réutilisant les params persistés
+    const base = this.listService.getCurrentParams();
+    const params = { ...base, currentPages: nextPage, ...(opts as any) };
+    this.mbotService.getTicketListV2(params).subscribe({
+      next: (response) => { this.handleTicketResponse(response, context); complete(); },
+      error: (err) => { console.error('Erreur scroll (liste filtrée) :', err); complete(); }
+    });
+  } else {
+    // pagination par carte
+    this.cardConfigFactory.loadTicketsByCard(card, context, nextPage, opts).subscribe({
+      next: (response) => { this.handleTicketResponse(response, context); complete(); },
+      error: (err) => { console.error('Erreur scroll (carte) :', err); complete(); }
+    });
+  }
+}
