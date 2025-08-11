@@ -5,8 +5,8 @@
      hide-delay="100"
      placement="top"
      #tip="tooltip"
-     (mouseenter)="onTooltipEnter(tip)"
-     (mouseleave)="onTooltipLeave(tip)">
+     (mouseenter)="onHover(true, tip)"
+     (mouseleave)="onHover(false, tip)">
   {{ badge.label }}
 </div>
 
@@ -20,12 +20,12 @@ import { TooltipDirective, TooltipService } from 'ng2-tooltip-directive';
 export class DashboardCardComponent {
   constructor(private tooltipService: TooltipService) {}
 
-  onTooltipEnter(tip: TooltipDirective): void {
-    this.tooltipService.hideAll(); // Ferme les autres tooltips
-    tip.show();
-  }
-
-  onTooltipLeave(tip: TooltipDirective): void {
-    tip.hide();
+  onHover(isEnter: boolean, tip: TooltipDirective): void {
+    if (isEnter) {
+      this.tooltipService.hideAll();
+      tip.show();
+    } else {
+      tip.hide();
+    }
   }
 }
