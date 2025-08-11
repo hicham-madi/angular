@@ -1,31 +1,73 @@
-<div class="badge"
-     [tooltip]="badge.tooltip"
-     [triggers]="'manual'"
-     show-delay="200"
-     hide-delay="100"
-     placement="top"
-     #tip="tooltip"
-     (mouseenter)="onHover(true, tip)"
-     (mouseleave)="onHover(false, tip)">
-  {{ badge.label }}
-</div>
+<cdk-virtual-scroll-viewport
+  class="table-viewport"
+  [itemSize]="itemSize"
+  (scrolledIndexChange)="onCdkScroll()"
+  #virtualScroll>
 
-import { Component } from '@angular/core';
-import { TooltipDirective, TooltipService } from 'ng2-tooltip-directive';
+  <table mat-table [dataSource]="tickets" class="mat-elevation-z8 h-100" #tableEl>
+    <!-- ... tes colonnes ... -->
+  </table>
+</cdk-virtual-scroll-viewport>
 
-@Component({
-  selector: 'app-dashboard-card',
-  templateUrl: './dashboard-card.component.html'
-})
-export class DashboardCardComponent {
-  constructor(private tooltipService: TooltipService) {}
+import { AfterViewInit, ElementRef, ViewChild } from '@angular/core';
+import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 
-  onHover(isEnter: boolean, tip: TooltipDirective): void {
-    if (isEnter) {
-      this.tooltipService.hideAll();
-      tip.show();
-    } else {
-      tip.hide();
+export class SolicitingsTableComponent implements AfterViewInit {
+  @ViewChild('virtualScroll') private viewport!: CdkVirtualScrollViewport;
+  @ViewChild('tableEl', { read: ElementRef }) private tableRef!: ElementRef<HTMLTableElement>;
+
+  // Valeur par défaut raisonnable (Angular Material ~56px)
+  public itemSize = 56;
+
+  ngAfterViewInit(): void {
+    // Mesure après que les lignes soient présentes dans le DOM
+    queueMicrotask(() => this.syncItemSizeWithRow());
+  }
+
+  private syncItemSizeWithRow(): void {
+    const table = this.tableRef?.nativeElement;
+    if (!table) return;
+
+    // On prend la première row rendue
+    const row = table.querySelector('.mat-mdc-row') as HTMLElement | null;
+    if (!row) return;
+
+    const h = Math.ceil(row.getBoundingClientRect().height);
+    if (h && Math.abs(h - this.itemSize) > 1) {
+      this.itemSize = h;
+      // Demande au viewport de recalculer
+      this.viewport?.checkViewportSize();
     }
   }
+
+  // Si le contenu des cellules peut changer la hauteur (ex: images chargées),
+  // on peut rappeler la mesure après chaque refresh de tickets:
+  private refreshTicketsUI(): void {
+    this.detectChanges();
+    queueMicrotask(() => this.syncItemSizeWithRow());
+  }
 }
+
+
+:host { min-height: 0; }
+.table-scroll-wrapper { min-height: 0; overflow: hidden; }
+.table-viewport { height: 100%; overflow: auto; }
+
+/* Évite que les marges internes fassent “gonfler” la ligne */
+:host ::ng-deep .mat-mdc-row,
+:host ::ng-deep .mat-mdc-header-row {
+  box-sizing: border-box;
+}
+
+/* Si tu veux figer une hauteur mini (optionnel) */
+// :host ::ng-deep .mat-mdc-row,
+// :host ::ng-deep .mat-mdc-header-row { min-height: 56px; }
+
+import { VIRTUAL_SCROLL_STRATEGY, AutoSizeVirtualScrollStrategy } from '@angular/cdk/scrolling';
+export function scrollStrategyFactory() {
+  return new AutoSizeVirtualScrollStrategy({ minBufferPx: 400, maxBufferPx: 800, averageItemSize: 56 });
+}
+@Component({
+  providers: [{ provide: VIRTUAL_SCROLL_STRATEGY, useFactory: scrollStrategyFactory }]
+})
+export class SolicitingsTableComponent {}
