@@ -1,18 +1,76 @@
-<cdk-virtual-scroll-viewport
-  [itemSize]="rowHeight"
-  class="table-viewport"
-  (scrolledIndexChange)="onCdkScroll()">
+protected applyFilters(context: TicketContext): void {
+  this.scrollCompleted = false;
+  this.isLoading = true;
 
-  <table #tableEl mat-table [dataSource]="tickets" class="mat-elevation-z8 h-100">
-    <!-- header + rows -->
-  </table>
+  const params = this.listService.reinitParam(0); // reset page 0
+  params.context = context;
+  params.searchTerm = this.searchTerm?.trim() ?? '';
+  params.statusFilter = this.selectedStatus ?? '';
+  params.agencyFilter = this.selectedAgency ?? '';
+  params.collaboratorFilter = this.selectedCollaborator ?? '';
+  params.campaignFilter = this.selectedCampaign ?? '';
+  if (TicketContext.TERMINATED === context) params.status = TicketStatus.CLOSED;
 
-  <!-- SPACER pour garantir la visibilité du dernier ticket -->
-  <div class="scroll-tail" [style.height.px]="rowHeight"></div>
-</cdk-virtual-scroll-viewport>
+  // 🔴 clé du correctif : mémoriser les filtres pour la pagination
+  this.listService.setCurrentParams?.(params); // si la méthode n'existe pas, ajoute-la dans ListService
 
-.scroll-tail { flex: 0 0 auto; }
+  this.mbotService.getTicketListV2(params).subscribe({
+    next: (response) => {
+      this.tickets = response.tickets.content ?? [];
+      // flags de pagination
+      this.totalElements = response.tickets.totalElements ?? this.tickets.length;
+      this.loadedElements = this.tickets.length;
+      this.hasPendingPage = this.loadedElements < this.totalElements;
+      this.allPagesLoaded = !this.hasPendingPage;
 
-:host ::ng-deep .cdk-virtual-scroll-content-wrapper {
-  padding-bottom: 56px; /* ou [rowHeight] si tu le bindes en inline */
+      this.isLoading = false;
+
+      // (ta logique existante pour statusTabs/TEAM/TERMINATED)
+      // ...
+      this.cdr.detectChanges();
+    },
+    error: (err) => { this.isLoading = false; console.error('Erreur filtres :', err); }
+  });
 }
+
+protected onScroll(sort?: { sortKey: string|null; isAsc: boolean|null }, context: TicketContext): void {
+  if (this.isLoading || this.allPagesLoaded) return;
+
+  const nextPage = this.currentPage + 1;
+  this.isLoading = true;
+  const complete = () => { this.isLoading = false; this.currentPage = nextPage; };
+
+  const opts = (sort?.sortKey != null && sort?.isAsc != null)
+    ? { sortKey: sort.sortKey!, isAsc: sort.isAsc! }
+    : {};
+
+  const card = this.activeCard ?? FilterCardType.NONE;
+
+  if (card === FilterCardType.NONE) {
+    // 🔴 on réutilise les mêmes filtres que ceux d’applyFilters
+    const base = this.listService.getCurrentParams();
+    const params = { ...base, currentPages: nextPage, ...opts };
+
+    this.mbotService.getTicketListV2(params).subscribe({
+      next: (response) => { this.handleTicketResponse(response, context); complete(); },
+      error: (err) => { console.error('Erreur scroll liste filtrée :', err); complete(); }
+    });
+  } else {
+    this.cardConfigFactory
+      .loadTicketsByCard(card, context, nextPage, opts)
+      .subscribe({
+        next: (response) => { this.handleTicketResponse(response, context); complete(); },
+        error: (err)   => { console.error('Erreur scroll carte :', err); complete(); }
+      });
+  }
+}
+
+private currentParams!: TicketListParams;
+
+reinitParam(page = 0): TicketListParams {
+  this.currentParams = { ...DEFAULT_PARAMS, currentPages: page };
+  return this.currentParams;
+}
+
+getCurrentParams(): TicketListParams { return this.currentParams; }
+setCurrentParams(p: TicketListParams): void { this.currentParams = p; }
