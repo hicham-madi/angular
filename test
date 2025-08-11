@@ -1,8 +1,83 @@
-import { VIRTUAL_SCROLL_STRATEGY, AutoSizeVirtualScrollStrategy } from '@angular/cdk/scrolling';
-export function scrollStrategyFactory() {
-  return new AutoSizeVirtualScrollStrategy({ minBufferPx: 400, maxBufferPx: 800, averageItemSize: 56 });
+// dynamic-size-strategy.ts
+import { FixedSizeVirtualScrollStrategy } from '@angular/cdk/scrolling';
+
+export class DynamicSizeStrategy extends FixedSizeVirtualScrollStrategy {
+  private _minBuffer = 400;
+  private _maxBuffer = 800;
+
+  constructor() {
+    super(56, 400, 800); // valeur par défaut raisonnable
+  }
+
+  setItemSize(px: number): void {
+    this.updateItemAndBufferSize(px, this._minBuffer, this._maxBuffer);
+  }
 }
+
+// soliciting-table.component.ts
+import {
+  AfterViewInit, Component, ElementRef, ViewChild, Inject
+} from '@angular/core';
+import {
+  CdkVirtualScrollViewport, VIRTUAL_SCROLL_STRATEGY
+} from '@angular/cdk/scrolling';
+import { DynamicSizeStrategy } from './dynamic-size-strategy';
+
 @Component({
-  providers: [{ provide: VIRTUAL_SCROLL_STRATEGY, useFactory: scrollStrategyFactory }]
+  selector: 'metabot-solicitings-table',
+  templateUrl: './solicitings-table.component.html',
+  styleUrls: ['./solicitings-table.component.scss'],
+  providers: [
+    { provide: VIRTUAL_SCROLL_STRATEGY, useClass: DynamicSizeStrategy }
+  ]
 })
-export class SolicitingsTableComponent {}
+export class SolicitingsTableComponent implements AfterViewInit {
+  @ViewChild('virtualScroll') private viewport!: CdkVirtualScrollViewport;
+  @ViewChild('tableEl', { read: ElementRef }) private tableRef!: ElementRef<HTMLTableElement>;
+
+  constructor(
+    @Inject(VIRTUAL_SCROLL_STRATEGY) private strategy: DynamicSizeStrategy
+  ) {}
+
+  ngAfterViewInit(): void {
+    // Mesure après rendu
+    queueMicrotask(() => this.syncItemSizeWithRow());
+  }
+
+  private syncItemSizeWithRow(): void {
+    const table = this.tableRef?.nativeElement;
+    const row = table?.querySelector('.mat-mdc-row') as HTMLElement | null;
+    if (!row) return;
+
+    const h = Math.ceil(row.getBoundingClientRect().height);
+    if (h > 0) {
+      this.strategy.setItemSize(h);          // ✅ met à jour la hauteur d’item
+      this.viewport?.checkViewportSize();    // ✅ force le recalcul
+    }
+  }
+
+  // Appelle aussi syncItemSizeWithRow() après chaque refresh de tickets si la hauteur peut changer
+  private refreshTicketsUI(): void {
+    // ... ton code d’update des tickets ...
+    queueMicrotask(() => this.syncItemSizeWithRow());
+  }
+}
+
+<cdk-virtual-scroll-viewport
+  class="table-viewport"
+  (scrolledIndexChange)="onCdkScroll()"
+  #virtualScroll>
+
+  <table mat-table [dataSource]="tickets" class="mat-elevation-z8 h-100" #tableEl>
+    <!-- … colonnes … -->
+  </table>
+</cdk-virtual-scroll-viewport>
+
+:host { min-height: 0; }
+.table-scroll-wrapper { min-height: 0; overflow: hidden; }
+.table-viewport { height: 100%; overflow: auto; }
+
+:host ::ng-deep .mat-mdc-row,
+:host ::ng-deep .mat-mdc-header-row {
+  box-sizing: border-box;
+}
