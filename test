@@ -1,16 +1,25 @@
-protected getDomainTooltip(row: { domain?: { label?: unknown }, subDomain?: { label?: unknown } } | null | undefined): string {
+
+protected getDomainTooltip(row: any): string {
   if (!row) return '';
+  const toStr = (v: unknown) => (v ?? '').toString().trim();
+  const parts = [toStr(row?.domain?.label), toStr(row?.subDomain?.label)]
+    .filter(Boolean);
+  return parts.join('\n');
+}
 
-  const normalize = (v: unknown) =>
-    (typeof v === 'string' ? v.trim() : v == null ? '' : String(v).trim());
+<div class="object-soliciting"
+     [tooltip]="getDomainTooltip(row)"
+     tooltipClass="tooltip-multiline"
+     [tooltipHtml]="false"
+     placement="left"
+     triggers="hover"
+     show-delay="150"
+     hide-delay="100">
+  {{ row?.object?.label }}
+</div>
 
-  const values = [
-    normalize(row.domain?.label),
-    normalize(row.subDomain?.label),
-  ].filter(Boolean); // enlève les vides
-
-  // évite les doublons éventuels
-  const unique = Array.from(new Set(values));
-
-  return unique.join('\n');
+.tooltip-multiline {
+  white-space: pre-line;
+  text-align: left;
+  max-width: 360px;
 }
