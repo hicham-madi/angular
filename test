@@ -1,28 +1,45 @@
-<div
-  class="object-soliciting"
-  [ngClass]="{ 'font-weight-medium': !readCustomer(row) }"
-  [tooltip]="getDomainTooltip(row)"
-  tooltipClass="tooltip-multiline"
-  triggers="hover"
-  show-delay="150"
-  hide-delay="100">
-  {{ row?.object?.label }}
-</div>
+import { ActivatedRoute, Router } from '@angular/router';
+import { FilterCardType } from '...';
 
-getDomainTooltip(row: any): string {
-  if (!row) return '';
-  const lines: string[] = [];
+export class TicketsPageBase {
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    // ...
+  ) {}
 
-  const domain = row.domain?.label?.toString().trim();
-  const sub    = row.subDomain?.label?.toString().trim();
+  ngOnInit(): void {
+    // Au lieu d'appeler ici applyFilters() directement,
+    // on se branche d'abord sur les query params :
+    this.route.queryParamMap.subscribe(params => {
+      const qp = (params.get('card') || '').toUpperCase();
 
-  if (domain) lines.push(domain);
-  if (sub)    lines.push(sub);
+      const card = this.mapCardParam(qp);
+      if (card !== this.activeCard) {
+        this.activeCard = card;
+        this.currentPage = 0;
+        this.scrollCompleted = false;
 
-  return lines.join('\n'); // chaque valeur sur sa propre ligne
-}
+        if (this.activeCard === FilterCardType.NONE) {
+          this.loadFullTicketList(this.context);
+        } else {
+          this.cardConfigFactory
+            .loadTicketsByCard(this.activeCard, this.context, 0)
+            .subscribe(res => this.handleTicketResponse(res, this.context));
+        }
+      } else {
+        // Aucun param particulier → chargement standard
+        this.loadFullTicketList(this.context);
+      }
+    });
+  }
 
-/* ng2-tooltip-directive */
-.tooltip-multiline .tooltip-inner {
-  white-space: pre-line;
+  private mapCardParam(qp: string): FilterCardType {
+    switch (qp) {
+      case 'REQUESTS':   return FilterCardType.REQUESTS;
+      case 'CLAIMS':     return FilterCardType.CLAIMS;
+      case 'APPROVALS':  return FilterCardType.APPROVALS;
+      default:           return FilterCardType.NONE;
+    }
+  }
 }
