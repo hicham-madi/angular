@@ -1,29 +1,22 @@
-import { FilterCardType } from '...';
-import { MetabotActionType } from '...';
+<div class="object-soliciting"
+     [ngClass]="{ 'font-weight-medium': !readCustomer(row) }"
+     [tooltip]="getDomainTooltip(row)"
+     tooltipHtml="true"
+     tooltipClass="tooltip-multiline"
+     appendToBody="false"
+     placement="right-start"
+     triggers="hover"
+     show-delay="150"
+     hide-delay="100">
+  {{ row2.object?.label }}
+</div>
 
-private buildTicketListUrl(type: FilterCardType): string {
-  const base = `${this.origin}/metabot/ticket-list`;
-
-  // mapping explicite → ce qui est envoyé dans ?card=
-  const cardMap: Partial<Record<FilterCardType, string>> = {
-    [FilterCardType.REQUESTS]: 'REQUESTS',
-    [FilterCardType.CLAIMS]: 'CLAIMS',
-    [FilterCardType.APPROVALS]: 'APPROVALS',
-    [FilterCardType.DISCUSSION_GROUPS]: 'DISCUSSION_GROUPS',
-    [FilterCardType.REQUESTS_EXPERT_SERVICE]: 'REQUESTS_EXPERT_SERVICE',
-  };
-
-  const card = cardMap[type];
-  return card ? `${base}?card=${encodeURIComponent(card)}` : base;
+.tooltip-multiline {
+  white-space: pre-line; // Respecte les retours à la ligne
+  max-width: 300px; // Évite les tooltips trop larges
+  text-align: left;
 }
 
-protected onCardClicked(type: FilterCardType): void {
-  const url = this.buildTicketListUrl(type);
-
-  this.metabotBridge
-    .emit(MetabotActionType.OPEN_URL, {
-      url,
-      target: 'FULLSCREEN',
-    })
-    .then(r => console.log(r));
+getDomainTooltip(row: any): string {
+  return `000000_DS_TEST DS INTERNE\nDeuxième ligne\nTroisième ligne`;
 }
