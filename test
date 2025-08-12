@@ -1,22 +1,16 @@
-<div class="object-soliciting"
-     [ngClass]="{ 'font-weight-medium': !readCustomer(row) }"
-     [tooltip]="getDomainTooltip(row)"
-     tooltipHtml="true"
-     tooltipClass="tooltip-multiline"
-     appendToBody="false"
-     placement="right-start"
-     triggers="hover"
-     show-delay="150"
-     hide-delay="100">
-  {{ row2.object?.label }}
-</div>
+protected getDomainTooltip(row: { domain?: { label?: unknown }, subDomain?: { label?: unknown } } | null | undefined): string {
+  if (!row) return '';
 
-.tooltip-multiline {
-  white-space: pre-line; // Respecte les retours à la ligne
-  max-width: 300px; // Évite les tooltips trop larges
-  text-align: left;
-}
+  const normalize = (v: unknown) =>
+    (typeof v === 'string' ? v.trim() : v == null ? '' : String(v).trim());
 
-getDomainTooltip(row: any): string {
-  return `000000_DS_TEST DS INTERNE\nDeuxième ligne\nTroisième ligne`;
+  const values = [
+    normalize(row.domain?.label),
+    normalize(row.subDomain?.label),
+  ].filter(Boolean); // enlève les vides
+
+  // évite les doublons éventuels
+  const unique = Array.from(new Set(values));
+
+  return unique.join('\n');
 }
