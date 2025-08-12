@@ -1,45 +1,29 @@
-import { ActivatedRoute, Router } from '@angular/router';
 import { FilterCardType } from '...';
+import { MetabotActionType } from '...';
 
-export class TicketsPageBase {
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    // ...
-  ) {}
+private buildTicketListUrl(type: FilterCardType): string {
+  const base = `${this.origin}/metabot/ticket-list`;
 
-  ngOnInit(): void {
-    // Au lieu d'appeler ici applyFilters() directement,
-    // on se branche d'abord sur les query params :
-    this.route.queryParamMap.subscribe(params => {
-      const qp = (params.get('card') || '').toUpperCase();
+  // mapping explicite → ce qui est envoyé dans ?card=
+  const cardMap: Partial<Record<FilterCardType, string>> = {
+    [FilterCardType.REQUESTS]: 'REQUESTS',
+    [FilterCardType.CLAIMS]: 'CLAIMS',
+    [FilterCardType.APPROVALS]: 'APPROVALS',
+    [FilterCardType.DISCUSSION_GROUPS]: 'DISCUSSION_GROUPS',
+    [FilterCardType.REQUESTS_EXPERT_SERVICE]: 'REQUESTS_EXPERT_SERVICE',
+  };
 
-      const card = this.mapCardParam(qp);
-      if (card !== this.activeCard) {
-        this.activeCard = card;
-        this.currentPage = 0;
-        this.scrollCompleted = false;
+  const card = cardMap[type];
+  return card ? `${base}?card=${encodeURIComponent(card)}` : base;
+}
 
-        if (this.activeCard === FilterCardType.NONE) {
-          this.loadFullTicketList(this.context);
-        } else {
-          this.cardConfigFactory
-            .loadTicketsByCard(this.activeCard, this.context, 0)
-            .subscribe(res => this.handleTicketResponse(res, this.context));
-        }
-      } else {
-        // Aucun param particulier → chargement standard
-        this.loadFullTicketList(this.context);
-      }
-    });
-  }
+protected onCardClicked(type: FilterCardType): void {
+  const url = this.buildTicketListUrl(type);
 
-  private mapCardParam(qp: string): FilterCardType {
-    switch (qp) {
-      case 'REQUESTS':   return FilterCardType.REQUESTS;
-      case 'CLAIMS':     return FilterCardType.CLAIMS;
-      case 'APPROVALS':  return FilterCardType.APPROVALS;
-      default:           return FilterCardType.NONE;
-    }
-  }
+  this.metabotBridge
+    .emit(MetabotActionType.OPEN_URL, {
+      url,
+      target: 'FULLSCREEN',
+    })
+    .then(r => console.log(r));
 }
