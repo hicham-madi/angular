@@ -1,7 +1,5 @@
-// Inputs existants...
 @Input() public hasPendingPage = false;
-// (facultatif mais conseillé pour blindage)
-@Input() public loadingNextPage = false;
+@Input() public loadingNextPage = false; // on le lie au parent pour blindage
 
 private scrollLocked = false;
 private lastLength = 0;
@@ -16,18 +14,18 @@ public ngOnChanges(): void {
 }
 
 public onCdkScroll(): void {
-  if (!this.hasPendingPage) return;      // plus rien à charger
-  if (this.loadingNextPage) return;      // déjà en cours (si tu binds l’input)
-  if (this.scrollLocked) return;         // on a déjà déclenché pour ce bas
+  if (!this.hasPendingPage) return;   // rien à charger
+  if (this.loadingNextPage) return;   // parent en cours de chargement
+  if (this.scrollLocked) return;      // déjà déclenché pour ce bas
 
-  const end = this.viewport.getRenderedRange().end;   // index exclusif du dernier item rendu
+  const end = this.viewport.getRenderedRange().end; // index exclusif du dernier item rendu
   const total = this.viewport.getDataLength();
 
-  // Déclenche quand on touche la fin de la data courante (offset = 1 item)
+  // Déclenche exactement au bas (offset = 1 item ; mets 0 si tu veux le dernier pixel)
   const atBottom = end >= Math.max(0, total - 1);
   if (!atBottom) return;
 
-  // Verrouille immédiatement pour empêcher les rafales
+  // 🔒 verrouiller IMMÉDIATEMENT pour éviter les rafales
   this.scrollLocked = true;
 
   this.loadMore.emit({
@@ -38,3 +36,47 @@ public onCdkScroll(): void {
   });
 }
 
+<metabot-solicitings-table
+  ...
+  [hasPendingPage]="hasPendingPage"
+  [loadingNextPage]="isLoading"   <!-- important -->
+  (loadMore)="onScroll(TicketContext.SOLICITATIONS)">
+</metabot-solicitings-table>
+
+if (page === 0) {
+  this.tickets = content;
+  this.loadedElements = content.length; // reset propre
+} else {
+  const existingIds = new Set(this.tickets.map((t) => t.id));
+  const uniqueNewTickets = content.filter((t) => !existingIds.has(t.id));
+
+  this.tickets = [...this.tickets, ...uniqueNewTickets];
+
+  // ✅ Compter ce que TU AJOUTES réellement à l'écran, pas la taille brute de la réponse
+  this.loadedElements += uniqueNewTickets.length;
+}
+
+// --- Calcul fiable du "reste-t-il des pages ?" ---
+// 1) Si l'API donne "last" :
+if (response?.tickets?.last !== undefined) {
+  this.hasPendingPage = !response.tickets.last;
+}
+// 2) Ou si elle donne (page courante, totalPages) :
+else if (response?.tickets?.number !== undefined && response?.tickets?.totalPages !== undefined) {
+  this.hasPendingPage = (response.tickets.number + 1) < response.tickets.totalPages;
+}
+// 3) Fallback : comparer à la taille de page
+else {
+  const size = response?.tickets?.size ?? 20;
+  this.hasPendingPage = (content?.length ?? 0) === size;
+}
+
+this.allPagesLoaded = !this.hasPendingPage;
+this.listService.loadingResolver = false;
+
+
+if (this.isLoading) return;
+if (!this.hasPendingPage) return;
+
+this.isLoading = true;
+const complete = () => { this.isLoading = false; this.currentPage = nextPage; };
