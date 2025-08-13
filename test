@@ -1,76 +1,40 @@
-this.mbotService.getTicketListV2(params).subscribe({
-  next: (response) => {
-    const newItems = response?.tickets?.content ?? [];
+// Inputs existants...
+@Input() public hasPendingPage = false;
+// (facultatif mais conseillé pour blindage)
+@Input() public loadingNextPage = false;
 
-    // 1) append + calcul de hasPendingPage (basé sur la page reçue)
-    appendAndFlags(newItems, response);
+private scrollLocked = false;
+private lastLength = 0;
 
-    // 2) mettre à jour les compteurs/onglets, SANS toucher tickets/hasPendingPage
-    this.updateCountersOnly(response, context);
-
-    complete();
-  },
-  error: (err) => { console.error('Erreur scroll liste filtrée :', err); complete(); }
-});
-
-const appendAndFlags = (newItems: Ticket[], response: any) => {
-  // IMPORTANT: changer la référence pour déclencher ngOnChanges côté enfant
-  this.tickets = [...this.tickets, ...(newItems ?? [])];
-
-  // ——— Calcul fiable de “reste-t-il une page ?” ———
-  // 1) Si l’API renvoie un indicateur de dernière page :
-  if (response?.tickets?.last !== undefined) {
-    this.hasPendingPage = !response.tickets.last;
-  } else if (response?.tickets?.number !== undefined && response?.tickets?.totalPages !== undefined) {
-    // 2) Si elle renvoie page courante + nb de pages :
-    this.hasPendingPage = (response.tickets.number + 1) < response.tickets.totalPages;
-  } else {
-    // 3) Fallback: taille de page
-    this.hasPendingPage = (newItems?.length ?? 0) === this.pageSize;
-  }
-};
-
-private updateCountersOnly(response: any, context: TicketContext): void {
-  try {
-    const size = response?.tickets?.size ?? 20;
-    const totalElements = response?.tickets?.totalElements ?? 0;
-    this.totalPages = Math.ceil(totalElements / size);
-    this.totalElements = totalElements;
-
-    switch (context) {
-      case TicketContext.SOLICITATIONS: {
-        this.tableConfigFactory.ticketsCountSolicitations = totalElements;
-        this.ticketsCountSolicitations = totalElements;
-        break;
-      }
-      case TicketContext.TEAM: {
-        this.ticketsCountTeam = totalElements;
-        break;
-      }
-    }
-
-    // ⚠️ Ne touche PAS à this.tickets, ni hasPendingPage ici
-    // ⚠️ Ne fais pas de “loadedElements += content.length” ici
-  } catch (e) {
-    console.error('Erreur dans updateCountersOnly :', e);
+public ngOnChanges(): void {
+  // Réarmement automatique dès que la longueur change (nouvelle page appendée)
+  const len = this.tickets?.length ?? 0;
+  if (len !== this.lastLength) {
+    this.lastLength = len;
+    this.scrollLocked = false;
   }
 }
 
-if (page === 0) {
-  // initial load uniquement
-  this.tickets = content;
-} // sinon ne touche pas aux tickets ici
+public onCdkScroll(): void {
+  if (!this.hasPendingPage) return;      // plus rien à charger
+  if (this.loadingNextPage) return;      // déjà en cours (si tu binds l’input)
+  if (this.scrollLocked) return;         // on a déjà déclenché pour ce bas
 
-this.loadedElements += content.length;
-this.hasPendingPage = this.loadedElements < this.totalElements;
+  const end = this.viewport.getRenderedRange().end;   // index exclusif du dernier item rendu
+  const total = this.viewport.getDataLength();
 
-if (atBottom) {
-  this.scrollLocked = true;             // 🔒 blocage immédiat
-  this.loadMore.emit(...);
+  // Déclenche quand on touche la fin de la data courante (offset = 1 item)
+  const atBottom = end >= Math.max(0, total - 1);
+  if (!atBottom) return;
+
+  // Verrouille immédiatement pour empêcher les rafales
+  this.scrollLocked = true;
+
+  this.loadMore.emit({
+    sortKey: this.sort?.active ?? null,
+    isAsc: this.sort?.direction === 'asc' ? true
+         : this.sort?.direction === 'desc' ? false
+         : null,
+  });
 }
-public ngOnChanges() {
-  if (len !== this.lastDataLength) {
-    this.lastDataLength = len;
-    this.scrollLocked = false;          // ✅ réarmement à l’append
-  }
-}
+
