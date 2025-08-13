@@ -1,25 +1,124 @@
+export class SolicitingsTableComponent {
+  @ViewChild('virtualScroll', { static: true }) private readonly viewport!: CdkVirtualScrollViewport;
 
-protected getDomainTooltip(row: any): string {
-  if (!row) return '';
-  const toStr = (v: unknown) => (v ?? '').toString().trim();
-  const parts = [toStr(row?.domain?.label), toStr(row?.subDomain?.label)]
-    .filter(Boolean);
-  return parts.join('\n');
+  @Input() public hasPendingPage = false;   // ← déjà présent chez toi
+  @Input() public loadingNextPage = false;  // ← nouveau : l’état “chargement en cours” poussé par le parent
+  @Input() public pageSize = 20;            // ← pour calculer le bas
+
+  @Output() public loadMore = new EventEmitter<{ sortKey: string | null; isAsc: boolean | null }>();
+
+  /** petit tampon pour ne pas attendre le tout dernier pixel (on peut mettre 0 si tu veux) */
+  private readonly preloadOffset = 1;   // en “items” (et pas en px) car on utilise VirtualScroll.
+
+  /** verrou local pour éviter les doubles émissions pendant un même chargement */
+  private canRequest = true;
+
+  public onCdkScroll(): void {
+    if (!this.hasPendingPage) return;       // rien à charger
+    if (this.loadingNextPage) return;       // le parent charge déjà
+    if (!this.canRequest) return;           // on vient juste d’émettre
+
+    const end = this.viewport.getRenderedRange().end;   // index (exclusif) du dernier item rendu
+    const total = this.viewport.getDataLength();        // nb d’items actuellement en mémoire
+
+    // On déclenche lorsqu’on affiche la "fin" de la page courante.
+    const nearBottom = end >= (total - this.preloadOffset);
+    if (!nearBottom) return;
+
+    this.canRequest = false;                // on se verrouille jusqu’à la fin du chargement
+    this.loadMore.emit({
+      sortKey: this.sort.active,
+      isAsc: this.sort.direction === 'asc',
+    });
+  }
+<cdk-virtual-scroll-viewport itemSize="50" class="table-viewport scrollbar-ui"
+  (scrolledIndexChange)="onCdkScroll()" #virtualScroll>
+  ...
+</cdk-virtual-scroll-viewport>
+
+
+  /** Appelé par le parent quand le chargement est fini → on rouvre le robinet */
+  ngOnChanges(): void {
+    if (!this.loadingNextPage) {
+      this.canRequest = true;
+    }
+  }
 }
 
-<div class="object-soliciting"
-     [tooltip]="getDomainTooltip(row)"
-     tooltipClass="tooltip-multiline"
-     [tooltipHtml]="false"
-     placement="left"
-     triggers="hover"
-     show-delay="150"
-     hide-delay="100">
-  {{ row?.object?.label }}
-</div>
+protected isLoading = false;
+protected hasPendingPage = true;     // ou calculé depuis la première réponse serveur
+protected readonly pageSize = 20;
 
-.tooltip-multiline {
-  white-space: pre-line;
-  text-align: left;
-  max-width: 360px;
+<metabot-solicitings-table
+  [tickets]="tickets"
+  [displayedColumns]="displayedColumns"
+  [columnConfig]="columnConfig"
+  [columnTemplates]="columnTemplates"
+  [context]="TicketContext.SOLICITATIONS"
+  [selectedCard]="activeCard"
+  [hasPendingPage]="hasPendingPage"
+  [loadingNextPage]="isLoading"             <!-- NOUVEAU -->
+  [pageSize]="pageSize"                     <!-- (facultatif) -->
+  (sortChanged)="onSortChanged($event, TicketContext.SOLICITATIONS)"
+  (loadMore)="onScroll(TicketContext.SOLICITATIONS)">
+</metabot-solicitings-table>
+
+
+protected onScroll(context: TicketContext): void {
+  if (this.isLoading) return;          // garde-fou 1
+  if (!this.hasPendingPage) return;    // garde-fou 2
+
+  const nextPage = this.currentPage + 1;
+  this.isLoading = true;
+
+  const complete = () => {
+    this.isLoading = false;
+    this.currentPage = nextPage;
+  };
+
+  // tri courant → options
+  const hasValidSort = this.currentSort.sortKey != null && this.currentSort.isAsc != null;
+  const opts = hasValidSort ? { sortKey: this.currentSort.sortKey!, isAsc: this.currentSort.isAsc! } : {};
+
+  // filtre carte
+  const card = this.activeCard ?? FilterCardType.NONE;
+
+  if (card === FilterCardType.NONE) {
+    const base = this.listService.getCurrentParams();
+    const params: any = { ...base, currentPages: nextPage, ...opts, context };
+
+    if (TicketContext.TERMINATED === context) {
+      params.status = TicketStatus.CLOSED;
+    }
+
+    this.mbotService.getTicketListV2(params).pipe(
+      finalize(complete)
+    ).subscribe({
+      next: (response) => {
+        // append
+        const newItems = response?.content ?? [];
+        this.tickets = [...this.tickets, ...newItems];
+
+        // si moins que pageSize → plus de page suivante
+        this.hasPendingPage = newItems.length === this.pageSize;
+      },
+      error: (err) => {
+        console.error('Erreur scroll liste filtrée :', err);
+      }
+    });
+
+  } else {
+    this.cardConfigFactory.loadTicketsByCard(card, context, nextPage, opts).pipe(
+      finalize(complete)
+    ).subscribe({
+      next: (response) => {
+        const newItems = response?.content ?? [];
+        this.tickets = [...this.tickets, ...newItems];
+        this.hasPendingPage = newItems.length === this.pageSize;
+      },
+      error: (err) => {
+        console.error('Erreur scroll carte :', err);
+      }
+    });
+  }
 }
