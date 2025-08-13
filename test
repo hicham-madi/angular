@@ -1,20 +1,19 @@
 export class SolicitingsTableComponent {
-  @ViewChild('virtualScroll', { static: true }) private readonly viewport!: CdkVirtualScrollViewport;
+  // ...
 
-  @Input() public hasPendingPage = false;
-  @Input() public loadingNextPage = false;
-  @Input() public pageSize = 20;
-  @Input() public tickets: Ticket[] = [];
-
-  @Output() public loadMore = new EventEmitter<{ sortKey: string | null; isAsc: boolean | null }>();
-
+  private lastDataLength = 0;
   private scrollLocked = false;
-  private readonly preloadOffset = 1;
 
-  ngOnChanges(): void {
-    // Si nouvelle page → on réarme
-    if (this.tickets?.length && this.scrollLocked) {
+  public ngOnChanges(): void {
+    const len = this.tickets?.length ?? 0;
+    if (len !== this.lastDataLength) {
+      this.lastDataLength = len;
+
+      // ✅ RÉARMER le déclenchement pour la page suivante
       this.scrollLocked = false;
+
+      // (Optionnel) si tu gardes cette logique :
+      // this.lastTriggerEnd = -1;
     }
   }
 
@@ -25,19 +24,15 @@ export class SolicitingsTableComponent {
 
     const end = this.viewport.getRenderedRange().end;
     const total = this.viewport.getDataLength();
-    const atBottom = end >= total - this.preloadOffset;
+    const atBottom = end >= total - 1; // ou ton preloadOffset
 
     if (atBottom) {
-      this.scrollLocked = true; // On bloque IMMÉDIATEMENT
+      this.scrollLocked = true; // 🔒 on bloque immédiatement
       this.loadMore.emit({
         sortKey: this.sort?.active ?? null,
-        isAsc: this.sort?.direction === 'asc'
+        isAsc: this.sort?.direction === 'asc' ? true : this.sort?.direction === 'desc' ? false : null,
       });
     }
   }
 }
 
-appendAndFlags(newItems: Ticket[]) {
-  this.tickets = [...this.tickets, ...(newItems ?? [])]; // ← déclenche bien un changement de référence
-  this.hasPendingPage = (newItems?.length ?? 0) === this.pageSize;
-}
