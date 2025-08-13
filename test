@@ -4,104 +4,40 @@ export class SolicitingsTableComponent {
   @Input() public hasPendingPage = false;
   @Input() public loadingNextPage = false;
   @Input() public pageSize = 20;
-  @Input() public tickets: Ticket[] = []; // déjà présent chez toi
+  @Input() public tickets: Ticket[] = [];
 
   @Output() public loadMore = new EventEmitter<{ sortKey: string | null; isAsc: boolean | null }>();
 
-  // --- Anti-rafale ---
-  private lastTriggerEnd = -1;   // dernier "end" pour lequel on a émis
-  private lastDataLength = 0;    // pour détecter qu'une page a été ajoutée
-  private readonly preloadOffset = 1; // garde 1 item avant la fin (tu peux mettre 0)
+  private scrollLocked = false;
+  private readonly preloadOffset = 1;
 
   ngOnChanges(): void {
-    // si la longueur a augmenté => une nouvelle page est arrivée => on réarme
-    if (this.tickets?.length !== this.lastDataLength) {
-      this.lastDataLength = this.tickets?.length ?? 0;
-      this.lastTriggerEnd = -1; // on autorise un nouveau trigger
+    // Si nouvelle page → on réarme
+    if (this.tickets?.length && this.scrollLocked) {
+      this.scrollLocked = false;
     }
   }
 
   public onCdkScroll(): void {
-    if (!this.hasPendingPage) return;     // rien à charger
-    if (this.loadingNextPage) return;     // déjà en cours
+    if (!this.hasPendingPage) return;
+    if (this.loadingNextPage) return;
+    if (this.scrollLocked) return;
 
-    const end = this.viewport.getRenderedRange().end; // index exclusif dernier item rendu
-    const total = this.viewport.getDataLength();      // nb d'items en mémoire
+    const end = this.viewport.getRenderedRange().end;
+    const total = this.viewport.getDataLength();
+    const atBottom = end >= total - this.preloadOffset;
 
-    // seulement quand on touche le bas de la data courante
-    const atBottom = end >= Math.max(0, total - this.preloadOffset);
-    if (!atBottom) return;
-
-    // ne pas réémettre si on est toujours sur la même "fin"
-    if (end === this.lastTriggerEnd) return;
-
-    this.lastTriggerEnd = end; // on mémorise le trigger
-
-    this.loadMore.emit({
-      sortKey: this.sort?.active ?? null,
-      isAsc: this.sort?.direction === 'asc' ? true : this.sort?.direction === 'desc' ? false : null,
-    });
-  }
-}
-<cdk-virtual-scroll-viewport
-  #virtualScroll
-  itemSize="50"
-  class="table-viewport scrollbar-ui"
-  (scrolledIndexChange)="onCdkScroll()">
-  ...
-</cdk-virtual-scroll-viewport>
-
-protected onScroll(context: TicketContext): void {
-  if (this.isLoading) return;
-  if (!this.hasPendingPage) return;
-
-  const nextPage = this.currentPage + 1;
-  this.isLoading = true;
-
-  const complete = () => {
-    this.isLoading = false;
-    this.currentPage = nextPage;
-  };
-
-  const hasValidSort = this.currentSort.sortKey != null && this.currentSort.isAsc != null;
-  const opts = hasValidSort ? { sortKey: this.currentSort.sortKey!, isAsc: this.currentSort.isAsc! } : {};
-
-  const card = this.activeCard ?? FilterCardType.NONE;
-
-  const appendAndFlags = (newItems: Ticket[]) => {
-    this.tickets = [...this.tickets, ...(newItems ?? [])];
-    // si ton backend renvoie totalPages/hasNext, utilise-le de préférence
-    this.hasPendingPage = (newItems?.length ?? 0) === this.pageSize;
-  };
-
-  if (card === FilterCardType.NONE) {
-    const base = this.listService.getCurrentParams();
-    const params: any = { ...base, currentPages: nextPage, ...opts, context };
-    if (context === TicketContext.TERMINATED) params.status = TicketStatus.CLOSED;
-
-    this.mbotService.getTicketListV2(params).subscribe({
-      next: (response) => { appendAndFlags(response?.tickets?.content ?? []); this.handleTicketResponse(response, context); complete(); },
-      error: (err) => { console.error('Erreur scroll liste filtrée :', err); complete(); }
-    });
-  } else {
-    this.cardConfigFactory.loadTicketsByCard(card, context, nextPage, opts).subscribe({
-      next: (response) => { appendAndFlags(response?.tickets?.content ?? []); this.handleTicketResponse(response, context); complete(); },
-      error: (err) => { console.error('Erreur scroll carte :', err); complete(); }
-    });
+    if (atBottom) {
+      this.scrollLocked = true; // On bloque IMMÉDIATEMENT
+      this.loadMore.emit({
+        sortKey: this.sort?.active ?? null,
+        isAsc: this.sort?.direction === 'asc'
+      });
+    }
   }
 }
 
-
-<metabot-solicitings-table
-  [tickets]="tickets"
-  [displayedColumns]="displayedColumns"
-  [columnConfig]="columnConfig"
-  [columnTemplates]="columnTemplates"
-  [context]="TicketContext.SOLICITATIONS"
-  [selectedCard]="activeCard"
-  [hasPendingPage]="hasPendingPage"
-  [loadingNextPage]="isLoading"
-  [pageSize]="pageSize"
-  (sortChanged)="onSortChanged($event, TicketContext.SOLICITATIONS)"
-  (loadMore)="onScroll(TicketContext.SOLICITATIONS)">
-</metabot-solicitings-table>
+appendAndFlags(newItems: Ticket[]) {
+  this.tickets = [...this.tickets, ...(newItems ?? [])]; // ← déclenche bien un changement de référence
+  this.hasPendingPage = (newItems?.length ?? 0) === this.pageSize;
+}
