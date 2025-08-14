@@ -1,14 +1,12 @@
-/* traverse le template de l’enfant (Emulated uniquement) */
-:host ::ng-deep
-.attach-in-chat .attachment-icon-block > .text-button.border-none {
-  border: 2px solid #d32f2f !important; /* écrase border: none */
-  border-radius: 8px !important;
+/* Cible uniquement le composant metabot-file-upload présent dans chat-form */
+:host ::ng-deep metabot-file-upload .attachment-icon-block > button.text-button {
+  border: 2px solid var(--canard-fonce);
+  border-radius: 8px;
+  color: var(--canard-fonce);
 }
 
-/* couleur de l’icône */
-:host ::ng-deep
-.attach-in-chat .attachment-icon-block > .text-button.border-none,
-:host ::ng-deep
-.attach-in-chat .attachment-icon-block > .text-button.border-none .material-symbols-outlined {
-  color: var(--canard-fonce, #0b4a4a) !important;
+:host ::ng-deep metabot-file-upload 
+  .attachment-icon-block > button.text-button 
+  .material-symbols-outlined {
+  color: var(--canard-fonce);
 }
