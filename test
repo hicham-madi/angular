@@ -1,57 +1,18 @@
-// solicitings-table.component.ts
-import { SimpleChanges } from '@angular/core';
+// après avoir défini page, size, content, totalElements
+if (response?.tickets?.last !== undefined) {
+  this.hasPendingPage = !response.tickets.last;
+} else if (response?.tickets?.number !== undefined && response?.tickets?.totalPages !== undefined) {
+  this.hasPendingPage = (response.tickets.number + 1) < response.tickets.totalPages;
+} else {
+  // fallback
+  this.hasPendingPage = (content?.length ?? 0) === size;
+}
 
-export class SolicitingsTableComponent {
-  // ... tes @Input existants
-  @Input() public hasPendingPage = false;
-  @Input() public loadingNextPage = false;
+const uniqueNewTickets = content.filter(t => !existingIds.has(t.id));
+this.loadedElements += (page === 0 ? content.length : uniqueNewTickets.length);
 
-  private scrollLocked = false;
-  private lastLength = 0;
-  private prevLoading = false;
-
-  public ngOnChanges(changes: SimpleChanges): void {
-    // 1) Réarmement quand la longueur change (nouvelle page vraiment appendée)
-    const len = this.tickets?.length ?? 0;
-    if (len !== this.lastLength) {
-      this.lastLength = len;
-      this.scrollLocked = false;
-    }
-
-    // 2) Réarmement quand un chargement se termine, même si rien n'a été ajouté
-    if (changes['loadingNextPage']) {
-      const prev = this.prevLoading;
-      const curr = this.loadingNextPage;
-      this.prevLoading = curr;
-
-      // On vient de passer de "en cours" à "terminé"
-      if (prev && !curr && this.hasPendingPage) {
-        this.scrollLocked = false;
-      }
-    }
-  }
-
-  public onCdkScroll(): void {
-    if (!this.hasPendingPage) return;
-    if (this.loadingNextPage) return;
-    if (this.scrollLocked) return;
-
-    const end = this.viewport.getRenderedRange().end;
-    const total = this.viewport.getDataLength();
-
-    // déclenche au bas (offset 1 item)
-    if (end < Math.max(0, total - 1)) return;
-
-    this.scrollLocked = true; // 🔒 anti-rafale immédiat
-
-    this.loadMore.emit({
-      sortKey: this.sort?.active ?? null,
-      isAsc: this.sort?.direction === 'asc'
-        ? true
-        : this.sort?.direction === 'desc'
-          ? false
-          : null,
-    });
-  }
+params.currentPages = page;       // OK
+if (type !== FilterCardType.NONE) {
+  params.cardType = FilterCardType[type]; // ⚠️ attention ici
 }
 
