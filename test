@@ -1,3 +1,17 @@
 .attach-in-chat .attachment-icon-block > button { border: 2px solid #d32f2f !important; border-radius: 8px; }
 .attach-in-chat .attachment-icon-block > button,
 .attach-in-chat .attachment-icon-block > button .material-symbols-outlined { color: var(--canard-fonce, #0b4a4a); }
+
+/* chat-form.component.scss */
+
+/* retire l'effet de .border-none du composant enfant et ajoute le bord */
+:host ::ng-deep .attach-in-chat .attachment-icon-block > button {
+  border: 2px solid #d32f2f !important; /* override .border-none */
+  border-radius: 8px;
+}
+
+/* couleur "canard-foncé" (remplace par ta variable si tu en as une) */
+:host ::ng-deep .attach-in-chat .attachment-icon-block > button,
+:host ::ng-deep .attach-in-chat .attachment-icon-block > button .material-symbols-outlined {
+  color: var(--canard-fonce, #0b4a4a);
+}
