@@ -1,74 +1,48 @@
-function emptyMbotList(size = 20): MbotListV2 {
+function emptyMbotListV2(pageSize = 20): MbotListV2 {
   return {
-    // page
-    number: 0,
-    size,
-    totalPages: 0,
-    totalElements: 0,
-
-    // contenu
-    content: [],
-
-    // métadonnées attendues par ton handleTicketResponse()
-    stats: { largeCards: [], smallCards: [] },
+    tickets: {
+      content: [],
+      number: 0,
+      size: pageSize,
+      totalElements: 0,
+      totalPages: 0,
+    },
+    stats: {      // adapt to your model
+      claims: 0, approvals: 0, discussionGroupsReadCustomer: 0,
+      requestsExpertService: 0, requestsExpertServiceReadCustomer: 0,
+      requestsExpertServiceTreatmentIsLate: 0, requestsExpertServiceEds: 0,
+    } as any,     // or build the exact structure you use
     statusList: [],
     agencyList: [],
     collaboratorsList: [],
     campaignsList: [],
-
-    // selon ton modèle, ajoute les champs optionnels avec des valeurs neutres
-    // e.g. sortKey: null, isAsc: null, ...
+    // add any other required fields from MbotList (e.g., counts) with neutral values
+    ticket_count_opened: 0,
+    ticket_count_closed: 0,
+    ticket_count_draft: 0,
+    ticket_count_approval: 0,
+    ticket_count_claim: 0,
+    ticket_count_eds: 0,
+    enableGlobalSearchForCustomer: false,
+    associatedTicket: [],
   };
 }
 
-@Injectable({ providedIn: 'root' })
-export class TicketListResolver implements Resolve<TicketListPrefetch> {
-  constructor(
-    private readonly tableConfig: TableConfigFactory,
-    private readonly mbot: MbotService,
-    private readonly listSvc: ListService,
-  ) {}
-
-  resolve(route: ActivatedRouteSnapshot, _state: RouterStateSnapshot): Observable<TicketListPrefetch> {
-    const context = route.data['context'] as TicketContext;
-
-    const initialTab: 'ongoing' | 'completed' =
-      context === TicketContext.TERMINATED ? 'completed' : 'ongoing';
-
-    const qp = (route.queryParamMap.get('card') ?? '') as keyof typeof FilterCardType;
-    const stored = localStorage.getItem('lastSelectedCard') as keyof typeof FilterCardType | null;
-    const cardType: FilterCardType =
-      (qp && FilterCardType[qp] !== undefined) ? FilterCardType[qp] :
-      (stored && FilterCardType[stored] !== undefined) ? FilterCardType[stored] :
-      FilterCardType.NONE;
-
-    const cfg = context === TicketContext.TEAM
-      ? this.tableConfig.getColumnsForTeamPage()
-      : this.tableConfig.getBaseColumns();
-
-    const displayedColumns = cfg.displayedColumns();
-    const columnConfig = cfg.columnConfig;
-
-    const base = this.listSvc.getCurrentParams();
-    const params = { ...base, currentPages: 0, context, cardType };
-
-    return this.mbot.getTicketListV2(params).pipe(
-      map((tickets) => ({
-        context,
-        initialTab,
-        config: { displayedColumns, columnConfig },
-        cardType,
-        tickets,                         // <- déjà un MbotListV2 complet
-      })),
-      catchError(() =>
-        of({
-          context,
-          initialTab,
-          config: { displayedColumns, columnConfig },
-          cardType,
-          tickets: emptyMbotList(base.size ?? 20),   // <- objet complet fallback
-        }),
-      ),
-    );
-  }
-}
+return this.mbot.getTicketListV2(params).pipe(
+  map((tickets) => ({
+    context,
+    initialTab,
+    config: { displayedColumns, columnConfig },
+    cardType,
+    tickets,                    // already MbotListV2 (from API)
+  })),
+  catchError(() =>
+    of({
+      context,
+      initialTab,
+      config: { displayedColumns, columnConfig },
+      cardType,
+      tickets: emptyMbotListV2(base.size ?? 20),  // <-- valid MbotListV2
+    }),
+  ),
+);
