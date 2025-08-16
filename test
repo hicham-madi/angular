@@ -1,17 +1,58 @@
-<div class="padding-medium-top">
-  <div class="uk-grid uk-grid-small uk-flex-right uk-text-right">
-    <!-- bouton Annuler -->
-    <div>
-      <button class="text-button uk-modal-close" type="button">
-        Annuler
-      </button>
-    </div>
-    <!-- bouton Valider -->
-    <div>
-      <button class="canard-fonce-button uk-modal-close" type="button">
-        <span class="material-symbols-outlined">check</span>
-        <div>Valider</div>
-      </button>
-    </div>
+<!-- filtres + tabs inchangés -->
+<metabot-filter-bar
+  [statusList]="statusList"
+  (searchChanged)="onSearch($event, TicketContext.SOLICITATIONS)"
+  (statusChanged)="onStatusFilterChanged($event, TicketContext.SOLICITATIONS)"
+  [agencyList]="agencyList"
+  [collaboratorsList]="collaboratorsList"
+  [campaignsList]="campaignsList"
+  (agencyChanged)="onAgencyFilterChanged($event, TicketContext.SOLICITATIONS)"
+  (collaboratorChanged)="onCollaboratorFilterChanged($event, TicketContext.SOLICITATIONS)"
+  (campaignChanged)="onCampaignFilterChanged($event, TicketContext.SOLICITATIONS)"
+></metabot-filter-bar>
+
+<metabot-status-tabs
+  [tabs]="statusTabs"
+  (tabChange)="onTabChange($event, TicketContext.SOLICITATIONS)"
+  [currentCount]="ticketsCountSolicitations"
+  [selectedTab]="currentTab"
+></metabot-status-tabs>
+
+<!-- CONTENU D’ONGLETS STABLE -->
+<div class="tabs-content">
+
+  <!-- ONGLET OUVERTES -->
+  <div [hidden]="currentTab !== 'ongoing'">
+    <metabot-solicitings-table
+      [tickets]="ticketsOngoing"
+      [displayedColumns]="displayedColumns"
+      [columnConfig]="columnConfig"
+      [columnTemplates]="columnTemplates"
+      [rowClick]="rowClickFn"
+      [context]="TicketContext.SOLICITATIONS"
+      [selectedCard]="activeCard"
+      [hasPendingPage]="hasPendingPageOngoing"
+      (sortchanged)="onSortChanged($event, TicketContext.SOLICITATIONS)"
+      (loadMore)="onScroll(TicketContext.SOLICITATIONS)"
+    ></metabot-solicitings-table>
   </div>
+
+  <!-- ONGLET TERMINÉES -->
+  <div [hidden]="currentTab !== 'completed'">
+    <metabot-solicitings-table
+      [tickets]="ticketsCompleted"
+      [displayedColumns]="displayedColumns"
+      [columnConfig]="columnConfig"
+      [columnTemplates]="columnTemplates"
+      [rowClick]="rowClickFn"
+      [context]="TicketContext.SOLICITATIONS"
+      [selectedCard]="activeCard"
+      [hasPendingPage]="hasPendingPageCompleted"
+      (sortchanged)="onSortChanged($event, TicketContext.SOLICITATIONS)"
+      (loadMore)="onScroll(TicketContext.SOLICITATIONS)"
+    ></metabot-solicitings-table>
+  </div>
+
 </div>
+
+<!-- tes <ng-template> (actionTpl, etc.) restent en bas, communs aux 2 tables -->
