@@ -1,15 +1,17 @@
-// Style actif pour un filtre sélectionné ≠ valeur par défaut
-%active-filter {
-  @extend .font-weight-large;
-  background: $vert-prairie-clair-clair;
-}
-
-// Dans la liste (l'option sélectionnée)
-select option:checked:not([value=""]) {
-  @extend %active-filter;
-}
-
-// Le champ <select> visible (support navigateurs modernes avec :has)
-select:has(option:checked:not([value=""])) {
-  @extend %active-filter;
-}
+<div class="padding-medium-top">
+  <div class="uk-grid uk-grid-small uk-flex-right uk-text-right">
+    <!-- bouton Annuler -->
+    <div>
+      <button class="text-button uk-modal-close" type="button">
+        Annuler
+      </button>
+    </div>
+    <!-- bouton Valider -->
+    <div>
+      <button class="canard-fonce-button uk-modal-close" type="button">
+        <span class="material-symbols-outlined">check</span>
+        <div>Valider</div>
+      </button>
+    </div>
+  </div>
+</div>
