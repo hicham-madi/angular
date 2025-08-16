@@ -1,48 +1,113 @@
-function emptyMbotListV2(pageSize = 20): MbotListV2 {
+// ticket-list.resolver.ts
+import { Injectable } from '@angular/core';
+import { Resolve, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
+import { Observable, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
+import { MbotService } from 'libs/metabot/shared/src/lib/services/mbot.service';
+import { ListService } from 'libs/metabot/shared/src/lib/services/list.service';
+
+import { FilterCardType } from '../models/filter-card-type.enum';
+import { TicketContext } from '../models/my-solicitings.constants';
+import { TableConfigFactory } from './table-config.factory';
+import { ColumnDefinition } from '../models/column-definition.model';
+import { MbotListV2 } from 'libs/metabot/shared/src/lib/model/mbotList.interface';
+
+export interface TicketListPrefetch {
+  context: TicketContext;
+  initialTab: 'ongoing' | 'completed';
+  config: { displayedColumns: string[]; columnConfig: Record<string, ColumnDefinition> };
+  cardType: FilterCardType;
+  tickets: MbotListV2; // réponse brute API (utilisée par handleTicketResponse)
+}
+
+@Injectable({ providedIn: 'root' })
+export class TicketListResolver implements Resolve<TicketListPrefetch> {
+
+  constructor(
+    private readonly mbot: MbotService,
+    private readonly listSvc: ListService,
+    private readonly tableConfig: TableConfigFactory,
+  ) {}
+
+  resolve(route: ActivatedRouteSnapshot, _state: RouterStateSnapshot): Observable<TicketListPrefetch> {
+    // 1) contexte et onglet initial
+    const context = route.data['context'] as TicketContext;
+    const initialTab: 'ongoing' | 'completed' = context === TicketContext.TERMINATED ? 'completed' : 'ongoing';
+
+    // 2) cardType (query param) + fallback localStorage
+    const qp = (route.queryParamMap.get('card') ?? '') as keyof typeof FilterCardType;
+    const stored = localStorage.getItem('lastSelectedCard') as keyof typeof FilterCardType | null;
+    const cardType =
+      (qp && FilterCardType[qp] !== undefined ? FilterCardType[qp] :
+       stored && FilterCardType[stored] !== undefined ? FilterCardType[stored] :
+       FilterCardType.NONE);
+
+    // 3) colonnes selon contexte
+    const cfg = context === TicketContext.TEAM
+      ? this.tableConfig.getColumnsForTeamPage()
+      : this.tableConfig.getBaseColumns();
+
+    const displayedColumns: string[] = cfg.displayedColumns;
+    const columnConfig: Record<string, ColumnDefinition> = cfg.columnConfig;
+
+    // 4) params list (copie fidèle de loadTickets)
+    const params: any = this.listSvc.reinitParam(0); // équiv. à getCurrentParams() mais reset page
+    params.context = context;
+    params.sortKey = 'lastActivityTimestamp';
+    params.isAsc = false;
+
+    if (context === TicketContext.TERMINATED) {
+      params.status = 'CLOSED'; // TicketStatus.CLOSED
+    }
+
+    // (optionnel) recherche si présente dans l’URL
+    const searchTerm = route.queryParamMap.get('search') ?? undefined;
+    if (searchTerm) params.searchTerm = searchTerm;
+
+    if (cardType !== FilterCardType.NONE) {
+      params.cardType = cardType;
+    }
+
+    // 5) appel unique API (init)
+    return this.mbot.getTicketListV2(params).pipe(
+      map((tickets) => ({
+        context,
+        initialTab,
+        config: { displayedColumns, columnConfig },
+        cardType,
+        tickets, // brut, MbotListV2 — le composant fera handleTicketResponse(tickets)
+      })),
+      catchError(() =>
+        of({
+          context,
+          initialTab,
+          config: { displayedColumns, columnConfig },
+          cardType,
+          tickets: emptyMbotListV2(), // squelette vide compatible
+        })
+      )
+    );
+  }
+}
+
+/** Squelette vide compatible MbotListV2 pour le fallback */
+function emptyMbotListV2(): MbotListV2 {
   return {
-    tickets: {
-      content: [],
-      number: 0,
-      size: pageSize,
-      totalElements: 0,
-      totalPages: 0,
-    },
-    stats: {      // adapt to your model
-      claims: 0, approvals: 0, discussionGroupsReadCustomer: 0,
+    stats: {  // mets des 0 sur les compteurs requis par ton modèle
+      claimsReadCustomer: 0, approvals: 0, discussionGroupsReadCustomer: 0,
       requestsExpertService: 0, requestsExpertServiceReadCustomer: 0,
       requestsExpertServiceTreatmentIsLate: 0, requestsExpertServiceEds: 0,
-    } as any,     // or build the exact structure you use
+    } as any,
     statusList: [],
     agencyList: [],
     collaboratorsList: [],
     campaignsList: [],
-    // add any other required fields from MbotList (e.g., counts) with neutral values
-    ticket_count_opened: 0,
-    ticket_count_closed: 0,
-    ticket_count_draft: 0,
-    ticket_count_approval: 0,
-    ticket_count_claim: 0,
-    ticket_count_eds: 0,
-    enableGlobalSearchForCustomer: false,
-    associatedTicket: [],
+    tickets: {
+      content: [],
+      number: 0,
+      size: 20,
+      totalElements: 0,
+      totalPages: 0,
+    },
   };
 }
-
-return this.mbot.getTicketListV2(params).pipe(
-  map((tickets) => ({
-    context,
-    initialTab,
-    config: { displayedColumns, columnConfig },
-    cardType,
-    tickets,                    // already MbotListV2 (from API)
-  })),
-  catchError(() =>
-    of({
-      context,
-      initialTab,
-      config: { displayedColumns, columnConfig },
-      cardType,
-      tickets: emptyMbotListV2(base.size ?? 20),  // <-- valid MbotListV2
-    }),
-  ),
-);
