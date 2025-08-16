@@ -1,76 +1,25 @@
-// libs/metabot/my-solicitings/src/lib/resolvers/ticket-list.resolver.ts
-import { Injectable } from '@angular/core';
-import { Resolve, ActivatedRouteSnapshot } from '@angular/router';
-import { forkJoin, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
-import { MbotService } from '../services/mbot.service';
-import { TableConfigFactory } from '../services/table-config.factory';
-import { ListService } from '../services/list.service';
-import { TicketContext, FilterCardType } from '../models/my-solicitings.constants';
+// ticket-list.resolver.ts
+import { Resolve, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
+// ...
 
-export interface TicketListPrefetch {
-  context: TicketContext;
-  initialTab: 'ongoing' | 'completed';
-  config: {
-    displayedColumns: string[];
-    columnConfig: Record<string, unknown>;
-  };
-  cardType: FilterCardType;
-  tickets: any; // remplace par MbotListV2
-}
-
-@Injectable({ providedIn: 'root' })
 export class TicketListResolver implements Resolve<TicketListPrefetch> {
-  constructor(
-    private mbot: MbotService,
-    private tableConfig: TableConfigFactory,
-    private listSvc: ListService,
-  ) {}
+  // ...
 
-  resolve(route: ActivatedRouteSnapshot) {
+  resolve(route: ActivatedRouteSnapshot, _state: RouterStateSnapshot) {
     const context = route.data['context'] as TicketContext;
 
-    // 1) onglet initial
-    const initialTab = context === TicketContext.TERMINATED ? 'completed' : 'ongoing';
+    // 👇 typage littéral (pas "string")
+    const initialTab: 'ongoing' | 'completed' =
+      context === TicketContext.TERMINATED ? 'completed' : 'ongoing';
 
-    // 2) carte active (query param 'card') + fallback localStorage
-    const qpCard = (route.queryParamMap.get('card') ?? '') as keyof typeof FilterCardType;
-    const stored = localStorage.getItem('lastSelectedCard') as keyof typeof FilterCardType | null;
-    const cardType =
-      (qpCard && FilterCardType[qpCard] !== undefined ? FilterCardType[qpCard] :
-      stored && FilterCardType[stored] !== undefined ? FilterCardType[stored] :
-      FilterCardType.NONE);
-
-    // 3) config colonnes par contexte
-    const cfg =
-      context === TicketContext.TEAM
-        ? this.tableConfig.getColumnsForTeamPage()
-        : this.tableConfig.getBaseColumns();
-
-    const displayedColumns = cfg.displayedColumns ?? [];
-    const columnConfig = cfg.columnConfig ?? {};
-
-    // 4) params liste init (page, tri depuis les params en cours)
-    const baseParams = this.listSvc.getCurrentParams();
-    const params: any = {
-      ...baseParams,
-      currentPages: +(route.queryParamMap.get('page') ?? 0),
-      context,
-      ...(cardType !== FilterCardType.NONE ? { cardType } : {}),
-      // tri optionnel
-      ...(route.queryParamMap.get('sortKey') ? { sortKey: route.queryParamMap.get('sortKey') } : {}),
-      ...(route.queryParamMap.has('isAsc')
-          ? { isAsc: route.queryParamMap.get('isAsc') === 'true' }
-          : {}),
-    };
-
+    // ...
     return forkJoin({
       tickets: this.mbot.getTicketListV2(params),
     }).pipe(
       map(({ tickets }) => ({
         context,
-        initialTab,
-        config: { displayedColumns, columnConfig },
+        initialTab,                                  // <- maintenant bien typé
+        config: { displayedColumns, columnConfig },  // types compatibles
         cardType,
         tickets,
       })),
@@ -87,96 +36,42 @@ export class TicketListResolver implements Resolve<TicketListPrefetch> {
   }
 }
 
-// .../metabot-home-routing.module.ts
-import { TicketListResolver } from '@metabot/my-solicitings/resolvers/ticket-list.resolver';
-import { TicketContext } from '@metabot/my-solicitings/models/my-solicitings.constants';
+ngOnInit(): void {
+  const data = this.route.snapshot.data['prefetch'] as TicketListPrefetch;
 
-const routes: Routes = [
-  {
-    path: 'ticket-list',
-    loadComponent: () => import('@metabot/my-solicitings').then(m => m.TicketListPageComponent),
-    data: { context: TicketContext.SOLICITATIONS },
-    resolve: { prefetch: TicketListResolver },
-  },
-  {
-    path: 'ticket-list/team-list',
-    loadComponent: () => import('@metabot/my-solicitings').then(m => m.TicketListPageComponent),
-    data: { context: TicketContext.TEAM },
-    resolve: { prefetch: TicketListResolver },
-  },
-  {
-    path: 'ticket-list/terminated-list',
-    loadComponent: () => import('@metabot/my-solicitings').then(m => m.TicketListPageComponent),
-    data: { context: TicketContext.TERMINATED },
-    resolve: { prefetch: TicketListResolver },
-  },
-];
+  this.currentContext = data.context;
+  this.currentTab = data.initialTab;
 
-// ticket-list-page.component.ts
-import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
-import { TicketListPrefetch } from '../resolvers/ticket-list.resolver';
-import { FilterCardType, TicketContext } from '../models/my-solicitings.constants';
-import { TicketsPageBase } from '../base/tickets-page.base';
+  if (!this.displayedColumns.length) this.displayedColumns = data.config.displayedColumns;
+  if (!Object.keys(this.columnConfig || {}).length) this.columnConfig = data.config.columnConfig;
 
-@Component({
-  selector: 'ticket-list-page',
-  templateUrl: './ticket-list-page.component.html',
-  styleUrls: ['./ticket-list-page.component.scss'],
-  standalone: true,
-})
-export class TicketListPageComponent extends TicketsPageBase implements OnInit {
-  ngOnInit(): void {
-    const data = this.route.snapshot.data['prefetch'] as TicketListPrefetch;
-
-    // contexte + onglet initial
-    this.currentContext = data.context;
-    this.currentTab = data.initialTab;
-
-    // colonnes
-    if (!this.displayedColumns.length) this.displayedColumns = data.config.displayedColumns;
-    if (!Object.keys(this.columnConfig || {}).length) this.columnConfig = data.config.columnConfig;
-
-    // carte active + persistance
-    this.activeCard = data.cardType ?? FilterCardType.NONE;
-    if (this.activeCard && this.activeCard !== FilterCardType.NONE) {
-      localStorage.setItem('lastSelectedCard', this.activeCard.toString());
-    } else {
-      localStorage.removeItem('lastSelectedCard');
-    }
-
-    // hydrate la liste via la méthode commune existante
-    this.handleTicketResponse(data.tickets, this.currentContext);
-
-    // abonne-toi aux changements de query param pour rester aligné avec l’URL
-    this.route.queryParamMap.subscribe(params => {
-      const qp = (params.get('card') ?? '') as keyof typeof FilterCardType;
-      const next =
-        qp && FilterCardType[qp] !== undefined ? FilterCardType[qp] : FilterCardType.NONE;
-
-      if (next !== this.activeCard) {
-        this.activeCard = next;
-        if (next !== FilterCardType.NONE) {
-          localStorage.setItem('lastSelectedCard', next.toString());
-        } else {
-          localStorage.removeItem('lastSelectedCard');
-        }
-        // recharge selon la carte sélectionnée
-        this.loadTickets(this.activeCard, this.currentContext);
-      }
-    });
+  this.activeCard = data.cardType ?? FilterCardType.NONE;
+  if (this.activeCard && this.activeCard !== FilterCardType.NONE) {
+    localStorage.setItem('lastSelectedCard', this.activeCard.toString());
+  } else {
+    localStorage.removeItem('lastSelectedCard');
   }
-}
 
+  // hydrate depuis le resolver
+  this.handleTicketResponse(data.tickets, this.currentContext);
 
-protected initialization(context: TicketContext): void {
-  this.currentContext = context;
+  // 👉 IMPORTANT : garder l'init (sockets, etc.)
+  this.initialization(this.currentContext);
 
-  this.metabotBridge.setEventHandler((event) => {
-    if (this.constantsService.isOnSocketReceive(event)) {
-      this.loadTickets(this.activeCard, context); // rafraîchissement live
+  // reste: sync URL -> carte + reload ciblé
+  this.route.queryParamMap.subscribe((params) => {
+    const qp = (params.get('card') ?? '') as keyof typeof FilterCardType;
+    const next =
+      qp && FilterCardType[qp] !== undefined ? FilterCardType[qp] : FilterCardType.NONE;
+
+    if (next !== this.activeCard) {
+      this.activeCard = next;
+      if (next !== FilterCardType.NONE) {
+        localStorage.setItem('lastSelectedCard', next.toString());
+      } else {
+        localStorage.removeItem('lastSelectedCard');
+      }
+      this.loadTickets(this.activeCard, this.currentContext);
     }
   });
-
-  // ⛔ plus d'appel initial ici : le resolver a déjà injecté les tickets
 }
