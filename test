@@ -56,3 +56,16 @@
 </div>
 
 <!-- tes <ng-template> (actionTpl, etc.) restent en bas, communs aux 2 tables -->
+
+.tabs-content {
+  /* évite le “pompage” à l’apparition de la scrollbar */
+  scrollbar-gutter: stable both-edges;
+  /* garde une hauteur stable même si peu de lignes */
+  min-height: 50vh;
+}
+
+metabot-solicitings-table {
+  display: block;
+  /* adapte selon ta maquette/toolbar haute */
+  min-height: 50vh;
+}
