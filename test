@@ -1,12 +1,31 @@
-/* Cible uniquement le composant metabot-file-upload présent dans chat-form */
-:host ::ng-deep metabot-file-upload .attachment-icon-block > button.text-button {
-  border: 2px solid var(--canard-fonce);
-  border-radius: 8px;
-  color: var(--canard-fonce);
+/* Couleur réutilisable (prend ta variable si tu en as une) */
+:host { --upload-btn-color: var(--canard-fonce, #0b4a4a); }
+
+/* On cible UNIQUEMENT le metabot-file-upload inclus dans chat-form,
+   grâce au wrapper .attachment-btn et à ::ng-deep pour traverser l’enfant */
+:host ::ng-deep .attachment-btn metabot-file-upload .attachment-icon-block > button.text-button {
+  border: 2px solid var(--upload-btn-color) !important; /* override .border-none */
+  border-radius: 12px;
+  color: var(--upload-btn-color) !important;
+  background: #fff;
 }
 
-:host ::ng-deep metabot-file-upload 
-  .attachment-icon-block > button.text-button 
-  .material-symbols-outlined {
-  color: var(--canard-fonce);
+:host ::ng-deep .attachment-btn metabot-file-upload
+  .attachment-icon-block > button.text-button .material-symbols-outlined {
+  color: inherit !important; /* l’icône prend la couleur du bouton */
 }
+
+/* bonus : état hover */
+:host ::ng-deep .attachment-btn metabot-file-upload
+  .attachment-icon-block > button.text-button:hover:not([disabled]) {
+  background: rgba(0,0,0,0.04);
+}
+
+<div class="attachment-btn">
+  <metabot-file-upload
+    (files)="updateFiles($event)"
+    [displayBottom]="fullscreen"
+    [inseredFile]="inseredFile"
+    [disabled]="isTicketingOrCallback()">
+  </metabot-file-upload>
+</div>
