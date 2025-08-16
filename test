@@ -1,27 +1,62 @@
-<!-- filtres + tabs inchangés -->
+// app.routes.ts
+export const routes: Routes = [
+  { path: 'ticket-list', component: TicketListPageComponent, data: { context: 'SOLICITATIONS' } },
+  { path: 'team-list', component: TicketListPageComponent, data: { context: 'TEAM' } },
+  { path: 'ticket-list/terminated-list', component: TicketListPageComponent, data: { context: 'TERMINATED' } },
+];
+
+// ticket-list-page.component.ts
+@Component({
+  selector: 'app-ticket-list-page',
+  templateUrl: './ticket-list-page.component.html',
+  styleUrls: ['./ticket-list-page.component.scss'],
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    CommonModule,
+    FilterBarComponent,
+    StatusTabsComponent,
+    SolicitingsTableComponent,
+  ],
+})
+export class TicketListPageComponent extends TicketsPageBase implements OnInit {
+  constructor(
+    protected override listService: ListService,
+    protected override mbotService: MbotService,
+    protected override router: Router,
+    protected override route: ActivatedRoute,
+    protected override cdr: ChangeDetectorRef,
+    protected override tableConfigFactory: TableConfigFactory,
+    protected override cardConfigFactory: DashboardCardConfigFactory,
+  ) { super(); }
+
+  ngOnInit(): void {
+    const ctx = (this.route.snapshot.data['context'] ?? 'SOLICITATIONS') as TicketContext;
+    this.initialization(ctx);
+  }
+}
+
+<!-- ticket-list-page.component.html -->
 <metabot-filter-bar
   [statusList]="statusList"
-  (searchChanged)="onSearch($event, TicketContext.SOLICITATIONS)"
-  (statusChanged)="onStatusFilterChanged($event, TicketContext.SOLICITATIONS)"
+  (searchChanged)="onSearch($event)"
+  (statusChanged)="onStatusFilterChanged($event)"
   [agencyList]="agencyList"
   [collaboratorsList]="collaboratorsList"
   [campaignsList]="campaignsList"
-  (agencyChanged)="onAgencyFilterChanged($event, TicketContext.SOLICITATIONS)"
-  (collaboratorChanged)="onCollaboratorFilterChanged($event, TicketContext.SOLICITATIONS)"
-  (campaignChanged)="onCampaignFilterChanged($event, TicketContext.SOLICITATIONS)"
-></metabot-filter-bar>
+  (agencyChanged)="onAgencyFilterChanged($event)"
+  (collaboratorChanged)="onCollaboratorFilterChanged($event)"
+  (campaignChanged)="onCampaignFilterChanged($event)">
+</metabot-filter-bar>
 
 <metabot-status-tabs
   [tabs]="statusTabs"
-  (tabChange)="onTabChange($event, TicketContext.SOLICITATIONS)"
-  [currentCount]="ticketsCountSolicitations"
-  [selectedTab]="currentTab"
-></metabot-status-tabs>
+  (tabChange)="onTabChange($event)"
+  [currentCount]="currentCount"
+  [selectedTab]="currentTab">
+</metabot-status-tabs>
 
-<!-- CONTENU D’ONGLETS STABLE -->
 <div class="tabs-content">
-
-  <!-- ONGLET OUVERTES -->
   <div [hidden]="currentTab !== 'ongoing'">
     <metabot-solicitings-table
       [tickets]="ticketsOngoing"
@@ -29,15 +64,14 @@
       [columnConfig]="columnConfig"
       [columnTemplates]="columnTemplates"
       [rowClick]="rowClickFn"
-      [context]="TicketContext.SOLICITATIONS"
+      [context]="context"
       [selectedCard]="activeCard"
       [hasPendingPage]="hasPendingPageOngoing"
-      (sortchanged)="onSortChanged($event, TicketContext.SOLICITATIONS)"
-      (loadMore)="onScroll(TicketContext.SOLICITATIONS)"
-    ></metabot-solicitings-table>
+      (sortchanged)="onSortChanged($event)"
+      (loadMore)="onScroll()">
+    </metabot-solicitings-table>
   </div>
 
-  <!-- ONGLET TERMINÉES -->
   <div [hidden]="currentTab !== 'completed'">
     <metabot-solicitings-table
       [tickets]="ticketsCompleted"
@@ -45,27 +79,13 @@
       [columnConfig]="columnConfig"
       [columnTemplates]="columnTemplates"
       [rowClick]="rowClickFn"
-      [context]="TicketContext.SOLICITATIONS"
+      [context]="context"
       [selectedCard]="activeCard"
       [hasPendingPage]="hasPendingPageCompleted"
-      (sortchanged)="onSortChanged($event, TicketContext.SOLICITATIONS)"
-      (loadMore)="onScroll(TicketContext.SOLICITATIONS)"
-    ></metabot-solicitings-table>
+      (sortchanged)="onSortChanged($event)"
+      (loadMore)="onScroll()">
+    </metabot-solicitings-table>
   </div>
-
 </div>
 
-<!-- tes <ng-template> (actionTpl, etc.) restent en bas, communs aux 2 tables -->
-
-.tabs-content {
-  /* évite le “pompage” à l’apparition de la scrollbar */
-  scrollbar-gutter: stable both-edges;
-  /* garde une hauteur stable même si peu de lignes */
-  min-height: 50vh;
-}
-
-metabot-solicitings-table {
-  display: block;
-  /* adapte selon ta maquette/toolbar haute */
-  min-height: 50vh;
-}
+<!-- tes ng-template (actionTpl, idTpl, …) restent inchangés -->
