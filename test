@@ -1,28 +1,18 @@
-protected onTabChange(tabValue: string, context: TicketContext): void {
-  const isOngoing = tabValue === 'ongoing';
-  const base = this.getBaseListSegment(context);
+.filter-bar {
+  select {
+    @extend .font-size-medium;
+    padding: 8px 12px;
+    border: 1px solid $text-border;
+    border-radius: 8px;
+    color: $canard-fonce;
+    width: 235px;
+    height: 33px;
+    outline: none;
 
-  // /ticket-list  ou  /team-list  (+ /terminated-list si nécessaire)
-  const commands = isOngoing ? ['/', base] : ['/', base, 'terminated-list'];
-
-  this.router.navigate(commands, { queryParamsHandling: 'merge' });
-}
-
-private getBaseListSegment(context: TicketContext): 'ticket-list' | 'team-list' {
-  switch (context) {
-    case TicketContext.SOLICITATIONS:
-      return 'ticket-list';
-
-    case TicketContext.TEAM:
-      return 'team-list';
-
-    case TicketContext.TERMINATED:
-      // Déduire depuis l’URL courante :
-      //  - si on est sur /team-list[...] => rester sur team-list
-      //  - sinon défaut sur ticket-list
-      return this.router.url.includes('/team-list') ? 'team-list' : 'ticket-list';
-
-    default:
-      return 'ticket-list';
+    option:checked {
+      background-color: $canard-fonce; // ou une couleur de ton fichier colors.scss
+      color: $white;                   // texte en blanc pour le contraste
+      font-weight: bold;               // gras uniquement pour la sélection
+    }
   }
 }
