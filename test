@@ -1,39 +1,84 @@
 // ticket-list.resolver.ts
+export interface TicketListPrefetch {
+  context: TicketContext;
+  initialTab: 'ongoing' | 'completed';  // <- littéral
+  config: {
+    displayedColumns: string[];
+    columnConfig: Record<string, ColumnDefinition>;
+  };
+  cardType: FilterCardType;
+  tickets: MbotListV2;
+}
+
+
 import { Resolve, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
-// ...
+import { Observable, forkJoin, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 
+@Injectable({ providedIn: 'root' })
 export class TicketListResolver implements Resolve<TicketListPrefetch> {
-  // ...
 
-  resolve(route: ActivatedRouteSnapshot, _state: RouterStateSnapshot) {
+  constructor(
+    private tableConfig: TableConfigFactory,
+    private mbot: MbotServiceV2,
+  ) {}
+
+  resolve(route: ActivatedRouteSnapshot, _state: RouterStateSnapshot): Observable<TicketListPrefetch> {
     const context = route.data['context'] as TicketContext;
 
-    // 👇 typage littéral (pas "string")
+    // 1) onglet initial (typé littéral)
     const initialTab: 'ongoing' | 'completed' =
       context === TicketContext.TERMINATED ? 'completed' : 'ongoing';
 
-    // ...
+    // 2) carte active (QP > localStorage > NONE) – bien typée
+    const qp = (route.queryParamMap.get('card') ?? '') as keyof typeof FilterCardType;
+    const stored = localStorage.getItem('lastSelectedCard') as keyof typeof FilterCardType | null;
+
+    const cardType: FilterCardType =
+      (qp && FilterCardType[qp] !== undefined) ? FilterCardType[qp] :
+      (stored && FilterCardType[stored] !== undefined) ? FilterCardType[stored] :
+      FilterCardType.NONE;
+
+    // 3) config colonnes
+    const cfg = context === TicketContext.TEAM
+      ? this.tableConfig.getColumnsForTeamPage()
+      : this.tableConfig.getBaseColumns();
+
+    const displayedColumns: string[] = cfg.displayedColumns();
+    const columnConfig: Record<string, ColumnDefinition> = cfg.columnConfig;
+
+    // 4) premier fetch
+    const params = { .../* ce que tu envoies déjà */, currentPages: 0, context };
+
     return forkJoin({
       tickets: this.mbot.getTicketListV2(params),
     }).pipe(
       map(({ tickets }) => ({
         context,
-        initialTab,                                  // <- maintenant bien typé
-        config: { displayedColumns, columnConfig },  // types compatibles
+        initialTab,
+        config: { displayedColumns, columnConfig },
         cardType,
         tickets,
       })),
+      // fallback typé pareil
       catchError(() =>
         of({
           context,
           initialTab,
           config: { displayedColumns, columnConfig },
           cardType,
-          tickets: { content: [], totalElements: 0, size: 20, number: 0 },
+          tickets: { content: [], totalElements: 0, size: 20, number: 0 } as MbotListV2,
         }),
       ),
     );
   }
+}
+
+{
+  path: 'ticket-list',
+  loadComponent: () => import('@metabot/my-solicitings').then(m => m.TicketListPageComponent),
+  resolve: { prefetch: TicketListResolver },
+  data: { context: TicketContext.SOLICITATIONS },
 }
 
 ngOnInit(): void {
@@ -52,26 +97,20 @@ ngOnInit(): void {
     localStorage.removeItem('lastSelectedCard');
   }
 
-  // hydrate depuis le resolver
-  this.handleTicketResponse(data.tickets, this.currentContext);
+  this.handleTicketResponse(data.tickets, this.currentContext);   // hydrate
+  this.initialization(this.currentContext);                       // sockets, etc.
 
-  // 👉 IMPORTANT : garder l'init (sockets, etc.)
-  this.initialization(this.currentContext);
-
-  // reste: sync URL -> carte + reload ciblé
+  // sync URL -> carte
   this.route.queryParamMap.subscribe((params) => {
     const qp = (params.get('card') ?? '') as keyof typeof FilterCardType;
-    const next =
-      qp && FilterCardType[qp] !== undefined ? FilterCardType[qp] : FilterCardType.NONE;
-
+    const next = qp && FilterCardType[qp] !== undefined ? FilterCardType[qp] : FilterCardType.NONE;
     if (next !== this.activeCard) {
       this.activeCard = next;
-      if (next !== FilterCardType.NONE) {
-        localStorage.setItem('lastSelectedCard', next.toString());
-      } else {
-        localStorage.removeItem('lastSelectedCard');
-      }
+      next !== FilterCardType.NONE
+        ? localStorage.setItem('lastSelectedCard', next.toString())
+        : localStorage.removeItem('lastSelectedCard');
       this.loadTickets(this.activeCard, this.currentContext);
     }
   });
 }
+
