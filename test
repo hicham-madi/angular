@@ -1,18 +1,47 @@
-.filter-bar {
-  select {
-    @extend .font-size-medium;
-    padding: 8px 12px;
-    border: 1px solid $text-border;
-    border-radius: 8px;
-    color: $canard-fonce;
-    width: 235px;
-    height: 33px;
-    outline: none;
+@import 'common';
 
-    option:checked {
-      background-color: $canard-fonce; // ou une couleur de ton fichier colors.scss
-      color: $white;                   // texte en blanc pour le contraste
-      font-weight: bold;               // gras uniquement pour la sélection
-    }
+// Couleurs/poids pour l'état actif
+$filter-active-bg: rgba($canard-fonce, .12);
+$filter-active-text: $canard-fonce;
+$filter-active-weight: 700;
+
+.filter-bar {
+  // style de base déjà en place sur select…
+
+  // 1) Dans la liste déroulante
+  select option:checked:not([value=""]) {
+    background: $filter-active-bg !important;
+    color: $filter-active-text;
+    font-weight: $filter-active-weight;
   }
+
+  // 2) Sur le champ affiché quand une vraie valeur est choisie
+  //    (CSS :has — supporté par Chrome/Edge/Safari récents)
+  select:has(option:checked:not([value=""])) {
+    background: $filter-active-bg;
+    color: $filter-active-text;
+    font-weight: $filter-active-weight;
+    border-color: $filter-active-text;
+  }
+}
+
+<select [(ngModel)]="selectedStatus" (change)="onStatusChange()">
+  <option value="">Tous les statuts</option>
+  @for (status of statusList; track status) {
+    <option [value]="status.value">{{ status.label }}</option>
+  }
+</select>
+
+<select [(ngModel)]="selectedStatus"
+        (change)="onStatusChange()"
+        [class.active-filter]="!!selectedStatus">
+  …
+</select>
+
+
+.filter-bar select.active-filter {
+  background: $filter-active-bg;
+  color: $filter-active-text;
+  font-weight: $filter-active-weight;
+  border-color: $filter-active-text;
 }
