@@ -1,37 +1,62 @@
-switch (this.currentContext) {
-  case TicketContext.SOLICITATIONS: {
-    if (!this.setCountSolicitations) {
-      this.tableConfigFactory.ticketsCountSolicitations = totalElements;
-      this.setCountSolicitations = true;
-    }
-    this.ticketsCountSolicitations = this.tableConfigFactory.ticketsCountSolicitations;
-    break;
+import { Component, Input, ChangeDetectorRef } from '@angular/core';
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs/operators';
+import { TicketContext } from '.../constants.interface';
+
+export enum Tab {
+  SOLICITING = 'Mes sollicitations',
+  MY_TEAM = 'Mon équipe',
+  TERMINATED = 'Terminées', // si besoin ailleurs
+}
+
+@Component({ /* ... */ })
+export class PageHeaderComponent {
+  @Input() public currentCount: number | undefined;
+
+  protected tabs: Tab[] = [Tab.SOLICITING, Tab.MY_TEAM]; // on n’affiche pas TERMINATED ici
+  protected activeTab: Tab = Tab.SOLICITING;
+
+  constructor(
+    private readonly router: Router,
+    private readonly route: ActivatedRoute,
+    private readonly cdr: ChangeDetectorRef,
+  ) {}
+
+  ngOnInit(): void {
+    const setActiveFromRoute = () => {
+      // va jusqu’à la route enfant la plus profonde
+      let r = this.route;
+      while (r.firstChild) r = r.firstChild;
+
+      const ctx = r.snapshot.data?.['context'] as TicketContext | undefined;
+
+      // TEAM et TERMINATED_TEAM => onglet "Mon équipe"
+      // le reste => "Mes sollicitations"
+      this.activeTab =
+        ctx === TicketContext.TEAM || ctx === TicketContext.TERMINATED_TEAM
+          ? Tab.MY_TEAM
+          : Tab.SOLICITING;
+
+      this.cdr.markForCheck();
+    };
+
+    // init + mise à jour sur chaque navigation
+    setActiveFromRoute();
+    this.router.events
+      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+      .subscribe(setActiveFromRoute);
   }
 
-  case TicketContext.TEAM: {
-    if (!this.setCountTeam) {
-      this.tableConfigFactory.ticketsCountTeam = totalElements;
-      this.setCountTeam = true;
-    }
-    this.ticketsCountTeam = this.tableConfigFactory.ticketsCountTeam;
-    break;
+  protected showBadge(tab: string): boolean {
+    return tab === Tab.SOLICITING;
   }
 
-  case TicketContext.TERMINATED: {
-    if (!this.setCountTerminated) {
-      this.tableConfigFactory.ticketsCountTerminated = totalElements;
-      this.setCountTerminated = true;
+  protected handleTabClick(tab: Tab): void {
+    this.activeTab = tab; // feedback instantané
+    if (tab === Tab.MY_TEAM) {
+      this.router.navigate(['/ticket-list', 'team-list'], { queryParamsHandling: 'merge' });
+    } else {
+      this.router.navigate(['/ticket-list'], { queryParamsHandling: 'merge' });
     }
-    this.ticketsCountTerminated = this.tableConfigFactory.ticketsCountTerminated;
-    break;
-  }
-
-  case TicketContext.TERMINATED_TEAM: {
-    if (!this.setCountTerminatedTeam) {
-      this.tableConfigFactory.ticketsCountTerminatedTeam = totalElements;
-      this.setCountTerminatedTeam = true;
-    }
-    this.ticketsCountTerminatedTeam = this.tableConfigFactory.ticketsCountTerminatedTeam;
-    break;
   }
 }
