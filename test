@@ -1,54 +1,78 @@
-protected onTabChange(tabValue: string): void {
-  // 🔁 logique existante (calcul de la route cible) …
-  const isOngoing = tabValue === 'ongoing';
-  const base = this.getBaseListSegment();
-  const commands = isOngoing ? ['/', base] : ['/', base, 'terminated-list'];
+<button
+  class="tab"
+  [class.active]="selected === tab.value"
+  [attr.aria-selected]="selected === tab.value"
+  (click)="onTabClicked(tab.value, $event)"
+>
+  {{ tab.label }}
+  @if (tab.label !== 'Terminées') {
+    <span class="count">{{ tab.label === 'Ouvertes' ? currentCount : tab.count }}</span>
+  }
+</button>
 
-  // 🧹 IMPORTANT : on vide toute sélection de carte
-  this.activeCard = FilterCardType.NONE;
-  localStorage.removeItem('lastSelectedCard');
+export class StatusTabsComponent {
+  @Input() public tabs: Status[] = [];
+  @Input() public currentCount?: number;
+  @Output() public tabChange = new EventEmitter<string>();
 
-  // ⚠️ on enlève le paramètre ?card de l’URL
-  this.router.navigate(commands, {
-    queryParams: { card: null },
-    queryParamsHandling: 'merge', // on garde les autres params utiles, mais 'card' est supprimé
-  });
+  private _selectedTab?: string;
+  public selected?: string;
 
-  // (optionnel mais utile) on ré-initialise la pagination
-  this.currentPage = 0;
-  this.hasPendingPage = true;
-}
+  /** anti double-click lock */
+  private clicking = false;
+  private static CLICK_COOLDOWN_MS = 350;
 
-resolve(route: ActivatedRouteSnapshot, _state: RouterStateSnapshot): Observable<TicketListPrefetch> {
-  const context = route.data['context'] as TicketContext;
+  @Input() set selectedTab(value: string | undefined) {
+    this._selectedTab = value;
+    this.selected = value;
+    this.cdr.markForCheck();
+  }
+  get selectedTab() { return this._selectedTab; }
 
-  let cardType: FilterCardType = FilterCardType.NONE;
+  constructor(private readonly cdr: ChangeDetectorRef) {}
 
-  // ❌ En context TERMINATED / TERMINATED_TEAM on force NONE
-  if (context !== TicketContext.TERMINATED && context !== TicketContext.TERMINATED_TEAM) {
-    const qp = (route.queryParamMap.get('card') ?? '') as keyof typeof FilterCardType;
-    const stored = localStorage.getItem('lastSelectedCard') as keyof typeof FilterCardType | null;
-
-    if (qp && FilterCardType[qp] !== undefined) {
-      cardType = FilterCardType[qp];
-    } else if (stored && FilterCardType[stored] !== undefined) {
-      cardType = FilterCardType[stored];
-    }
+  ngOnInit(): void {
+    this.selected = this._selectedTab ?? this.tabs[0]?.value;
   }
 
-  // … reste du resolver
+  public onTabClicked(tabValue: string, ev?: MouseEvent) {
+    // ignore if already active or if a click is in progress
+    if (this.selected === tabValue || this.clicking) {
+      ev?.preventDefault();
+      ev?.stopPropagation();
+      return;
+    }
+    this.clicking = true;
+    this.selected = tabValue;
+    this.tabChange.emit(tabValue);
+
+    // small cooldown to swallow accidental double-clicks
+    setTimeout(() => (this.clicking = false), StatusTabsComponent.CLICK_COOLDOWN_MS);
+  }
 }
 
-this.route.queryParamMap
-  .pipe(/* ... */)
-  .subscribe(qp => {
-    const raw = (qp.get('card') ?? '') as keyof typeof FilterCardType;
-    const next =
-      raw && FilterCardType[raw] !== undefined ? FilterCardType[raw] : FilterCardType.NONE;
+private isSwitchingTab = false;
 
-    this.activeCard = next;
+protected onTabChange(tabValue: string): void {
+  if (this.isSwitchingTab || this.isLoading) return;            // guard
+  this.isSwitchingTab = true;
 
-    if (next === FilterCardType.NONE) {
-      localStorage.removeItem('lastSelectedCard');
-    }
+  // clear any selected card when switching tabs
+  this.activeCard = FilterCardType.NONE;
+
+  const isOngoing = tabValue === 'ongoing';
+  const base = this.getBaseListSegment();                       // your helper
+
+  const commands = isOngoing ? ['/', base] : ['/', base, 'terminated-list'];
+
+  this.router.navigate(commands, {
+    queryParamsHandling: 'merge',
+    queryParams: { card: null },                                // drop stale card
+  }).finally(() => {
+    // reset and fetch once route settles
+    this.resetPagination?.();
+    // use your existing loader that now combines sort + filters + (no card)
+    this.loadTickets(this.activeCard);
+    this.isSwitchingTab = false;
   });
+}
