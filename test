@@ -1,9 +1,110 @@
-const base = this.listService.getCurrentParams();
-const params = { ...base, currentPages: nextPage, ...opts };
-params.context            = this.currentContext;
-params.searchTerm         = this.searchTerm?.trim() ?? '';
-params.statusFilter       = this.selectedStatus ?? '';
-params.agencyFilter       = this.selectedAgency ?? '';
-params.collaboratorFilter = this.selectedCollaborator ?? '';
-params.campaignFilter     = this.selectedCampaign ?? '';
-if (TicketContext.TERMINATED === this.currentContext) params.status = TicketStatus.CLOSED;
+// 🔧 rassemble tout ce qui doit toujours partir au serveur
+private buildParams(page: number): any {
+  const p = this.listService.reinitParam(page);
+  p.context           = this.currentContext;
+  p.currentPages      = page;
+  p.sortKey           = this.currentSort?.sortKey ?? 'lastActivityTimestamp';
+  p.isAsc             = this.currentSort?.isAsc ?? false;
+
+  // 🔗 filtres saisis dans la barre
+  p.searchTerm        = this.searchTerm?.trim() ?? '';
+  p.statusFilter      = this.selectedStatus ?? '';
+  p.agencyFilter      = this.selectedAgency ?? '';
+  p.collaboratorFilter= this.selectedCollaborator ?? '';
+  p.campaignFilter    = this.selectedCampaign ?? '';
+
+  // 🔒 contexte "terminées" => force le statut
+  if (this.currentContext === TicketContext.TERMINATED) {
+    p.status = TicketStatus.CLOSED;
+  }
+  return p;
+}
+
+private fetchPage(page: number, card: FilterCardType): void {
+  this.isLoading = true;
+
+  const params = this.buildParams(page);
+  // 🃏 si une carte est sélectionnée, on l’ajoute AUX filtres (au lieu d’écraser)
+  if (card !== FilterCardType.NONE) {
+    params.cardType = card;
+  }
+
+  const source$ = card === FilterCardType.NONE
+    ? this.mbotService.getTicketListV2(params)                 // liste filtrée
+    : this.cardConfigFactory.loadTicketsByCard(card, this.currentContext, page, {
+        sortKey: params.sortKey, isAsc: params.isAsc,          // tri conservé
+        // 👇 si loadTicketsByCard supporte des filtres, on les passe :
+        searchTerm: params.searchTerm,
+        statusFilter: params.statusFilter,
+        agencyFilter: params.agencyFilter,
+        collaboratorFilter: params.collaboratorFilter,
+        campaignFilter: params.campaignFilter,
+      });
+
+  source$.subscribe({
+    next: (response) => this.handleTicketResponse(response),
+    error: (err) => console.error('Erreur chargement tickets :', err),
+    complete: () => { this.isLoading = false; },
+  });
+}
+
+private resetPagination(): void {
+  this.currentPage     = 0;
+  this.scrollCompleted = false;
+  this.loadedElements  = 0;
+  this.allPagesLoaded  = false;
+  this.hasPendingPage  = true;
+  this.tickets         = [];
+}
+
+protected onCardClicked(type: FilterCardType): void {
+  this.cardClickedOnce = true;
+
+  // garde l’URL en phase
+  this.router.navigate([], {
+    relativeTo: this.route,
+    queryParams: { card: this.activeCard === type ? null : type },
+    queryParamsHandling: 'merge',
+  });
+
+  this.activeCard = (this.activeCard === type) ? FilterCardType.NONE : type;
+
+  // reset + fetch unique
+  this.resetPagination();
+  this.ticketsCountSolicitations = 0;
+  this.ticketsCountTeam = 0;
+
+  this.fetchPage(0, this.activeCard);
+}
+
+protected applyFilters(): void {
+  this.resetPagination();
+  this.fetchPage(0, this.activeCard ?? FilterCardType.NONE);
+}
+
+protected onSortChanged(sort: { sortKey: string; isAsc: boolean }): void {
+  this.currentSort = sort;
+  this.resetPagination();
+  this.fetchPage(0, this.activeCard ?? FilterCardType.NONE);
+}
+
+
+protected onScroll(): void {
+  if (this.isLoading || !this.hasPendingPage) return;
+
+  this.isLoading = true;
+  const next = this.currentPage + 1;
+
+  this.fetchPage(next, this.activeCard ?? FilterCardType.NONE);
+  // `fetchPage` remettra `isLoading=false` en complete(),
+  // et `handleTicketResponse` mettra à jour loadedElements/hasPendingPage
+}
+
+
+protected loadTickets(card: FilterCardType, options?: { searchTerm?: string }): void {
+  if (options?.searchTerm !== undefined) this.searchTerm = options.searchTerm;
+  this.resetPagination();
+  this.fetchPage(0, card);
+}
+
+
