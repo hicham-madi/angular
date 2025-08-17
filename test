@@ -1,87 +1,26 @@
-// TicketsPageBase.ts
+import { map, distinctUntilChanged, skip, takeUntilDestroyed } from 'rxjs';
 
-protected loadTickets(card: FilterCardType, options?: { searchTerm?: string }): void {
-  const params = this.listService.reinitParam(0);
-  params.context = this.currentContext;
-  params.sortKey = 'lastActivityTimestamp';
-  params.isAsc = false;
+protected initialization(context: TicketContext): void {
+  this.currentContext = context;
 
-  if (this.currentContext === TicketContext.TERMINATED) params.status = TicketStatus.CLOSED;
-  if (options?.searchTerm) params.searchTerm = options.searchTerm;
-  if (card !== FilterCardType.NONE) params.cardType = card;
+  const initialCard = this.activeCard; // défini depuis le resolver
 
-  this.isLoading = true;
-
-  // 1) source unique selon le type (liste complète vs par carte)
-  const source$ =
-    card === FilterCardType.NONE
-      ? this.mbotService.getTicketListV2(params)
-      : this.cardConfigFactory.loadTicketsByCard(card, this.currentContext);
-
-  source$.subscribe({
-    next: (response) => this.hydrateFromResponse(response),
-    error: (err) => console.error('Erreur lors du chargement des tickets :', err),
-    complete: () => (this.isLoading = false),
+  this.route.queryParamMap.pipe(
+    map(qp => (qp.get('card') ?? '') as keyof typeof FilterCardType),
+    map(k => (k && FilterCardType[k] !== undefined ? FilterCardType[k] : FilterCardType.NONE)),
+    distinctUntilChanged(),
+    // évite la 1re émission (celle de la navigation actuelle, déjà préchargée par le resolver)
+    skip(1),
+    takeUntilDestroyed(this.destroyRef) // si tu utilises destroyRef
+  ).subscribe(card => {
+    if (card !== initialCard) {
+      this.onCardClicked(card);           // appellera l’API selon la carte
+      // persistance
+      if (card !== FilterCardType.NONE) {
+        localStorage.setItem('lastSelectedCard', card.toString());
+      } else {
+        localStorage.removeItem('lastSelectedCard');
+      }
+    }
   });
-}
-
-/* ---------- helpers privés, réutilisables aussi dans onCardClicked(...) ---------- */
-
-private hydrateFromResponse(response: MbotListV2): void {
-  // Déjà existant : pagination + tickets
-  this.handleTicketResponse(response, this.currentContext);
-
-  // Statuts + listes annexes
-  this.updateMetaLists(response);
-
-  // Cartes (small/large) + filtrage des types désactivés
-  this.buildCardsFrom(response);
-
-  this.cdr.detectChanges();
-}
-
-private updateMetaLists(response: MbotListV2): void {
-  const statusMap = new Map<string, string>();
-  response.statusList.forEach((status: string) => {
-    const label = this.getStatusLabelForTicket(status);
-    if (!statusMap.has(label)) statusMap.set(label, status);
-  });
-
-  this.statusList = Array.from(statusMap.entries()).map(([label, value]) => ({ label, value }));
-  this.statusList.sort((a, b) => a.label.localeCompare(b.label, 'fr'));
-
-  if (this.currentContext === TicketContext.TEAM) {
-    this.agencyList = response.agencyList || [];
-    this.collaboratorsList = response.collaboratorsList || [];
-    this.campaignsList = response.campaignsList || [];
-  }
-}
-
-private buildCardsFrom(response: MbotListV2): void {
-  this.ticketCardInfos = response.stats;
-
-  const cards = this.cardConfigFactory.countCards(
-    this.ticketCardInfos,
-    this.activeCard,
-    this.cardClicked
-  );
-
-  this.smallCards = cards.smallCards;
-
-  const disabled = new Set<string>();
-  if (!this.enableReclamation) disabled.add('CLAIMS');
-  if (!this.enableDiscussionGroupForCustomer) disabled.add('DISCUSSION_GROUPS');
-  if (!this.enableDs) disabled.add('REQUESTS_EXPERT_SERVICE');
-
-  this.largeCards = cards.largeCards
-    .filter(card => !!card.type && !disabled.has(card.type));
-}
-
-protected onCardClicked(type: FilterCardType): void {
-  this.cardClickedOnce = true;
-
-  // ... mise à jour URL + états (comme aujourd’hui)
-
-  // recharge via loadTickets qui choisit la bonne source
-  this.loadTickets(this.activeCard);
 }
