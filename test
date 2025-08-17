@@ -1,37 +1,9 @@
-private readonly STATUS_LABEL_ORDER = [
-  'résolue',
-  'en cours',
-  'à clôturer',
-  'en approbation',
-  'nouvelle',
-  'annulée',
-  'approbation refusée',
-] as const;
-
-private compareStatus(a: string, b: string, asc: boolean): number {
-  const la = this.getStatusLabelForTicket(a);
-  const lb = this.getStatusLabelForTicket(b);
-  const ia = this.STATUS_LABEL_ORDER.indexOf(la as any);
-  const ib = this.STATUS_LABEL_ORDER.indexOf(lb as any);
-  const base = (ia === -1 || ib === -1) ? la.localeCompare(lb, 'fr') : ia - ib;
-  return asc ? base : -base;
-}
-
-protected onSortChanged(sort: { sortKey: string; isAsc: boolean }): void {
-  if (!sort.sortKey) return; // tri statut géré côté enfant
-  this.currentSort = sort;
-  this.currentPage = 0;
-  this.scrollCompleted = false;
-  this.allPagesLoaded = false;
-  this.tickets = [];
-  this.loadedElements = 0;
-  this.hasPendingPage = true;
-
-  const card = this.activeCard ?? FilterCardType.NONE;
-  const opts = { sortKey: sort.sortKey, isAsc: sort.isAsc };
-  this.cardConfigFactory.loadTicketsByCard(card, this.currentContext, 0, opts)
-    .subscribe({
-      next: r => this.handleTicketResponse(r),
-      error: e => console.error('Erreur tri page 0 :', e),
-    });
-}
+const base = this.listService.getCurrentParams();
+const params = { ...base, currentPages: nextPage, ...opts };
+params.context            = this.currentContext;
+params.searchTerm         = this.searchTerm?.trim() ?? '';
+params.statusFilter       = this.selectedStatus ?? '';
+params.agencyFilter       = this.selectedAgency ?? '';
+params.collaboratorFilter = this.selectedCollaborator ?? '';
+params.campaignFilter     = this.selectedCampaign ?? '';
+if (TicketContext.TERMINATED === this.currentContext) params.status = TicketStatus.CLOSED;
