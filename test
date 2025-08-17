@@ -1,59 +1,33 @@
-protected onCardClicked(type: FilterCardType): void {
-  this.cardClickedOnce = true;
+private getBaseListCommands(): string[] {
+  switch (this.currentContext) {
+    case TicketContext.SOLICITATIONS:
+      // liste perso
+      return ['ticket-list'];
 
-  // 1) Toggle de la carte (cliquer à nouveau désactive -> NONE)
-  const nextCard = (this.activeCard === type) ? FilterCardType.NONE : type;
+    case TicketContext.TEAM:
+      // liste équipe en cours
+      return ['ticket-list', 'team-list'];
 
-  // 2) Répercuter l’état dans l’URL
-  this.router.navigate([], {
-    relativeTo: this.route,
-    queryParams: { card: nextCard === FilterCardType.NONE ? null : nextCard },
-    queryParamsHandling: 'merge',
-  });
+    case TicketContext.TERMINATED:
+      // liste perso terminées
+      return ['ticket-list'];
 
-  // 3) Persistance
-  if (nextCard !== FilterCardType.NONE) {
-    localStorage.setItem('lastSelectedCard', nextCard.toString());
-  } else {
-    localStorage.removeItem('lastSelectedCard');
+    case TicketContext.TERMINATED_TEAM:
+      // liste équipe terminées
+      return ['ticket-list', 'team-list'];
+
+    default:
+      return ['ticket-list'];
   }
+}
 
-  // 4) État interne + reset pagination
-  this.activeCard = nextCard;
-  this.resetPagination();          // remet page=0, tickets=[], flags…
+protected onTabChange(tabValue: string): void {
+  const isOngoing = tabValue === 'ongoing';
+  const base = this.getBaseListCommands();
 
-  // 5) Construire les options (tri courant + filtres courants)
-  const hasValidSort =
-    this.currentSort.sortKey != null && this.currentSort.isAsc != null;
+  const commands = isOngoing
+    ? ['/', ...base]
+    : ['/', ...base, 'terminated-list'];
 
-  const opts: {
-    sortKey?: string; isAsc?: boolean;
-    searchTerm?: string; statusFilter?: string;
-    agencyFilter?: string; collaboratorFilter?: string; campaignFilter?: string;
-  } = {
-    ...(hasValidSort ? {
-      sortKey: this.currentSort.sortKey!,
-      isAsc: this.currentSort.isAsc!,
-    } : {}),
-    searchTerm: this.searchTerm?.trim() ?? '',
-    statusFilter: this.selectedStatus ?? '',
-    agencyFilter: this.selectedAgency ?? '',
-    collaboratorFilter: this.selectedCollaborator ?? '',
-    campaignFilter: this.selectedCampaign ?? '',
-  };
-
-  // 6) Appel centralisé — loadTicketsByCard gère carte==NONE (liste) OU une carte
-  this.isLoading = true;
-  this.cardConfigFactory
-    .loadTicketsByCard(nextCard, this.currentContext, 0, opts)
-    .subscribe({
-      next: (response) => this.handleTicketResponse(response),
-      error: (err) => {
-        console.error('Erreur chargement par carte :', err);
-        this.isLoading = false;
-      },
-      complete: () => {
-        this.isLoading = false;
-      },
-    });
+  this.router.navigate(commands, { queryParamsHandling: 'merge' });
 }
