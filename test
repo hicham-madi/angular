@@ -1,32 +1,176 @@
-private fetchPage(page: number, card: FilterCardType): void {
-  this.isLoading = true;
+public loadTicketsByCard(
+  type: FilterCardType,
+  context: TicketContext,
+  page: number = 0,
+  opts?: {
+    sortKey?: string | null;
+    isAsc?: boolean | null;
+    searchTerm?: string;
+    statusFilter?: string;
+    agencyFilter?: string;
+    collaboratorFilter?: string;
+    campaignFilter?: string;
+  }
+): Observable<MbotListV2> {
+  // on part des params courants (pageSize, etc.)
+  const params: any = { ...this.listService.getCurrentParams() };
+  params.currentPages = page;
+  params.context = context;
 
-  const params = this.buildParams(page);         // met à jour ListService avec les filtres courants
-  if (card !== FilterCardType.NONE) params.cardType = card;
+  if (context === TicketContext.TERMINATED) params.status = TicketStatus.CLOSED;
+  if (type !== FilterCardType.NONE) params.cardType = type;
 
-  const source$ =
-    card === FilterCardType.NONE
-      ? this.mbotService.getTicketListV2(params) // liste filtrée
-      : this.cardConfigFactory.loadTicketsByCard(
-          card,
-          this.currentContext,
-          page,
-          { sortKey: params.sortKey, isAsc: params.isAsc } // ✅ seulement le tri
-        );
+  // tri
+  if (opts?.sortKey != null && opts?.isAsc != null) {
+    params.sortKey = opts.sortKey;
+    params.isAsc = opts.isAsc;
+  }
+  // filtres (on merge, on n’écrase pas)
+  if (opts?.searchTerm !== undefined)         params.searchTerm         = opts.searchTerm;
+  if (opts?.statusFilter !== undefined)       params.statusFilter       = opts.statusFilter;
+  if (opts?.agencyFilter !== undefined)       params.agencyFilter       = opts.agencyFilter;
+  if (opts?.collaboratorFilter !== undefined) params.collaboratorFilter = opts.collaboratorFilter;
+  if (opts?.campaignFilter !== undefined)     params.campaignFilter     = opts.campaignFilter;
 
-  source$.subscribe({
-    next: (response) => this.handleTicketResponse(response),
-    error: (err) => console.error('Erreur chargement tickets :', err),
-    complete: () => { this.isLoading = false; }
+  return this.mbotService.getTicketListV2(params);
+}
+
+private buildCardOpts() {
+  return {
+    sortKey: this.currentSort.sortKey ?? 'lastActivityTimestamp',
+    isAsc:   this.currentSort.isAsc  ?? false,
+    searchTerm:         this.searchTerm?.trim() ?? '',
+    statusFilter:       this.selectedStatus ?? '',
+    agencyFilter:       this.selectedAgency ?? '',
+    collaboratorFilter: this.selectedCollaborator ?? '',
+    campaignFilter:     this.selectedCampaign ?? '',
+  };
+}
+
+protected applyFilters(): void {
+  this.resetPagination();
+
+  const params: any = this.listService.reinitParam(0);
+  params.context = this.currentContext;
+  params.sortKey = 'lastActivityTimestamp';
+  params.isAsc   = false;
+
+  params.searchTerm         = this.searchTerm?.trim() ?? '';
+  params.statusFilter       = this.selectedStatus ?? '';
+  params.agencyFilter       = this.selectedAgency ?? '';
+  params.collaboratorFilter = this.selectedCollaborator ?? '';
+  params.campaignFilter     = this.selectedCampaign ?? '';
+
+  if (this.currentContext === TicketContext.TERMINATED) {
+    params.status = TicketStatus.CLOSED;
+  }
+
+  this.mbotService.getTicketListV2(params).subscribe({
+    next: (response) => {
+      this.tickets = response.tickets.content;
+      this.totalElements  = response.tickets.totalElements ?? this.tickets.length;
+      this.loadedElements = this.tickets.length;
+      this.hasPendingPage = this.loadedElements < this.totalElements;
+      this.allPagesLoaded = !this.hasPendingPage;
+      this.isLoading = false;
+
+      switch (this.currentContext) {
+        case TicketContext.SOLICITATIONS:
+          this.ticketsCountSolicitations = response.tickets.totalElements;
+          break;
+        case TicketContext.TEAM:
+          this.ticketsCountTeam = response.tickets.totalElements;
+          break;
+      }
+      this.cdr.detectChanges();
+    },
+    error: (err) => console.error("Erreur lors de l'application des filtres :", err),
   });
 }
 
-const p = this.listService.reinitParam(page);
-p.searchTerm         = this.searchTerm?.trim() ?? '';
-p.statusFilter       = this.selectedStatus ?? '';
-p.agencyFilter       = this.selectedAgency ?? '';
-p.collaboratorFilter = this.selectedCollaborator ?? '';
-p.campaignFilter     = this.selectedCampaign ?? '';
-this.listService.setCurrentParams(p); // <-- ou équivalent
-return p;
+protected onSortChanged(sort: { sortKey: string; isAsc: boolean }): void {
+  this.currentSort = sort;
+  this.currentPage = 0;
+  this.scrollCompleted = false;
+  this.allPagesLoaded = false;
+  this.tickets = [];
+  this.loadedElements = 0;
+  this.hasPendingPage = true;
+
+  const card = this.activeCard ?? FilterCardType.NONE;
+
+  if (card === FilterCardType.NONE) {
+    // même logique que applyFilters mais en posant le tri choisi
+    const p: any = this.listService.reinitParam(0);
+    p.context = this.currentContext;
+    p.sortKey = sort.sortKey;
+    p.isAsc   = sort.isAsc;
+
+    p.searchTerm         = this.searchTerm?.trim() ?? '';
+    p.statusFilter       = this.selectedStatus ?? '';
+    p.agencyFilter       = this.selectedAgency ?? '';
+    p.collaboratorFilter = this.selectedCollaborator ?? '';
+    p.campaignFilter     = this.selectedCampaign ?? '';
+
+    if (this.currentContext === TicketContext.TERMINATED) p.status = TicketStatus.CLOSED;
+
+    this.mbotService.getTicketListV2(p).subscribe({
+      next: (response) => this.handleTicketResponse(response),
+      error: (err) => console.error('Erreur tri page 0 (liste) :', err),
+    });
+  } else {
+    // carte active -> on combine via la factory
+    const opts = this.buildCardOpts();
+    this.cardConfigFactory
+      .loadTicketsByCard(card, this.currentContext, 0, opts)
+      .subscribe({
+        next: (response) => this.handleTicketResponse(response),
+        error: (err) => console.error('Erreur tri page 0 (carte) :', err),
+      });
+  }
+}
+
+
+protected onScroll(): void {
+  if (this.isLoading) return;
+  if (!this.hasPendingPage) return;
+
+  this.isLoading = true;
+
+  const nextPage = this.currentPage + 1;
+  const complete = () => {
+    this.isLoading = false;
+    this.currentPage = nextPage;
+  };
+
+  const card = this.activeCard ?? FilterCardType.NONE;
+
+  if (card === FilterCardType.NONE) {
+    const base = this.listService.getCurrentParams();
+    const params: any = { ...base, currentPages: nextPage };
+
+    params.context           = this.currentContext;
+    params.sortKey           = this.currentSort.sortKey ?? 'lastActivityTimestamp';
+    params.isAsc             = this.currentSort.isAsc ?? false;
+    params.searchTerm        = this.searchTerm?.trim() ?? '';
+    params.statusFilter      = this.selectedStatus ?? '';
+    params.agencyFilter      = this.selectedAgency ?? '';
+    params.collaboratorFilter= this.selectedCollaborator ?? '';
+    params.campaignFilter    = this.selectedCampaign ?? '';
+    if (this.currentContext === TicketContext.TERMINATED) params.status = TicketStatus.CLOSED;
+
+    this.mbotService.getTicketListV2(params).subscribe({
+      next: (response) => { this.handleTicketResponse(response); complete(); },
+      error: (err) => { console.error('Erreur scroll liste filtrée :', err); complete(); },
+    });
+  } else {
+    const opts = this.buildCardOpts();
+    this.cardConfigFactory
+      .loadTicketsByCard(card, this.currentContext, nextPage, opts)
+      .subscribe({
+        next: (response) => { this.handleTicketResponse(response); complete(); },
+        error: (err) => { console.error('Erreur scroll carte :', err); complete(); },
+      });
+  }
+}
 
