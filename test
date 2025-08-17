@@ -1,32 +1,85 @@
-// 1) valeur initiale (déjà préchargée par le resolver)
-const key = (this.route.snapshot.queryParamMap.get('card') ?? '') as keyof typeof FilterCardType;
-const initialCard =
-  key && FilterCardType[key] !== undefined ? FilterCardType[key] : FilterCardType.NONE;
+// solicitings-table.component.ts
+export class SolicitingsTableComponent {
+  @Output() sortChanged = new EventEmitter<{ sortKey: string | null; isAsc: boolean | null }>();
 
-// persistance initiale
-if (initialCard !== FilterCardType.NONE) {
-  localStorage.setItem('lastSelectedCard', initialCard.toString());
-} else {
-  localStorage.removeItem('lastSelectedCard');
-}
+  protected sort: { active: string | null; direction: 'asc' | 'desc' | null } = {
+    active: null, direction: null
+  };
 
-// 2) écouter les changements réels d’URL (après init)
-this.route.queryParamMap.pipe(
-  map(qp => (qp.get('card') ?? '') as keyof typeof FilterCardType),
-  map(k => (k && FilterCardType[k] !== undefined ? FilterCardType[k] : FilterCardType.NONE)),
-  distinctUntilChanged(),
-  skip(1) // évite la 1ère émission (celle de l’état initial déjà géré)
-).subscribe(card => {
-  // évite la boucle : on ne rappelle pas onCardClicked si l’état est déjà aligné
-  if (card !== this.activeCard && card !== FilterCardType.NONE) {
-    this.onCardClicked(card); // navigue + charge selon la carte
-  } else if (card === FilterCardType.NONE) {
-    this.activeCard = FilterCardType.NONE; // URL nettoyée → juste synchroniser l’état
+  protected sortData(column: string): void {
+    if (this.sort.active !== column) {
+      this.sort.active = column;
+      this.sort.direction = 'asc';
+    } else {
+      // cycle asc -> desc -> null
+      this.sort.direction = this.sort.direction === 'asc' ? 'desc'
+                       : this.sort.direction === 'desc' ? null
+                       : 'asc';
+      if (this.sort.direction === null) this.sort.active = 'lastActivityTimestamp'; // reset visuel si besoin
+    }
+
+    // ▶ seul émet l'événement, pas d’appel WS ici
+    this.sortChanged.emit({
+      sortKey: this.sort.direction ? this.sort.active : null,
+      isAsc: this.sort.direction ? this.sort.direction === 'asc' : null,
+    });
   }
 
-  // persistance
-  if (card !== FilterCardType.NONE) localStorage.setItem('lastSelectedCard', card.toString());
-  else localStorage.removeItem('lastSelectedCard');
+  protected getSortIcon(column: string): string {
+    if (this.sort.active !== column || !this.sort.direction) return 'unfold_more';
+    return this.sort.direction === 'asc' ? 'arrow_upward' : 'arrow_downward';
+  }
+}
 
-  this.cardClickedOnce = true;
-});
+// ticket-list-page.component.html
+<metabot-solicitings-table
+  ...
+  (sortChanged)="onSortChanged($event)">
+</metabot-solicitings-table>
+
+// tickets-page.base.ts (ou le composant page)
+protected currentSort: { sortKey: string | null; isAsc: boolean | null } = { sortKey: null, isAsc: null };
+
+protected onSortChanged(sort: { sortKey: string | null; isAsc: boolean | null }): void {
+  this.currentSort = sort;
+
+  // reset pagination
+  this.currentPage = 0;
+  this.scrollCompleted = false;
+  this.allPagesLoaded = false;
+  this.tickets = [];
+  this.loadedElements = 0;
+  this.hasPendingPage = true;
+
+  const card = this.activeCard ?? FilterCardType.NONE;
+  const opts = sort.sortKey ? { sortKey: sort.sortKey, isAsc: !!sort.isAsc } : undefined;
+
+  // ▶ un seul appel via la factory (ou ta méthode commune)
+  this.cardConfigFactory
+    .loadTicketsByCard(card, this.currentContext, 0, opts)
+    .subscribe({
+      next: (response) => this.handleTicketResponse(response),
+      error: (err) => console.error('Erreur tri page 0 :', err),
+    });
+}
+
+const STATUS_ORDER: Partial<Record<TicketStatus, number>> = {
+  NEW: 10,
+  APPROVAL_PENDING: 20,
+  PENDING: 30,
+  PROCESSING: 30,
+  TO_BE_CLOSED: 40,
+  SOLVED: 50,
+  CLOSED: 60,
+  APPROVAL_REFUSED: 70,
+  CANCELED: 80,
+};
+
+const uniqueStatuses = Array.from(new Set(response.statusList as TicketStatus[]))
+  .map(s => ({ value: s, label: this.getStatusLabelForTicket(s) || s }));
+
+this.statusList = uniqueStatuses.sort((a, b) =>
+  (STATUS_ORDER[a.value] ?? 999) - (STATUS_ORDER[b.value] ?? 999) ||
+  a.label.localeCompare(b.label, 'fr', { sensitivity: 'base' })
+);
+
