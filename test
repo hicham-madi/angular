@@ -1,49 +1,13 @@
-// solicitings-table.component.ts
-export class SolicitingsTableComponent {
-  @Output() sortChanged = new EventEmitter<{ sortKey: string | null; isAsc: boolean | null }>();
-
-  protected sort: { active: string | null; direction: 'asc' | 'desc' | null } = {
-    active: null, direction: null
-  };
-
-  protected sortData(column: string): void {
-    if (this.sort.active !== column) {
-      this.sort.active = column;
-      this.sort.direction = 'asc';
-    } else {
-      // cycle asc -> desc -> null
-      this.sort.direction = this.sort.direction === 'asc' ? 'desc'
-                       : this.sort.direction === 'desc' ? null
-                       : 'asc';
-      if (this.sort.direction === null) this.sort.active = 'lastActivityTimestamp'; // reset visuel si besoin
-    }
-
-    // ▶ seul émet l'événement, pas d’appel WS ici
-    this.sortChanged.emit({
-      sortKey: this.sort.direction ? this.sort.active : null,
-      isAsc: this.sort.direction ? this.sort.direction === 'asc' : null,
-    });
-  }
-
-  protected getSortIcon(column: string): string {
-    if (this.sort.active !== column || !this.sort.direction) return 'unfold_more';
-    return this.sort.direction === 'asc' ? 'arrow_upward' : 'arrow_downward';
-  }
-}
-
-// ticket-list-page.component.html
-<metabot-solicitings-table
-  ...
-  (sortChanged)="onSortChanged($event)">
-</metabot-solicitings-table>
-
-// tickets-page.base.ts (ou le composant page)
-protected currentSort: { sortKey: string | null; isAsc: boolean | null } = { sortKey: null, isAsc: null };
+// 1) garde le dernier tri demandé
+protected currentSort: { sortKey: string | null; isAsc: boolean | null } = {
+  sortKey: null,
+  isAsc: null,
+};
 
 protected onSortChanged(sort: { sortKey: string | null; isAsc: boolean | null }): void {
   this.currentSort = sort;
 
-  // reset pagination
+  // reset de la liste
   this.currentPage = 0;
   this.scrollCompleted = false;
   this.allPagesLoaded = false;
@@ -52,34 +16,50 @@ protected onSortChanged(sort: { sortKey: string | null; isAsc: boolean | null })
   this.hasPendingPage = true;
 
   const card = this.activeCard ?? FilterCardType.NONE;
-  const opts = sort.sortKey ? { sortKey: sort.sortKey, isAsc: !!sort.isAsc } : undefined;
 
-  // ▶ un seul appel via la factory (ou ta méthode commune)
+  // 2) si on trie par statut, on ne demande PAS de tri serveur
+  const serverSort =
+    sort.sortKey === 'status' ? { sortKey: null, isAsc: null } : sort;
+
   this.cardConfigFactory
-    .loadTicketsByCard(card, this.currentContext, 0, opts)
+    .loadTicketsByCard(card, this.currentContext, 0, serverSort)
     .subscribe({
-      next: (response) => this.handleTicketResponse(response),
+      next: (response) => {
+        this.handleTicketResponse(response);
+
+        // 3) tri local spécifique aux statuts (ordre métier)
+        if (sort.sortKey === 'status') {
+          const asc = !!sort.isAsc;
+          this.tickets.sort((a, b) =>
+            this.compareStatus(a.status, b.status, asc)
+          );
+          this.cdr.detectChanges();
+        }
+      },
       error: (err) => console.error('Erreur tri page 0 :', err),
     });
 }
 
-const STATUS_ORDER: Partial<Record<TicketStatus, number>> = {
-  NEW: 10,
-  APPROVAL_PENDING: 20,
-  PENDING: 30,
-  PROCESSING: 30,
-  TO_BE_CLOSED: 40,
-  SOLVED: 50,
-  CLOSED: 60,
-  APPROVAL_REFUSED: 70,
-  CANCELED: 80,
-};
+/** Ordre métier du statut (adapter la séquence si besoin) */
+private compareStatus(a: string, b: string, asc: boolean): number {
+  const order = [
+    TicketStatus.NEW,
+    TicketStatus.APPROVAL_PENDING,
+    TicketStatus.PROCESSING,
+    TicketStatus.PENDING,
+    TicketStatus.TO_BE_CLOSED,
+    TicketStatus.SOLVED,
+    TicketStatus.CANCELED,
+    TicketStatus.APPROVAL_REFUSED,
+    TicketStatus.CLOSED,
+  ] as string[];
 
-const uniqueStatuses = Array.from(new Set(response.statusList as TicketStatus[]))
-  .map(s => ({ value: s, label: this.getStatusLabelForTicket(s) || s }));
+  const ai = order.indexOf(a);
+  const bi = order.indexOf(b);
 
-this.statusList = uniqueStatuses.sort((a, b) =>
-  (STATUS_ORDER[a.value] ?? 999) - (STATUS_ORDER[b.value] ?? 999) ||
-  a.label.localeCompare(b.label, 'fr', { sensitivity: 'base' })
-);
+  // fallback alphabetique si un statut inconnu arrive
+  const base =
+    ai === -1 || bi === -1 ? a.localeCompare(b) : ai - bi;
 
+  return asc ? base : -base;
+}
