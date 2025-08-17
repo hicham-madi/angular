@@ -1,33 +1,55 @@
-private getBaseListCommands(): string[] {
-  switch (this.currentContext) {
-    case TicketContext.SOLICITATIONS:
-      // liste perso
-      return ['ticket-list'];
+export class PageHeaderComponent {
+  @Input() public currentCount: number | undefined;
 
-    case TicketContext.TEAM:
-      // liste équipe en cours
-      return ['ticket-list', 'team-list'];
+  protected tabs: Tab[] = Object.values(Tab).filter(tab => tab !== Tab.TERMINATED);
+  protected activeTab: Tab = this.tabs[0];
 
-    case TicketContext.TERMINATED:
-      // liste perso terminées
-      return ['ticket-list'];
+  private readonly tabsUrls = new Map<Tab, string>()
+    .set(Tab.MY_TEAM, 'ticket-list/team-list')     // ⚠️ plus spécifique d'abord
+    .set(Tab.SOLICITING, 'ticket-list');           // préfixe générique
 
-    case TicketContext.TERMINATED_TEAM:
-      // liste équipe terminées
-      return ['ticket-list', 'team-list'];
+  constructor(
+    private readonly router: Router,
+    private readonly jwtService: JwtService,
+    private readonly metabotBridge: MetabotBridgeService
+  ) {}
 
-    default:
-      return ['ticket-list'];
+  public ngOnInit(): void {
+    const update = () => {
+      // on enlève la query string et le hash
+      const url = this.router.url.split('?')[0].split('#')[0].replace(/^\/+/, '');
+      const match = Array.from(this.tabsUrls.entries())
+        // on vérifie d'abord les préfixes les plus longs
+        .sort((a, b) => b[1].length - a[1].length)
+        .find(([_, prefix]) => url.startsWith(prefix));
+
+      this.activeTab = match?.[0] ?? this.tabs[0];
+    };
+
+    // initial + sur chaque navigation
+    update();
+    this.router.events.subscribe(e => {
+      if (e instanceof NavigationEnd) update();
+    });
   }
-}
 
-protected onTabChange(tabValue: string): void {
-  const isOngoing = tabValue === 'ongoing';
-  const base = this.getBaseListCommands();
+  protected showBadge(tab: string): boolean {
+    return tab === Tab.SOLICITING;
+  }
 
-  const commands = isOngoing
-    ? ['/', ...base]
-    : ['/', ...base, 'terminated-list'];
+  protected handleTabClick(tab: Tab): void {
+    this.activeTab = tab;
+    this.maximize();
 
-  this.router.navigate(commands, { queryParamsHandling: 'merge' });
+    const commands =
+      tab === Tab.MY_TEAM ? ['/ticket-list', 'team-list'] : ['/ticket-list'];
+
+    this.router.navigate(commands, { queryParamsHandling: 'merge' });
+  }
+
+  private maximize(): void {
+    if (!this.jwtService.isEurekaEnv()) {
+      this.metabotBridge.emit(MetabotActionType.MAXIMIZE, {}).then(r => console.log(r));
+    }
+  }
 }
