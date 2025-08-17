@@ -1,26 +1,26 @@
-import { map, distinctUntilChanged, skip, takeUntilDestroyed } from 'rxjs';
-
 protected initialization(context: TicketContext): void {
   this.currentContext = context;
 
-  const initialCard = this.activeCard; // défini depuis le resolver
+  this.metabotBridge.setEventHandler(e => {
+    if (this.constantsService.isOnSocketReceive(e)) this.loadTickets(this.activeCard);
+  });
 
+  // 1) snapshot → valeur de départ (celle déjà préchargée par le resolver)
+  const k = (this.route.snapshot.queryParamMap.get('card') ?? '') as keyof typeof FilterCardType;
+  const initialCard =
+    k && FilterCardType[k] !== undefined ? FilterCardType[k] : FilterCardType.NONE;
+
+  // 2) écouter les changements réels d’URL (après init)
   this.route.queryParamMap.pipe(
     map(qp => (qp.get('card') ?? '') as keyof typeof FilterCardType),
-    map(k => (k && FilterCardType[k] !== undefined ? FilterCardType[k] : FilterCardType.NONE)),
+    map(key => (key && FilterCardType[key] !== undefined ? FilterCardType[key] : FilterCardType.NONE)),
     distinctUntilChanged(),
-    // évite la 1re émission (celle de la navigation actuelle, déjà préchargée par le resolver)
-    skip(1),
-    takeUntilDestroyed(this.destroyRef) // si tu utilises destroyRef
+    filter(card => card !== initialCard) // évite la 1re émission
   ).subscribe(card => {
-    if (card !== initialCard) {
-      this.onCardClicked(card);           // appellera l’API selon la carte
-      // persistance
-      if (card !== FilterCardType.NONE) {
-        localStorage.setItem('lastSelectedCard', card.toString());
-      } else {
-        localStorage.removeItem('lastSelectedCard');
-      }
-    }
+    this.onCardClicked(card);            // déclenche le fetch selon la carte
+
+    // persistance
+    if (card !== FilterCardType.NONE) localStorage.setItem('lastSelectedCard', card.toString());
+    else localStorage.removeItem('lastSelectedCard');
   });
 }
