@@ -1,78 +1,102 @@
-<button
-  class="tab"
-  [class.active]="selected === tab.value"
-  [attr.aria-selected]="selected === tab.value"
-  (click)="onTabClicked(tab.value, $event)"
->
-  {{ tab.label }}
-  @if (tab.label !== 'Terminées') {
-    <span class="count">{{ tab.label === 'Ouvertes' ? currentCount : tab.count }}</span>
+// mbot.service.ts (ou service équivalent)
+export enum Tab {
+  SOLICITING = 'Mes sollicitations',
+  MY_TEAM = 'Mon équipe',
+  TERMINATED = 'Terminées',          // déjà présent
+  // (pas obligé d’ajouter TERMINATED_TEAM si on gère avec un flag)
+}
+
+private openedFromTab: Tab = Tab.SOLICITING;
+private openedFromTerminated = false;
+
+public setOpenedFromTab(tab: Tab, isTerminated = false): void {
+  this.openedFromTab = tab;
+  this.openedFromTerminated = isTerminated;
+}
+
+public getOpenedFromTab(): Tab {
+  return this.openedFromTab;
+}
+
+public getOpenedFromTerminated(): boolean {
+  return this.openedFromTerminated;
+}
+
+// page-header.component.ts
+constructor(
+  private readonly router: Router,
+  private readonly jwtService: JwtService,
+  private readonly metabotBridge: MetabotBridgeService,
+  private readonly mbotService: MbotService,           // <— injecte le service
+) {}
+
+public ngOnInit(): void {
+  const pair = Array.from(this.tabsUrls).find(([_, url]) => this.router.url === url);
+  if (pair) this.activeTab = pair[0];
+
+  // initialise l’origine en fonction de l’URL courante
+  const isTerminated = this.router.url.includes('/terminated-list');
+  this.mbotService.setOpenedFromTab(this.activeTab, isTerminated);
+}
+
+protected handleTabClick(tab: Tab): void {
+  this.activeTab = tab;
+  this.maximize();
+
+  const url = this.tabsUrls.get(this.activeTab) ?? '/ticket-list';
+
+  // quand on change d’onglet, on n’est pas en “terminated” par défaut
+  this.mbotService.setOpenedFromTab(tab, false);
+
+  this.router.navigate([url]);
+}
+// là où tu fais la navigation vers terminated/ongoing (ex: TicketsPageBase.onTabChange)
+const base = this.getBaseListSegment(); // 'ticket-list' ou 'team-list'
+const isTerminated = tabValue !== 'ongoing';
+this.mbotService.setOpenedFromTab(
+  this.currentContext === TicketContext.TEAM ? Tab.MY_TEAM : Tab.SOLICITING,
+  isTerminated
+);
+
+this.router.navigate(isTerminated ? ['/', base, 'terminated-list'] : ['/', base], {
+  queryParamsHandling: 'merge',
+});
+
+// ticket-header-info.component.ts
+protected goToList(): void {
+  if (!this.listService.loadingResolver) {
+    this.listService.getCurrentParams().claimCodeFilter = [];
+    this.listService.setCurrentSelectedTicket('');
+    this.listService.loadingResolver = true;
+    this.closeTicket(false);
   }
-</button>
 
-export class StatusTabsComponent {
-  @Input() public tabs: Status[] = [];
-  @Input() public currentCount?: number;
-  @Output() public tabChange = new EventEmitter<string>();
+  const fromTab = this.mbotService.getOpenedFromTab();
+  const fromTerminated = this.mbotService.getOpenedFromTerminated();
 
-  private _selectedTab?: string;
-  public selected?: string;
+  const lastCard = localStorage.getItem('lastSelectedCard');
+  const queryParams = lastCard ? { card: lastCard } : undefined;
 
-  /** anti double-click lock */
-  private clicking = false;
-  private static CLICK_COOLDOWN_MS = 350;
+  const route: string[] = ['ticket-list'];
 
-  @Input() set selectedTab(value: string | undefined) {
-    this._selectedTab = value;
-    this.selected = value;
-    this.cdr.markForCheck();
-  }
-  get selectedTab() { return this._selectedTab; }
-
-  constructor(private readonly cdr: ChangeDetectorRef) {}
-
-  ngOnInit(): void {
-    this.selected = this._selectedTab ?? this.tabs[0]?.value;
-  }
-
-  public onTabClicked(tabValue: string, ev?: MouseEvent) {
-    // ignore if already active or if a click is in progress
-    if (this.selected === tabValue || this.clicking) {
-      ev?.preventDefault();
-      ev?.stopPropagation();
-      return;
+  if (fromTab === Tab.MY_TEAM) {
+    route.push('team-list');
+    if (fromTerminated) route.push('terminated-list');
+  } else if (fromTab === Tab.TERMINATED) {
+    // si tu utilises encore ce tab
+    route.push('terminated-list');
+  } else {
+    // Mes sollicitations
+    if (fromTerminated) {
+      route.push('terminated-list');
     }
-    this.clicking = true;
-    this.selected = tabValue;
-    this.tabChange.emit(tabValue);
-
-    // small cooldown to swallow accidental double-clicks
-    setTimeout(() => (this.clicking = false), StatusTabsComponent.CLICK_COOLDOWN_MS);
   }
-}
 
-private isSwitchingTab = false;
-
-protected onTabChange(tabValue: string): void {
-  if (this.isSwitchingTab || this.isLoading) return;            // guard
-  this.isSwitchingTab = true;
-
-  // clear any selected card when switching tabs
-  this.activeCard = FilterCardType.NONE;
-
-  const isOngoing = tabValue === 'ongoing';
-  const base = this.getBaseListSegment();                       // your helper
-
-  const commands = isOngoing ? ['/', base] : ['/', base, 'terminated-list'];
-
-  this.router.navigate(commands, {
-    queryParamsHandling: 'merge',
-    queryParams: { card: null },                                // drop stale card
-  }).finally(() => {
-    // reset and fetch once route settles
-    this.resetPagination?.();
-    // use your existing loader that now combines sort + filters + (no card)
-    this.loadTickets(this.activeCard);
-    this.isSwitchingTab = false;
+  this.router.navigate(route, {
+    ...(queryParams && { queryParams }),
+    ...(queryParams && { queryParamsHandling: 'merge' }),
   });
+
+  this.mbotService.clearOpenedFromTab?.(); // optionnel si tu veux reset
 }
+
