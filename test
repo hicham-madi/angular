@@ -1,26 +1,32 @@
-protected initialization(context: TicketContext): void {
-  this.currentContext = context;
+// 1) valeur initiale (déjà préchargée par le resolver)
+const key = (this.route.snapshot.queryParamMap.get('card') ?? '') as keyof typeof FilterCardType;
+const initialCard =
+  key && FilterCardType[key] !== undefined ? FilterCardType[key] : FilterCardType.NONE;
 
-  this.metabotBridge.setEventHandler(e => {
-    if (this.constantsService.isOnSocketReceive(e)) this.loadTickets(this.activeCard);
-  });
-
-  // 1) snapshot → valeur de départ (celle déjà préchargée par le resolver)
-  const k = (this.route.snapshot.queryParamMap.get('card') ?? '') as keyof typeof FilterCardType;
-  const initialCard =
-    k && FilterCardType[k] !== undefined ? FilterCardType[k] : FilterCardType.NONE;
-
-  // 2) écouter les changements réels d’URL (après init)
-  this.route.queryParamMap.pipe(
-    map(qp => (qp.get('card') ?? '') as keyof typeof FilterCardType),
-    map(key => (key && FilterCardType[key] !== undefined ? FilterCardType[key] : FilterCardType.NONE)),
-    distinctUntilChanged(),
-    filter(card => card !== initialCard) // évite la 1re émission
-  ).subscribe(card => {
-    this.onCardClicked(card);            // déclenche le fetch selon la carte
-
-    // persistance
-    if (card !== FilterCardType.NONE) localStorage.setItem('lastSelectedCard', card.toString());
-    else localStorage.removeItem('lastSelectedCard');
-  });
+// persistance initiale
+if (initialCard !== FilterCardType.NONE) {
+  localStorage.setItem('lastSelectedCard', initialCard.toString());
+} else {
+  localStorage.removeItem('lastSelectedCard');
 }
+
+// 2) écouter les changements réels d’URL (après init)
+this.route.queryParamMap.pipe(
+  map(qp => (qp.get('card') ?? '') as keyof typeof FilterCardType),
+  map(k => (k && FilterCardType[k] !== undefined ? FilterCardType[k] : FilterCardType.NONE)),
+  distinctUntilChanged(),
+  skip(1) // évite la 1ère émission (celle de l’état initial déjà géré)
+).subscribe(card => {
+  // évite la boucle : on ne rappelle pas onCardClicked si l’état est déjà aligné
+  if (card !== this.activeCard && card !== FilterCardType.NONE) {
+    this.onCardClicked(card); // navigue + charge selon la carte
+  } else if (card === FilterCardType.NONE) {
+    this.activeCard = FilterCardType.NONE; // URL nettoyée → juste synchroniser l’état
+  }
+
+  // persistance
+  if (card !== FilterCardType.NONE) localStorage.setItem('lastSelectedCard', card.toString());
+  else localStorage.removeItem('lastSelectedCard');
+
+  this.cardClickedOnce = true;
+});
