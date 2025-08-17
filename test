@@ -1,62 +1,54 @@
-import { Component, Input, ChangeDetectorRef } from '@angular/core';
-import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
-import { filter } from 'rxjs/operators';
-import { TicketContext } from '.../constants.interface';
+protected onTabChange(tabValue: string): void {
+  // 🔁 logique existante (calcul de la route cible) …
+  const isOngoing = tabValue === 'ongoing';
+  const base = this.getBaseListSegment();
+  const commands = isOngoing ? ['/', base] : ['/', base, 'terminated-list'];
 
-export enum Tab {
-  SOLICITING = 'Mes sollicitations',
-  MY_TEAM = 'Mon équipe',
-  TERMINATED = 'Terminées', // si besoin ailleurs
+  // 🧹 IMPORTANT : on vide toute sélection de carte
+  this.activeCard = FilterCardType.NONE;
+  localStorage.removeItem('lastSelectedCard');
+
+  // ⚠️ on enlève le paramètre ?card de l’URL
+  this.router.navigate(commands, {
+    queryParams: { card: null },
+    queryParamsHandling: 'merge', // on garde les autres params utiles, mais 'card' est supprimé
+  });
+
+  // (optionnel mais utile) on ré-initialise la pagination
+  this.currentPage = 0;
+  this.hasPendingPage = true;
 }
 
-@Component({ /* ... */ })
-export class PageHeaderComponent {
-  @Input() public currentCount: number | undefined;
+resolve(route: ActivatedRouteSnapshot, _state: RouterStateSnapshot): Observable<TicketListPrefetch> {
+  const context = route.data['context'] as TicketContext;
 
-  protected tabs: Tab[] = [Tab.SOLICITING, Tab.MY_TEAM]; // on n’affiche pas TERMINATED ici
-  protected activeTab: Tab = Tab.SOLICITING;
+  let cardType: FilterCardType = FilterCardType.NONE;
 
-  constructor(
-    private readonly router: Router,
-    private readonly route: ActivatedRoute,
-    private readonly cdr: ChangeDetectorRef,
-  ) {}
+  // ❌ En context TERMINATED / TERMINATED_TEAM on force NONE
+  if (context !== TicketContext.TERMINATED && context !== TicketContext.TERMINATED_TEAM) {
+    const qp = (route.queryParamMap.get('card') ?? '') as keyof typeof FilterCardType;
+    const stored = localStorage.getItem('lastSelectedCard') as keyof typeof FilterCardType | null;
 
-  ngOnInit(): void {
-    const setActiveFromRoute = () => {
-      // va jusqu’à la route enfant la plus profonde
-      let r = this.route;
-      while (r.firstChild) r = r.firstChild;
-
-      const ctx = r.snapshot.data?.['context'] as TicketContext | undefined;
-
-      // TEAM et TERMINATED_TEAM => onglet "Mon équipe"
-      // le reste => "Mes sollicitations"
-      this.activeTab =
-        ctx === TicketContext.TEAM || ctx === TicketContext.TERMINATED_TEAM
-          ? Tab.MY_TEAM
-          : Tab.SOLICITING;
-
-      this.cdr.markForCheck();
-    };
-
-    // init + mise à jour sur chaque navigation
-    setActiveFromRoute();
-    this.router.events
-      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
-      .subscribe(setActiveFromRoute);
-  }
-
-  protected showBadge(tab: string): boolean {
-    return tab === Tab.SOLICITING;
-  }
-
-  protected handleTabClick(tab: Tab): void {
-    this.activeTab = tab; // feedback instantané
-    if (tab === Tab.MY_TEAM) {
-      this.router.navigate(['/ticket-list', 'team-list'], { queryParamsHandling: 'merge' });
-    } else {
-      this.router.navigate(['/ticket-list'], { queryParamsHandling: 'merge' });
+    if (qp && FilterCardType[qp] !== undefined) {
+      cardType = FilterCardType[qp];
+    } else if (stored && FilterCardType[stored] !== undefined) {
+      cardType = FilterCardType[stored];
     }
   }
+
+  // … reste du resolver
 }
+
+this.route.queryParamMap
+  .pipe(/* ... */)
+  .subscribe(qp => {
+    const raw = (qp.get('card') ?? '') as keyof typeof FilterCardType;
+    const next =
+      raw && FilterCardType[raw] !== undefined ? FilterCardType[raw] : FilterCardType.NONE;
+
+    this.activeCard = next;
+
+    if (next === FilterCardType.NONE) {
+      localStorage.removeItem('lastSelectedCard');
+    }
+  });
