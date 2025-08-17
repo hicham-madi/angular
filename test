@@ -1,65 +1,21 @@
-// 1) garde le dernier tri demandé
-protected currentSort: { sortKey: string | null; isAsc: boolean | null } = {
-  sortKey: null,
-  isAsc: null,
-};
+private readonly STATUS_LABEL_ORDER = [
+  'résolue',
+  'en cours',
+  'à clôturer',
+  'en approbation',
+  'nouvelle',
+  'annulée',
+  'approbation refusée',
+] as const;
 
-protected onSortChanged(sort: { sortKey: string | null; isAsc: boolean | null }): void {
-  this.currentSort = sort;
-
-  // reset de la liste
-  this.currentPage = 0;
-  this.scrollCompleted = false;
-  this.allPagesLoaded = false;
-  this.tickets = [];
-  this.loadedElements = 0;
-  this.hasPendingPage = true;
-
-  const card = this.activeCard ?? FilterCardType.NONE;
-
-  // 2) si on trie par statut, on ne demande PAS de tri serveur
-  const serverSort =
-    sort.sortKey === 'status' ? { sortKey: null, isAsc: null } : sort;
-
-  this.cardConfigFactory
-    .loadTicketsByCard(card, this.currentContext, 0, serverSort)
-    .subscribe({
-      next: (response) => {
-        this.handleTicketResponse(response);
-
-        // 3) tri local spécifique aux statuts (ordre métier)
-        if (sort.sortKey === 'status') {
-          const asc = !!sort.isAsc;
-          this.tickets.sort((a, b) =>
-            this.compareStatus(a.status, b.status, asc)
-          );
-          this.cdr.detectChanges();
-        }
-      },
-      error: (err) => console.error('Erreur tri page 0 :', err),
-    });
-}
-
-/** Ordre métier du statut (adapter la séquence si besoin) */
 private compareStatus(a: string, b: string, asc: boolean): number {
-  const order = [
-    TicketStatus.NEW,
-    TicketStatus.APPROVAL_PENDING,
-    TicketStatus.PROCESSING,
-    TicketStatus.PENDING,
-    TicketStatus.TO_BE_CLOSED,
-    TicketStatus.SOLVED,
-    TicketStatus.CANCELED,
-    TicketStatus.APPROVAL_REFUSED,
-    TicketStatus.CLOSED,
-  ] as string[];
+  const la = this.getStatusLabelForTicket(a);
+  const lb = this.getStatusLabelForTicket(b);
 
-  const ai = order.indexOf(a);
-  const bi = order.indexOf(b);
+  const ia = this.STATUS_LABEL_ORDER.indexOf(la as any);
+  const ib = this.STATUS_LABEL_ORDER.indexOf(lb as any);
 
-  // fallback alphabetique si un statut inconnu arrive
-  const base =
-    ai === -1 || bi === -1 ? a.localeCompare(b) : ai - bi;
-
+  // si libellé inconnu, fallback alphabétique sur le libellé affiché
+  const base = (ia === -1 || ib === -1) ? la.localeCompare(lb, 'fr') : ia - ib;
   return asc ? base : -base;
 }
