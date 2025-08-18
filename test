@@ -1,36 +1,30 @@
-public static com.hazelcast.query.Predicate<Object, Ticket> approvals(
-    String managerId,
-    List<String> edsChilds,
-    String customerEdsId
-) {
-    // 1) Manager predicate (managerId -> IN edsChilds -> alwaysTrue)
-    com.hazelcast.query.Predicate<Object, Ticket> managerPredicate;
-    if (StringUtils.isNotEmpty(managerId)) {
-        managerPredicate = Predicates.equal(APPROVAL_MANAGER_FIELD, managerId);
-    } else if (edsChilds != null && !edsChilds.isEmpty()) {
-        // String implémente Comparable, on peut fournir un String[]
-        managerPredicate = Predicates.in(
-            APPROVAL_MANAGER_FIELD,
-            edsChilds.toArray(new String[0])
-        );
-    } else {
-        managerPredicate = Predicates.alwaysTrue();
-    }
-
-    // 2) Statuts : APPROVAL_PENDING OR (APPROVAL_REFUSED AND APPROVAL_DISCUSSION_FIELD=true)
-    com.hazelcast.query.Predicate<Object, Ticket> statusPredicate = Predicates.or(
-        Predicates.equal(STATUS_FIELD, StatusTicket.APPROVAL_PENDING.toString()),
-        Predicates.and(
-            Predicates.equal(STATUS_FIELD, StatusTicket.APPROVAL_REFUSED.toString()),
-            Predicates.equal(APPROVAL_DISCUSSION_FIELD, true)
-        )
-    );
-
-    // 3) Conjonction finale
-    return Predicates.and(
-        managerPredicate,
-        statusPredicate,
-        getPrivatePredicate(managerId),
-        getPredicateCustomerEds(managerId, edsChilds, customerEdsId)
-    );
+public hasActiveFilters(): boolean {
+  return !!(
+    this.searchTerm.trim() ||
+    this.selectedStatus ||
+    this.selectedAgency ||
+    this.selectedCollaborator ||
+    this.selectedCampaign
+  );
 }
+
+public resetFilters(): void {
+  this.searchTerm = '';
+  this.selectedStatus = '';
+  this.selectedAgency = '';
+  this.selectedCollaborator = '';
+  this.selectedCampaign = '';
+
+  // réémettre les changements
+  this.searchChanged.emit(this.searchTerm);
+  this.statusChanged.emit(this.selectedStatus);
+  this.agencyChanged.emit(this.selectedAgency);
+  this.collaboratorChanged.emit(this.selectedCollaborator);
+  this.campaignChanged.emit(this.selectedCampaign);
+}
+
+<div class="uk-width-expand padding-small" *ngIf="hasActiveFilters()">
+  <button class="canard-fonce-button" (click)="resetFilters()">
+    Réinitialiser les filtres
+  </button>
+</div>8
