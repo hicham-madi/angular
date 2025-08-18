@@ -1,102 +1,38 @@
-// mbot.service.ts (ou service équivalent)
-export enum Tab {
-  SOLICITING = 'Mes sollicitations',
-  MY_TEAM = 'Mon équipe',
-  TERMINATED = 'Terminées',          // déjà présent
-  // (pas obligé d’ajouter TERMINATED_TEAM si on gère avec un flag)
-}
+.filter-bar {
+  .status {
+    // Style par défaut : même rendu que les autres listes
+    select {
+      outline: none;
+      background: white;
+      color: $text;
+      transition: background-color .2s ease, color .2s ease;
+    }
 
-private openedFromTab: Tab = Tab.SOLICITING;
-private openedFromTerminated = false;
+    // Quand une valeur ≠ "" est sélectionnée → colorer UNIQUEMENT le bouton
+    select:has(option:checked:not([value=""])) {
+      background: $vert-prairie;
+      color: white;           // lisibilité (facultatif)
+      font-weight: 600;       // équiv. à .font-weight-large
+    }
 
-public setOpenedFromTab(tab: Tab, isTerminated = false): void {
-  this.openedFromTab = tab;
-  this.openedFromTerminated = isTerminated;
-}
-
-public getOpenedFromTab(): Tab {
-  return this.openedFromTab;
-}
-
-public getOpenedFromTerminated(): boolean {
-  return this.openedFromTerminated;
-}
-
-// page-header.component.ts
-constructor(
-  private readonly router: Router,
-  private readonly jwtService: JwtService,
-  private readonly metabotBridge: MetabotBridgeService,
-  private readonly mbotService: MbotService,           // <— injecte le service
-) {}
-
-public ngOnInit(): void {
-  const pair = Array.from(this.tabsUrls).find(([_, url]) => this.router.url === url);
-  if (pair) this.activeTab = pair[0];
-
-  // initialise l’origine en fonction de l’URL courante
-  const isTerminated = this.router.url.includes('/terminated-list');
-  this.mbotService.setOpenedFromTab(this.activeTab, isTerminated);
-}
-
-protected handleTabClick(tab: Tab): void {
-  this.activeTab = tab;
-  this.maximize();
-
-  const url = this.tabsUrls.get(this.activeTab) ?? '/ticket-list';
-
-  // quand on change d’onglet, on n’est pas en “terminated” par défaut
-  this.mbotService.setOpenedFromTab(tab, false);
-
-  this.router.navigate([url]);
-}
-// là où tu fais la navigation vers terminated/ongoing (ex: TicketsPageBase.onTabChange)
-const base = this.getBaseListSegment(); // 'ticket-list' ou 'team-list'
-const isTerminated = tabValue !== 'ongoing';
-this.mbotService.setOpenedFromTab(
-  this.currentContext === TicketContext.TEAM ? Tab.MY_TEAM : Tab.SOLICITING,
-  isTerminated
-);
-
-this.router.navigate(isTerminated ? ['/', base, 'terminated-list'] : ['/', base], {
-  queryParamsHandling: 'merge',
-});
-
-// ticket-header-info.component.ts
-protected goToList(): void {
-  if (!this.listService.loadingResolver) {
-    this.listService.getCurrentParams().claimCodeFilter = [];
-    this.listService.setCurrentSelectedTicket('');
-    this.listService.loadingResolver = true;
-    this.closeTicket(false);
-  }
-
-  const fromTab = this.mbotService.getOpenedFromTab();
-  const fromTerminated = this.mbotService.getOpenedFromTerminated();
-
-  const lastCard = localStorage.getItem('lastSelectedCard');
-  const queryParams = lastCard ? { card: lastCard } : undefined;
-
-  const route: string[] = ['ticket-list'];
-
-  if (fromTab === Tab.MY_TEAM) {
-    route.push('team-list');
-    if (fromTerminated) route.push('terminated-list');
-  } else if (fromTab === Tab.TERMINATED) {
-    // si tu utilises encore ce tab
-    route.push('terminated-list');
-  } else {
-    // Mes sollicitations
-    if (fromTerminated) {
-      route.push('terminated-list');
+    // Quand la valeur = "" → garder le fond blanc
+    select:has(option:checked[value=""]) {
+      background: white;
+      color: $text;
+      font-weight: normal;
     }
   }
 
-  this.router.navigate(route, {
-    ...(queryParams && { queryParams }),
-    ...(queryParams && { queryParamsHandling: 'merge' }),
-  });
-
-  this.mbotService.clearOpenedFromTab?.(); // optionnel si tu veux reset
+  // Important : ne pas styler les <option> (on laisse le rendu natif)
+  // select option { background: initial; } // à éviter, certains navigateurs l’ignorent
 }
 
+<select
+  [ngModel]="statusValue"
+  (ngModelChange)="statusValue = $event"
+  [ngClass]="{ 'has-value': statusValue !== '' }">
+  …
+</select>
+
+.filter-bar .status select { background: white; color: $text; }
+.filter-bar .status select.has-value { background: $vert-prairie; color: white; font-weight: 600; }
