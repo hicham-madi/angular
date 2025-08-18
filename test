@@ -1,12 +1,36 @@
-Predicate<Ticket> predicateCustomerId =
-    ticket -> customerId.equals(ticket.getCustomerId());
+public static com.hazelcast.query.Predicate<Object, Ticket> approvals(
+    String managerId,
+    List<String> edsChilds,
+    String customerEdsId
+) {
+    // 1) Manager predicate (managerId -> IN edsChilds -> alwaysTrue)
+    com.hazelcast.query.Predicate<Object, Ticket> managerPredicate;
+    if (StringUtils.isNotEmpty(managerId)) {
+        managerPredicate = Predicates.equal(APPROVAL_MANAGER_FIELD, managerId);
+    } else if (edsChilds != null && !edsChilds.isEmpty()) {
+        // String implémente Comparable, on peut fournir un String[]
+        managerPredicate = Predicates.in(
+            APPROVAL_MANAGER_FIELD,
+            edsChilds.toArray(new String[0])
+        );
+    } else {
+        managerPredicate = Predicates.alwaysTrue();
+    }
 
-Predicate<Ticket> predicateIsDsAffectedToEdsId =
-    ticket -> filters.getEds().contains(ticket.getCustomer().getEdsId());
+    // 2) Statuts : APPROVAL_PENDING OR (APPROVAL_REFUSED AND APPROVAL_DISCUSSION_FIELD=true)
+    com.hazelcast.query.Predicate<Object, Ticket> statusPredicate = Predicates.or(
+        Predicates.equal(STATUS_FIELD, StatusTicket.APPROVAL_PENDING.toString()),
+        Predicates.and(
+            Predicates.equal(STATUS_FIELD, StatusTicket.APPROVAL_REFUSED.toString()),
+            Predicates.equal(APPROVAL_DISCUSSION_FIELD, true)
+        )
+    );
 
-Predicate<Ticket> globalDsPredicate = predicateClaimTypeDS
-    .and(predicateStatus)                     // ton prédicat de statut global
-    .and(predicatePrivate)                    // prédicat de confidentialité
-    .and(predicateCustomerId.or(predicateIsDsAffectedToEdsId))
-    .and(predicateStatusValidationExpert)     // status = VALIDATION_EXPERT
-    .and(predicateReadCustomerTrue);          // readCustomer = true
+    // 3) Conjonction finale
+    return Predicates.and(
+        managerPredicate,
+        statusPredicate,
+        getPrivatePredicate(managerId),
+        getPredicateCustomerEds(managerId, edsChilds, customerEdsId)
+    );
+}
