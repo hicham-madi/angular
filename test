@@ -1,38 +1,35 @@
-.filter-bar {
-  .status {
-    // Style par défaut : même rendu que les autres listes
-    select {
-      outline: none;
-      background: white;
-      color: $text;
-      transition: background-color .2s ease, color .2s ease;
-    }
-
-    // Quand une valeur ≠ "" est sélectionnée → colorer UNIQUEMENT le bouton
-    select:has(option:checked:not([value=""])) {
-      background: $vert-prairie;
-      color: white;           // lisibilité (facultatif)
-      font-weight: 600;       // équiv. à .font-weight-large
-    }
-
-    // Quand la valeur = "" → garder le fond blanc
-    select:has(option:checked[value=""]) {
-      background: white;
-      color: $text;
-      font-weight: normal;
-    }
-  }
-
-  // Important : ne pas styler les <option> (on laisse le rendu natif)
-  // select option { background: initial; } // à éviter, certains navigateurs l’ignorent
+.tab {
+  border-bottom: 2px solid $text-border;
+  transition: all .2s ease;
 }
 
-<select
-  [ngModel]="statusValue"
-  (ngModelChange)="statusValue = $event"
-  [ngClass]="{ 'has-value': statusValue !== '' }">
-  …
-</select>
+// Style appliqué à l’onglet actif
+.active-tab {
+  color: $canard-moyen;
+  border-bottom: 2px solid $canard-moyen;
+  background-color: $vert-prairie;
+}
 
-.filter-bar .status select { background: white; color: $text; }
-.filter-bar .status select.has-value { background: $vert-prairie; color: white; font-weight: 600; }
+// Hover uniquement pour Mon équipe
+.team-tab:hover {
+  color: $canard-moyen;
+  border-bottom: 2px solid $canard-moyen;
+  background-color: $vert-prairie;
+}
+
+// Cas spécial : si Mon équipe est actif → activer hover sur Mes sollicitations
+.team-tab.active-tab ~ .solicitations-tab:hover {
+  color: $canard-moyen;
+  border-bottom: 2px solid $canard-moyen;
+  background-color: $vert-prairie;
+}
+<button 
+  class="text-button tab border-none no-radius padding-small" 
+  [ngClass]="{ 
+    'active-tab': tab === activeTab, 
+    'team-tab': tab === 'Mon équipe',
+    'solicitations-tab': tab === 'Mes sollicitations'
+  }"
+  (click)="handleTabClick(tab)">
+  <div>{{ tab }}</div>
+</button>
