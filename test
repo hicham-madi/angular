@@ -1,35 +1,28 @@
-.tab {
-  border-bottom: 2px solid $text-border;
-  transition: all .2s ease;
-}
+.filter-bar {
+  .status {
+    select {
+      // style de base du bouton
+      background: white;
+      color: $text;
+    }
 
-// Style appliqué à l’onglet actif
-.active-tab {
-  color: $canard-moyen;
-  border-bottom: 2px solid $canard-moyen;
-  background-color: $vert-prairie;
-}
+    // quand une valeur ≠ "" est sélectionnée → bouton vert
+    select:has(option:checked:not([value=""])) {
+      @extend .font-weight-large;
+      background: $vert-prairie;
+      color: white;
+    }
 
-// Hover uniquement pour Mon équipe
-.team-tab:hover {
-  color: $canard-moyen;
-  border-bottom: 2px solid $canard-moyen;
-  background-color: $vert-prairie;
-}
+    // toutes les options non sélectionnées → fond blanc
+    select option {
+      background: white;
+      color: $text;
+    }
 
-// Cas spécial : si Mon équipe est actif → activer hover sur Mes sollicitations
-.team-tab.active-tab ~ .solicitations-tab:hover {
-  color: $canard-moyen;
-  border-bottom: 2px solid $canard-moyen;
-  background-color: $vert-prairie;
+    // option sélectionnée → garder le fond système (ou vert si tu veux)
+    select option:checked {
+      background: $vert-prairie;
+      color: white;
+    }
+  }
 }
-<button 
-  class="text-button tab border-none no-radius padding-small" 
-  [ngClass]="{ 
-    'active-tab': tab === activeTab, 
-    'team-tab': tab === 'Mon équipe',
-    'solicitations-tab': tab === 'Mes sollicitations'
-  }"
-  (click)="handleTabClick(tab)">
-  <div>{{ tab }}</div>
-</button>
