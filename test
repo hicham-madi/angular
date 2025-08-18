@@ -1,31 +1,12 @@
-public static com.hazelcast.query.Predicate<Object, Ticket> approvals(
-        String managerId,
-        List<String> edsChilds,
-        String customerEdsId
-) {
-    // 1) Filtre manager : managerId OU (à défaut) liste edsChilds, sinon no-op
-    com.hazelcast.query.Predicate<Object, Ticket> managerPredicate =
-        StringUtils.isNotEmpty(managerId)
-            ? Predicates.equal(APPROVAL_MANAGER_FIELD, managerId)
-            : (edsChilds != null && !edsChilds.isEmpty()
-                ? Predicates.in(APPROVAL_MANAGER_FIELD, edsChilds.toArray(new Comparable[0]))
-                : Predicates.alwaysTrue());
+Predicate<Ticket> predicateCustomerId =
+    ticket -> customerId.equals(ticket.getCustomerId());
 
-    // 2) Statuts : APPROVAL_PENDING  OR  (APPROVAL_REFUSED AND APPROVAL_DISCUSSION_FIELD=true)
-    com.hazelcast.query.Predicate<Object, Ticket> statusPredicate =
-        Predicates.or(
-            Predicates.equal(STATUS_FIELD, StatusTicket.APPROVAL_PENDING.toString()),
-            Predicates.and(
-                Predicates.equal(STATUS_FIELD, StatusTicket.APPROVAL_REFUSED.toString()),
-                Predicates.equal(APPROVAL_DISCUSSION_FIELD, true)
-            )
-        );
+Predicate<Ticket> predicateIsDsAffectedToEdsId =
+    ticket -> filters.getEds().contains(ticket.getCustomer().getEdsId());
 
-    // 3) Conjonction finale
-    return Predicates.and(
-        managerPredicate,
-        statusPredicate,
-        getPrivatePredicate(managerId),
-        getPredicateCustomerEds(managerId, edsChilds, customerEdsId)
-    );
-}
+Predicate<Ticket> globalDsPredicate = predicateClaimTypeDS
+    .and(predicateStatus)                     // ton prédicat de statut global
+    .and(predicatePrivate)                    // prédicat de confidentialité
+    .and(predicateCustomerId.or(predicateIsDsAffectedToEdsId))
+    .and(predicateStatusValidationExpert)     // status = VALIDATION_EXPERT
+    .and(predicateReadCustomerTrue);          // readCustomer = true
