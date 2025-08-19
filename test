@@ -1,13 +1,8 @@
 protected onCardClicked(type: FilterCardType): void {
-  this.cardClickedOnce = true;
-
   const nextCard = this.activeCard === type ? FilterCardType.NONE : type;
-
-  // maj état local minimal
-  this.activeCard = nextCard;
+  this.activeCard = nextCard;          // état local
   this.resetPagination();
 
-  // 👉 ne plus appeler loadTicketsByCard ici
   this.router.navigate([], {
     relativeTo: this.route,
     queryParams: { card: nextCard === FilterCardType.NONE ? null : nextCard },
@@ -15,27 +10,56 @@ protected onCardClicked(type: FilterCardType): void {
   });
 }
 
-ngOnInit() {
+public ngOnInit(): void {
+  const data = this.route.snapshot.data['prefetch'] as TicketListPrefetch;
+
+  this.currentContext = data.context;
+  this.currentTab = data.initialTab;
+
+  if (!Object.keys(this.columnConfig || {}).length) {
+    this.columnConfig = data.config.displayedColumns;
+  }
+
+  // card initiale (URL au moment de l’arrivée)
+  this.activeCard = (data.cardType ?? FilterCardType.NONE);
+
+  // garder (optionnel) le lastSelectedCard
+  if (this.activeCard && this.activeCard !== FilterCardType.NONE) {
+    localStorage.setItem('lastSelectedCard', this.activeCard.toString());
+  } else {
+    localStorage.removeItem('lastSelectedCard');
+  }
+
+  // init locale + hydratation avec le resolver (AUCUN WS ici)
+  this.initialization(this.currentContext);
+  this.hydrateFromResponse(data.tickets);
+
+  // ==== source unique de chargement après coup ====
   this.sub = this.route.queryParamMap.pipe(
     map(p => (p.get('card') as FilterCardType) ?? FilterCardType.NONE),
-    distinctUntilChanged(),               // évite les doublons
-    tap(card => { this.activeCard = card; this.resetPagination(); }),
-    switchMap(card => this.loadTicketsByCard(card, this.currentContext, 0, this.buildOpts())),
-    // shareReplay(1) si tu réutilises le résultat ailleurs
+    // ne pas relancer si la valeur initiale est identique
+    distinctUntilChanged(),
+    switchMap(card => {
+      if (card === this.activeCard) {
+        return EMPTY; // évite l’appel juste après l’arrivée
+      }
+      this.activeCard = card;
+      this.resetPagination();
+      const opts = this.buildOpts(); // ton builder d'options
+      return this.loadTicketsByCard(card, this.currentContext, 0, opts);
+    })
   ).subscribe({
     next: res => this.hydrateFromResponse(res),
-    error: err => { console.error('Erreur WS', err); this.isLoading = false; }
+    error: err => { console.error('Erreur chargement par carte :', err); this.isLoading = false; }
   });
 }
 
-ngOnDestroy() { this.sub?.unsubscribe(); }
-
 protected goToList(): void {
-  const lastCard = localStorage.getItem('lastSelectedCard') ?? null; // ou supprime ce storage et passes tout par l’URL
-  const route: string[] = ['/ticket-list']; // ou '/ticket-list/team-list' selon contexte
+  const route = ['/ticket-list']; // ou team-list selon contexte
+  const lastCard = localStorage.getItem('lastSelectedCard') ?? null;
 
   this.router.navigate(route, {
     queryParams: lastCard ? { card: lastCard } : {},
-    replaceUrl: true // optionnel
+    replaceUrl: true
   });
 }
