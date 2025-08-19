@@ -1,38 +1,57 @@
-// ex. tickets-page.base.ts / page-header.component.ts
+// page-header.component.ts
+@Output() tabClick = new EventEmitter<Tab>();
 
-const DEFAULT_SORT = { sortKey: 'lastActivityTimestamp', isAsc: false };
+protected handleTabClick(tab: Tab): void {
+  this.activeTab = tab;
+  this.tabClick.emit(tab);                  // << informer le parent
+  this.maximize();
+
+  // (optionnel) garder la navigation ici
+  this.router.navigate([this.tabsUrls.get(tab)!], {
+    queryParams: {}
+  });
+}
+
+<!-- page-header.component.html -->
+<button class="text-button tab"
+        (click)="handleTabClick(tab)">
+  {{ tab }}
+</button>
+
+// ticket-list-page.component.ts (le parent)
+@ViewChild(FilterBarComponent) filterBar?: FilterBarComponent;
+
+private readonly DEFAULT_SORT = { sortKey: 'lastActivityTimestamp', isAsc: false };
+
+onHeaderTabClick(tab: Tab): void {
+  this.resetUI();                         // << tout remettre à zéro
+
+  // (si tu déplaces la nav ici plutôt que dans le header)
+  // this.router.navigate([this.tabsUrls.get(tab)!], { queryParams: {} });
+}
 
 private resetUI(): void {
-  // état de la page
-  this.currentPage = 0;
-  this.currentSort = { ...DEFAULT_SORT };
-  this.activeCard = FilterCardType.NONE;
-
-  // filtres (parent)
+  // filtres
   this.searchTerm = '';
   this.selectedStatus = '';
   this.selectedAgency = '';
   this.selectedCollaborator = '';
   this.selectedCampaign = '';
 
-  // si tu as un composant enfant FilterBar :
-  // @ViewChild(FilterBarComponent) filterBar!: FilterBarComponent;
-  // this.filterBar?.resetFilters();
+  // tri / pagination / carte active
+  this.currentPage = 0;
+  this.currentSort = { ...this.DEFAULT_SORT };
+  this.activeCard = FilterCardType.NONE;
 
-  this.applyFilters();        // recharge la liste avec l’état initial
+  // reset visuel des inputs du composant enfant
+  this.filterBar?.resetFilters?.();
+
+  // recharger la liste
+  this.applyFilters();
 }
 
-protected handleTabClick(tab: Tab): void {
-  this.activeTab = tab;
-  this.maximize();
-  localStorage.removeItem('lastSelectedCard');
-
-  this.resetUI();  // ← remet l’affichage à l’état initial
-
-  const url = this.tabsUrls.get(this.activeTab)!; // '/ticket-list' ou '/ticket-list/team-list'
-  this.router.navigate([url], {
-    queryParams: {},              // enlève ?card & co
-    replaceUrl: true              // (optionnel) ne pollue pas l’historique
-    // queryParamsHandling: ''    // explicite : ne rien conserver
-  });
-}
+<!-- ticket-list-page.component.html -->
+<metabot-page-header
+  [currentCount]="ticketsCountSolicitations"
+  (tabClick)="onHeaderTabClick($event)">
+</metabot-page-header>
