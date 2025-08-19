@@ -1,4 +1,10 @@
-this.router.navigate(
-  [this.tabsUrls.get(this.activeTab)],
-  { queryParams: { refresh: new Date().getTime() } }
-);
+protected handleTabClick(tab: Tab): void {
+  this.activeTab = tab;
+  this.maximize();
+  localStorage.removeItem('lastSelectedCard');
+
+  this.router.navigate(
+    [this.tabsUrls.get(this.activeTab)],
+    { queryParams: { refresh: new Date().getTime() } } // ajoute un paramètre unique
+  );
+}
