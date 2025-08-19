@@ -1,57 +1,64 @@
+<!-- ticket-list-page.component.html -->
+<form [formGroup]="dateRange" class="range-wrapper">
+  <mat-date-range-input [formGroup]="dateRange" [rangePicker]="picker" [min]="min" [max]="max">
+    <input matStartDate formControlName="start" placeholder="JJ/MM/AAAA" [readonly]="true" />
+    <input matEndDate   formControlName="end"   placeholder="JJ/MM/AAAA" [readonly]="true" />
+  </mat-date-range-input>
+
+  <button type="button" class="icon-btn" (click)="picker.open()">
+    <span class="material-symbols-outlined">event</span>
+  </button>
+
+  <mat-date-range-picker #picker (closed)="onDateRangeChange()"></mat-date-range-picker>
+</form>
+
 import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 
-type DateRangeGroup = FormGroup<{
-  start: FormControl<Date | null>;
-  end: FormControl<Date | null>;
-}>;
-
 @Component({
-  selector: 'metabot-ticket-list-page',
-  templateUrl: './ticket-list-page.component.html',
+  selector: 'app-ticket-list-page',
+  templateUrl: './ticket-list-page.component.html'
 })
 export class TicketListPageComponent implements OnInit {
-  // Control passé à <input-control>
-  public dateRangeControl: DateRangeGroup = new FormGroup({
-    start: new FormControl<Date | null>(null, { nonNullable: false }),
-    end:   new FormControl<Date | null>(null, { nonNullable: false }),
+
+  min = new Date(2000, 0, 1);
+  max = new Date(2100, 11, 31);
+
+  dateRange = new FormGroup({
+    start: new FormControl<Date | null>(null),
+    end: new FormControl<Date | null>(null),
   });
 
   ngOnInit(): void {
-    // défaut = 90 derniers jours
     const today = new Date();
-    const pastDate = new Date();
-    pastDate.setDate(today.getDate() - 90);
+    const past = new Date();
+    past.setDate(today.getDate() - 90);
 
-    this.dateRangeControl.setValue({ start: pastDate, end: today }, { emitEvent: false });
-
-    // appliquer le filtre à chaque changement
-    this.dateRangeControl.valueChanges.subscribe(({ start, end }) => {
-      // sécurités basiques
-      if (!start || !end) return;
-      this.applyDateRangeFilter(start, end);
-    });
+    this.dateRange.setValue({ start: past, end: today }, { emitEvent: false });
   }
 
-  private applyDateRangeFilter(start: Date, end: Date): void {
-    // 👉 appelle ton WS / recharge la liste avec ces bornes
-    // this.loadTickets({ dateFrom: start, dateTo: end, ... });
-  }
+  onDateRangeChange(): void {
+    const { start, end } = this.dateRange.value;
+    console.log('Date range sélectionné:', start, end);
 
-  // (optionnel) pour réinitialiser depuis un bouton
-  public resetDateRange(): void {
-    const today = new Date();
-    const pastDate = new Date();
-    pastDate.setDate(today.getDate() - 90);
-    this.dateRangeControl.setValue({ start: pastDate, end: today });
+    // Exemple : recharger les tickets avec ce range
+    // this.ticketService.loadTickets({ start, end });
   }
 }
 
-<!-- Range date : on passe le FormGroup au control -->
-<input-control
-  [type]="'INPUT_DATE_RANGE'"
-  [control]="dateRangeControl">
-</input-control>
+import { ReactiveFormsModule } from '@angular/forms';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatNativeDateModule } from '@angular/material/core';
 
-<!-- (optionnel) bouton reset local -->
-<!-- <button class="canard-fonce-button" (click)="resetDateRange()">Réinitialiser</button> -->
+@NgModule({
+  imports: [
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatDatepickerModule,
+    MatNativeDateModule
+  ]
+})
+export class TicketListPageModule {}
