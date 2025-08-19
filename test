@@ -1,14 +1,51 @@
-import { FormControl, FormGroup } from '@angular/forms';
-
-dateRangeControl = new FormGroup({
+// ticket-list-page.component.ts
+public dateRangeControl = new FormGroup({
   start: new FormControl<Date | null>(null),
   end:   new FormControl<Date | null>(null),
 });
 
 ngOnInit(): void {
-  const end = new Date();
-  const start = new Date(); start.setDate(end.getDate() - 90);
-  this.dateRangeControl.setValue({ start, end }); // init 90 jours
-  // Vérif rapide : log les changements
-  this.dateRangeControl.valueChanges.subscribe(v => console.log('range maj:', v));
+  const today = new Date();
+  const past  = new Date(); past.setDate(today.getDate() - 90);
+
+  this.dateRangeControl.setValue({ start: past, end: today }, { emitEvent: false });
+
+  // (facultatif) écoute si tu veux déclencher un rechargement plus tard
+  this.dateRangeControl.valueChanges.subscribe(({ start, end }) => {
+    if (!start || !end) return;
+    // console.log('range changed', start, end);
+  });
+}
+
+<input-control
+  [type]="'INPUT_DATE_RANGE'"
+  [control]="dateRangeControl">
+</input-control>
+
+<!-- INPUT_DATE_RANGE -->
+@if (control && type === 'INPUT_DATE_RANGE') {
+  <div class="uk-width-expand uk-margin-auto-vertical">
+    <div class="input-wrapper input padding-large-right"
+         [ngClass]="{ 'invalid-select': (control.touched && control.invalid) }"
+         [formGroup]="control"> <!-- <— ICI: on déclare le formGroup -->
+
+      <mat-date-range-input [rangePicker]="picker" [min]="min" [max]="max">
+        <input id="id_start"
+               matStartDate
+               placeholder="JJ/MM/AAAA"
+               [readonly]="true"
+               formControlName="start"> <!-- <— ICI -->
+        <input id="id_end"
+               matEndDate
+               placeholder="JJ/MM/AAAA"
+               [readonly]="true"
+               formControlName="end">   <!-- <— ICI -->
+      </mat-date-range-input>
+
+      <span class="icon-s18 material-symbols-outlined pointer mat-icon-right"
+            (click)="control.markAsTouched(); picker.open()">event</span>
+
+      <mat-date-range-picker #picker></mat-date-range-picker>
+    </div>
+  </div>
 }
