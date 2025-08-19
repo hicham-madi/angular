@@ -1,57 +1,41 @@
-// page-header.component.ts
-@Output() tabClick = new EventEmitter<Tab>();
+protected onCardClicked(type: FilterCardType): void {
+  this.cardClickedOnce = true;
 
-protected handleTabClick(tab: Tab): void {
-  this.activeTab = tab;
-  this.tabClick.emit(tab);                  // << informer le parent
-  this.maximize();
+  const nextCard = this.activeCard === type ? FilterCardType.NONE : type;
 
-  // (optionnel) garder la navigation ici
-  this.router.navigate([this.tabsUrls.get(tab)!], {
-    queryParams: {}
+  // maj état local minimal
+  this.activeCard = nextCard;
+  this.resetPagination();
+
+  // 👉 ne plus appeler loadTicketsByCard ici
+  this.router.navigate([], {
+    relativeTo: this.route,
+    queryParams: { card: nextCard === FilterCardType.NONE ? null : nextCard },
+    queryParamsHandling: 'merge'
   });
 }
 
-<!-- page-header.component.html -->
-<button class="text-button tab"
-        (click)="handleTabClick(tab)">
-  {{ tab }}
-</button>
-
-// ticket-list-page.component.ts (le parent)
-@ViewChild(FilterBarComponent) filterBar?: FilterBarComponent;
-
-private readonly DEFAULT_SORT = { sortKey: 'lastActivityTimestamp', isAsc: false };
-
-onHeaderTabClick(tab: Tab): void {
-  this.resetUI();                         // << tout remettre à zéro
-
-  // (si tu déplaces la nav ici plutôt que dans le header)
-  // this.router.navigate([this.tabsUrls.get(tab)!], { queryParams: {} });
+ngOnInit() {
+  this.sub = this.route.queryParamMap.pipe(
+    map(p => (p.get('card') as FilterCardType) ?? FilterCardType.NONE),
+    distinctUntilChanged(),               // évite les doublons
+    tap(card => { this.activeCard = card; this.resetPagination(); }),
+    switchMap(card => this.loadTicketsByCard(card, this.currentContext, 0, this.buildOpts())),
+    // shareReplay(1) si tu réutilises le résultat ailleurs
+  ).subscribe({
+    next: res => this.hydrateFromResponse(res),
+    error: err => { console.error('Erreur WS', err); this.isLoading = false; }
+  });
 }
 
-private resetUI(): void {
-  // filtres
-  this.searchTerm = '';
-  this.selectedStatus = '';
-  this.selectedAgency = '';
-  this.selectedCollaborator = '';
-  this.selectedCampaign = '';
+ngOnDestroy() { this.sub?.unsubscribe(); }
 
-  // tri / pagination / carte active
-  this.currentPage = 0;
-  this.currentSort = { ...this.DEFAULT_SORT };
-  this.activeCard = FilterCardType.NONE;
+protected goToList(): void {
+  const lastCard = localStorage.getItem('lastSelectedCard') ?? null; // ou supprime ce storage et passes tout par l’URL
+  const route: string[] = ['/ticket-list']; // ou '/ticket-list/team-list' selon contexte
 
-  // reset visuel des inputs du composant enfant
-  this.filterBar?.resetFilters?.();
-
-  // recharger la liste
-  this.applyFilters();
+  this.router.navigate(route, {
+    queryParams: lastCard ? { card: lastCard } : {},
+    replaceUrl: true // optionnel
+  });
 }
-
-<!-- ticket-list-page.component.html -->
-<metabot-page-header
-  [currentCount]="ticketsCountSolicitations"
-  (tabClick)="onHeaderTabClick($event)">
-</metabot-page-header>
