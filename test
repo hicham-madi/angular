@@ -1,10 +1,38 @@
+// ex. tickets-page.base.ts / page-header.component.ts
+
+const DEFAULT_SORT = { sortKey: 'lastActivityTimestamp', isAsc: false };
+
+private resetUI(): void {
+  // état de la page
+  this.currentPage = 0;
+  this.currentSort = { ...DEFAULT_SORT };
+  this.activeCard = FilterCardType.NONE;
+
+  // filtres (parent)
+  this.searchTerm = '';
+  this.selectedStatus = '';
+  this.selectedAgency = '';
+  this.selectedCollaborator = '';
+  this.selectedCampaign = '';
+
+  // si tu as un composant enfant FilterBar :
+  // @ViewChild(FilterBarComponent) filterBar!: FilterBarComponent;
+  // this.filterBar?.resetFilters();
+
+  this.applyFilters();        // recharge la liste avec l’état initial
+}
+
 protected handleTabClick(tab: Tab): void {
   this.activeTab = tab;
   this.maximize();
   localStorage.removeItem('lastSelectedCard');
 
-  this.router.navigate(
-    [this.tabsUrls.get(this.activeTab)],
-    { queryParams: { refresh: new Date().getTime() } } // ajoute un paramètre unique
-  );
+  this.resetUI();  // ← remet l’affichage à l’état initial
+
+  const url = this.tabsUrls.get(this.activeTab)!; // '/ticket-list' ou '/ticket-list/team-list'
+  this.router.navigate([url], {
+    queryParams: {},              // enlève ?card & co
+    replaceUrl: true              // (optionnel) ne pollue pas l’historique
+    // queryParamsHandling: ''    // explicite : ne rien conserver
+  });
 }
