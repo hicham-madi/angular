@@ -1,19 +1,35 @@
-import { FormControl } from '@angular/forms';
+import { FormGroup, FormControl } from '@angular/forms';
 
 export class TicketListPageComponent {
-  dateRangeControl = new FormControl();
+  dateRange = new FormGroup({
+    start: new FormControl<Date | null>(null),
+    end:   new FormControl<Date | null>(null),
+  });
 
   ngOnInit(): void {
-    const today = new Date();
-    const pastDate = new Date();
-    pastDate.setDate(today.getDate() - 90);
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 90);
+    this.dateRange.setValue({ start, end });   // valeur par défaut 90 jours
+  }
 
-    // On initialise le contrôle avec [start, end]
-    this.dateRangeControl.setValue({
-      start: pastDate,
-      end: today
-    });
+  onRangeChange(): void {
+    const v = this.dateRange.value;
+    // applique tes filtres / recharge la liste ici
+    this.applyFiltersWithRange(v.start!, v.end!);
   }
 }
 
-this.dateRangeControl.setValue([pastDate, today]);
+<div class="uk-flex uk-flex-middle uk-margin-small-top">
+  <div class="input-wrapper input padding-large-right">
+    <mat-date-range-input [formGroup]="dateRange" [rangePicker]="picker">
+      <input matStartDate formControlName="start" placeholder="JJ/MM/AAAA" [readOnly]="true">
+      <input matEndDate   formControlName="end"   placeholder="JJ/MM/AAAA" [readOnly]="true">
+    </mat-date-range-input>
+
+    <span class="icon-s18 material-symbols-outlined pointer mat-icon-right"
+          (click)="dateRange.markAsTouched(); picker.open()">event</span>
+
+    <mat-date-range-picker #picker (dateChange)="onRangeChange()"></mat-date-range-picker>
+  </div>
+</div>
