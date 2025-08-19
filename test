@@ -1,4 +1,15 @@
-public dateRangeControl = new FormControl();
+import { Component } from '@angular/core';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule, provideNativeDateAdapter } from '@angular/material/core';
 
-<input-control [type]="'INPUT_DATE_RANGE'" [control]="dateRangeControl"></input-control>
+@Component({
+  standalone: true,
+  imports: [MatDatepickerModule, MatNativeDateModule],
+  providers: [provideNativeDateAdapter()],  // ← adapter fourni ici
+  /* ... */
+})
+export class InputControlComponent {}
+
+import { MAT_DATE_LOCALE } from '@angular/material/core';
+providers: [provideNativeDateAdapter(), { provide: MAT_DATE_LOCALE, useValue: 'fr-FR' }]
 
