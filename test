@@ -1,13 +1,19 @@
-<div class="uk-flex uk-flex-between uk-flex-middle uk-margin-small-top">
-  <metabot-status-tabs
-    [tabs]="statusTabs"
-    (tabChange)="onTabChange($event)"
-    [selectedTab]="currentTab"
-    [currentCount]="ticketsCountSolicitations">
-  </metabot-status-tabs>
+import { FormControl } from '@angular/forms';
 
-  <input-control
-    [type]="'INPUT_DATE_RANGE'"
-    [control]="dateRangeControl">
-  </input-control>
-</div>
+export class TicketListPageComponent {
+  dateRangeControl = new FormControl();
+
+  ngOnInit(): void {
+    const today = new Date();
+    const pastDate = new Date();
+    pastDate.setDate(today.getDate() - 90);
+
+    // On initialise le contrôle avec [start, end]
+    this.dateRangeControl.setValue({
+      start: pastDate,
+      end: today
+    });
+  }
+}
+
+this.dateRangeControl.setValue([pastDate, today]);
