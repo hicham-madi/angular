@@ -1,47 +1,47 @@
-import { FormControl, FormGroup } from '@angular/forms';
+// ticket-list-page.component.ts
+import { FormControl } from '@angular/forms';
+import { DateRange } from '@angular/material/datepicker';
 
 export class TicketListPageComponent {
-  dateRangeControl = new FormGroup({
-    start: new FormControl<Date | null>(null),
-    end:   new FormControl<Date | null>(null),
-  });
+  // Contrôle pour le range
+  dateRangeControl = new FormControl<DateRange<Date> | null>(null);
 
   ngOnInit(): void {
-    const today = new Date();
-    const pastDate = new Date();
-    pastDate.setDate(today.getDate() - 90);
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 90);
 
-    this.dateRangeControl.setValue({ start: pastDate, end: today });
+    // Valeur par défaut : J-90 -> aujourd’hui
+    this.dateRangeControl.setValue(new DateRange<Date>(start, end));
   }
 }
 
-<input-control [type]="'INPUT_DATE_RANGE'" [control]="dateRangeControl"></input-control>
+<input-control
+  [type]="'INPUT_DATE_RANGE'"
+  [control]="dateRangeControl">
+</input-control>
 
-import { FormGroup, FormControl } from '@angular/forms';
 
-@Input() control!: FormGroup | FormControl; // selon le type
+@* ... *@
+@if (control && type === 'INPUT_DATE_RANGE') {
+  <div class="uk-width-expand uk-margin-auto-vertical" [ngClass]="{'invalid-select': (control.touched && control.invalid)}">
+    <div class="input-wrapper input padding-large-right">
+      <!-- C’est ICI qu’on lie le FormControl -->
+      <mat-date-range-input
+        [formControl]="control"
+        [rangePicker]="picker"
+        [min]="min"
+        [max]="max">
 
-<!-- INPUT_DATE_RANGE -->
-@{ if (control && type === 'INPUT_DATE_RANGE') { }
-  <div class="uk-width-expand uk-margin-auto-vertical">
-    <div class="input-wrapper input padding-large-right" 
-         [ngClass]="{ 'invalid-select': (control as FormGroup).touched && (control as FormGroup).invalid }">
-
-      <mat-date-range-input [formGroup]="control as FormGroup" [rangePicker]="picker">
-        <input id="start" matStartDate formControlName="start" placeholder="JJ/MM/AAAA" [readOnly]="true">
-        <input id="end"   matEndDate   formControlName="end"   placeholder="JJ/MM/AAAA" [readOnly]="true">
+        <input matStartDate placeholder="JJ/MM/AAAA" [readOnly]="true">
+        <input matEndDate   placeholder="JJ/MM/AAAA" [readOnly]="true">
       </mat-date-range-input>
 
       <span class="icon-s18 material-symbols-outlined pointer mat-icon-right"
-            (click)="(control as FormGroup).markAsTouched(); picker.open()">event</span>
+            (click)="control.markAsTouched(); picker.open()">event</span>
 
       <mat-date-range-picker #picker></mat-date-range-picker>
     </div>
   </div>
-@{ } }
-
-get rangeGroup(): FormGroup | null {
-  return this.type === 'INPUT_DATE_RANGE' && this.control instanceof FormGroup
-    ? this.control
-    : null;
 }
+@* ... *@
