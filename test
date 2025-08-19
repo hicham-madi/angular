@@ -1,51 +1,17 @@
-// ticket-list-page.component.ts
-public dateRangeControl = new FormGroup({
-  start: new FormControl<Date | null>(null),
-  end:   new FormControl<Date | null>(null),
-});
+// Dans input-control.component.ts
+protected dateRangeChange(_startEl: HTMLInputElement, _endEl: HTMLInputElement): void {
+  if (!this.control) { return; }
 
-ngOnInit(): void {
-  const today = new Date();
-  const past  = new Date(); past.setDate(today.getDate() - 90);
+  const startCtrl = this.control.get('start');
+  const endCtrl   = this.control.get('end');
 
-  this.dateRangeControl.setValue({ start: past, end: today }, { emitEvent: false });
+  // Récupère les valeurs *typed* (Date | null) depuis le form, pas depuis les inputs
+  const start: Date | null = startCtrl?.value ?? null;
+  const end: Date | null   = endCtrl?.value ?? null;
 
-  // (facultatif) écoute si tu veux déclencher un rechargement plus tard
-  this.dateRangeControl.valueChanges.subscribe(({ start, end }) => {
-    if (!start || !end) return;
-    // console.log('range changed', start, end);
-  });
-}
+  // Patch toujours LES DEUX clés ensemble (ne jamais setValue d’une seule clé)
+  this.control.patchValue({ start, end }, { emitEvent: true });
 
-<input-control
-  [type]="'INPUT_DATE_RANGE'"
-  [control]="dateRangeControl">
-</input-control>
-
-<!-- INPUT_DATE_RANGE -->
-@if (control && type === 'INPUT_DATE_RANGE') {
-  <div class="uk-width-expand uk-margin-auto-vertical">
-    <div class="input-wrapper input padding-large-right"
-         [ngClass]="{ 'invalid-select': (control.touched && control.invalid) }"
-         [formGroup]="control"> <!-- <— ICI: on déclare le formGroup -->
-
-      <mat-date-range-input [rangePicker]="picker" [min]="min" [max]="max">
-        <input id="id_start"
-               matStartDate
-               placeholder="JJ/MM/AAAA"
-               [readonly]="true"
-               formControlName="start"> <!-- <— ICI -->
-        <input id="id_end"
-               matEndDate
-               placeholder="JJ/MM/AAAA"
-               [readonly]="true"
-               formControlName="end">   <!-- <— ICI -->
-      </mat-date-range-input>
-
-      <span class="icon-s18 material-symbols-outlined pointer mat-icon-right"
-            (click)="control.markAsTouched(); picker.open()">event</span>
-
-      <mat-date-range-picker #picker></mat-date-range-picker>
-    </div>
-  </div>
+  // Feedback de saisie
+  this.control.markAsDirty();
 }
