@@ -1,35 +1,27 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
-import { DashboardCardData } from '../../models/dashboard-card-data';
+/* le conteneur existe déjà, on le garde */
+.attach-file-ctn {
+  position: relative;     /* point d’ancrage pour la popin */
+  /* width: 35px;  => tu peux le laisser si tu veux l’icône seule */
+}
 
-@Component({
-  selector: 'app-dashboard-card',
-  templateUrl: './dashboard-card.component.html',
-})
-export class DashboardCardComponent {
-  @Input() card!: DashboardCardData;
-  @Input() activeType?: string;
-  @Output() cardclicked = new EventEmitter<string>();
+/* === Fix du débordement === */
+.attach-file-ctn .attachment-popin {
+  position: absolute;     /* sort du flux => ne crée plus de scrollbar */
+  right: 0;               /* colle le bord droit de la popin au bouton */
+  bottom: 40px;           /* au-dessus du bouton (ajuste si besoin)    */
+  max-width: 360px;
+  width: max-content;     /* s’adapte au contenu */
+  z-index: 1000;
+  box-sizing: border-box;
+}
 
-  private urlCardType: string | null = null;
+/* Si l’animation UIkit la translate vers la droite, on neutralise localement */
+.attach-file-ctn .uk-animation-slide-right-medium {
+  transform: none;
+}
 
-  constructor(private route: ActivatedRoute) {
-    this.route.queryParamMap.subscribe((params) => {
-      this.urlCardType = params.get('card');
-    });
-  }
-
-  public isActive(): boolean {
-    // Soit activeType (logique actuelle), soit via l’URL
-    return (
-      this.activeType === this.card?.type ||
-      this.urlCardType === this.card?.type
-    );
-  }
-
-  public isDimmed(): boolean {
-    return (
-      this.cardclickedOnce && this.activeType !== 'NONE'
-    );
-  }
+/* Ceinture et bretelles : empêcher un éventuel débordement horizontal du conteneur parent */
+.attach-file-ctn,
+.attach-file-ctn .attachment-popin {
+  overflow-x: hidden;
 }
