@@ -1,17 +1,27 @@
-// Dans input-control.component.ts
-protected dateRangeChange(_startEl: HTMLInputElement, _endEl: HTMLInputElement): void {
-  if (!this.control) { return; }
+const hasValidSort =
+  this.currentSort?.sortKey != null && this.currentSort?.isAsc !== undefined;
 
-  const startCtrl = this.control.get('start');
-  const endCtrl   = this.control.get('end');
+const opts: {
+  sortKey?: string;
+  isAsc?: boolean;
+  searchTerm?: string;
+  statusFilter?: string;
+  agencyFilter?: string;
+  collaboratorFilter?: string;
+  campaignFilter?: string;
+} = {
+  ...(hasValidSort ? {
+    sortKey: this.currentSort!.sortKey!,
+    isAsc: !!this.currentSort!.isAsc   // garde false
+  } : {}),
+  searchTerm: this.searchTerm?.trim() ?? '',
+  statusFilter: this.selectedStatus ?? '',
+  agencyFilter: this.selectedAgency ?? '',
+  collaboratorFilter: this.selectedCollaborator ?? '',
+  campaignFilter: this.selectedCampaign ?? '',
+};
 
-  // Récupère les valeurs *typed* (Date | null) depuis le form, pas depuis les inputs
-  const start: Date | null = startCtrl?.value ?? null;
-  const end: Date | null   = endCtrl?.value ?? null;
+// (facultatif) debug
+// console.log('opts envoyés:', opts);
 
-  // Patch toujours LES DEUX clés ensemble (ne jamais setValue d’une seule clé)
-  this.control.patchValue({ start, end }, { emitEvent: true });
-
-  // Feedback de saisie
-  this.control.markAsDirty();
-}
+this.loadTicketsByCard(nextCard, this.currentContext, 0, opts)...
