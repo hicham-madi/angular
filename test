@@ -1,55 +1,22 @@
+import { FormControl } from '@angular/forms';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
-
-<!-- Recherche -->
-<input-control
-  [type]="'INPUT'"
-  [control]="searchControl"
-  [placeholder]="'Rechercher…'">
-</input-control>
-
-<!-- Statuts -->
-<input-control
-  [type]="'INPUT_SELECT'"
-  [control]="statusControl"
-  [options]="statusList">  <!-- [{label:string, value:string}] -->
-</input-control>
-
-
-import { FormControl, FormGroup } from '@angular/forms';
-
-export class TonComposant /* … */ {
-
-  // === Range date pour INPUT_DATE_RANGE ===
-  public dateRangeControl = new FormGroup({
-    start: new FormControl<Date | null>(null, { nonNullable: false }),
-    end:   new FormControl<Date | null>(null, { nonNullable: false }),
-  });
-
-  // (optionnels) Les autres contrôles si tu les utilises :
-  public searchControl = new FormControl<string>('');
-  public statusControl = new FormControl<string>('');
-
-  // Exemple d’options pour un select via input-control
-  public statusList = [
-    { label: 'Tous les statuts', value: '' },
-    { label: 'Ouvert',          value: 'OPEN' },
-    { label: 'Terminé',         value: 'DONE' },
-  ];
+export class FilterBarComponent {
+  public searchTextControl = new FormControl<string>('', { nonNullable: true });
 
   ngOnInit(): void {
-    // Valeur par défaut : 90 derniers jours
-    const today = new Date();
-    const past90 = new Date();
-    past90.setDate(today.getDate() - 90);
+    this.searchTextControl.valueChanges
+      .pipe(debounceTime(300), distinctUntilChanged()/*, takeUntil(this.destroy$)*/)
+      .subscribe(v => this.searchChanged.emit(v.trim()));
+  }
 
-    // Initialise sans déclencher d’événement si tu ne veux pas recharger tout de suite
-    this.dateRangeControl.setValue({ start: past90, end: today }, { emitEvent: false });
+  // Si tu utilises encore ce bouton pour vider le champ
+  public createSearchTextControlEmitter() {
+    return () => this.searchTextControl.setValue('');
+  }
 
-    // Écoute les changements (si tu dois réagir côté liste)
-    this.dateRangeControl.valueChanges.subscribe(({ start, end }) => {
-      if (!start || !end) { return; }
-      // TODO: applique ton filtrage / recharge WS ici
-      // this.reloadWithDates(start, end);
-    });
+  // Optionnel si tu veux garder (input)="onSearchChange()"
+  public onSearchChange(): void {
+    this.searchChanged.emit(this.searchTextControl.value?.trim() ?? '');
   }
 }
