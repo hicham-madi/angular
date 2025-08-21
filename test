@@ -1,3 +1,15 @@
 :host ::ng-deep input-control.search-control input {
   font-size: 16px;
 }
+
+
+
+/* traverse l'encapsulation vers le composant enfant */
+:host ::ng-deep input-control.search-control input::placeholder { 
+  font-size: 20px !important;
+}
+
+/* fallback navigateurs (au cas où) */
+:host ::ng-deep input-control.search-control input::-webkit-input-placeholder { font-size: 20px !important; }
+:host ::ng-deep input-control.search-control input::-moz-placeholder { font-size: 20px !important; }
+:host ::ng-deep input-control.search-control input:-ms-input-placeholder { font-size: 20px !important; }
