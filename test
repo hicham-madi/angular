@@ -1,22 +1,10 @@
-import { FormControl } from '@angular/forms';
-import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
+:host ::ng-deep input-control.search-control .input-wrapper {
+  /* adapte au markup interne d'input-control (ex: .input-wrapper, .field, etc.) */
+  height: 36px;
+  border-radius: 8px;
+}
 
-export class FilterBarComponent {
-  public searchTextControl = new FormControl<string>('', { nonNullable: true });
-
-  ngOnInit(): void {
-    this.searchTextControl.valueChanges
-      .pipe(debounceTime(300), distinctUntilChanged()/*, takeUntil(this.destroy$)*/)
-      .subscribe(v => this.searchChanged.emit(v.trim()));
-  }
-
-  // Si tu utilises encore ce bouton pour vider le champ
-  public createSearchTextControlEmitter() {
-    return () => this.searchTextControl.setValue('');
-  }
-
-  // Optionnel si tu veux garder (input)="onSearchChange()"
-  public onSearchChange(): void {
-    this.searchChanged.emit(this.searchTextControl.value?.trim() ?? '');
-  }
+:host ::ng-deep input-control.search-control input {
+  padding: 0 12px;
+  line-height: 36px;
 }
