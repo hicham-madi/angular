@@ -1,25 +1,21 @@
 protected newIcon(ticket: Ticket): void {
-  const next = this.getNextReadValue(ticket);   // <-- calcule le toggle
-  this.applyReadCustomerLocally(ticket, next);  // MAJ optimiste
+  const next = this.getNextReadValue(ticket);   // ✅ calcule le bon toggle
+
+  // MAJ optimiste pour déclencher le CSS immédiatement
+  this.applyReadCustomerLocally(ticket, next);
 
   this.mbotService.updateReadCustomer(ticket.id, this.jwtService.getId()).subscribe({
     next: () => {},
     error: () => {
-      // rollback si échec WS
-      this.applyReadCustomerLocally(ticket, this.getOppositeReadValue(ticket, next));
+      // rollback en cas d’échec
+      this.applyReadCustomerLocally(ticket, !next);
     }
   });
 }
 
-// Détermine la prochaine valeur à afficher localement (toggle)
+// Détermine la prochaine valeur correcte à appliquer
 private getNextReadValue(ticket: Ticket): boolean {
   const myId = this.jwtService.getId();
   const me = ticket.discussionGroup?.users?.find(u => u.id === myId);
   return me ? !me.ticketRead : !ticket.readCustomer;
-}
-
-// Optionnel: si tu veux remettre l’état précédent lors d’une erreur
-private getOppositeReadValue(ticket: Ticket, applied: boolean): boolean {
-  // L'opposé de ce que tu viens d'appliquer
-  return !applied;
 }
