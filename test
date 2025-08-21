@@ -19,3 +19,26 @@ public void updateReadCustomer(String envId, String ticketId, String userId) {
 
     ticketBuilderService.saveTicket(ticket);
 }
+
+
+public void updateReadCustomer(String envId, String ticketId, String userId) {
+    Ticket ticket = ticketRepository.findCustomTicketId(envId, ticketId)
+        .orElseThrow(() -> {
+            log.warn("ticket id {} could not be found", ticketId);
+            return new NotFoundException("ticket id " + ticketId);
+        });
+
+    if (ticket.getDiscussionGroup() != null && ticket.getDiscussionGroup().getUsers() != null && !ticket.getDiscussionGroup().getUsers().isEmpty()) {
+        boolean found = ticket.getDiscussionGroup().getUsers().stream()
+            .anyMatch(u -> Objects.equals(u.getId(), userId) && Boolean.TRUE.equals(u.getTicketRead()));
+
+        if (found) {
+            ticket.setReadCustomer(!Boolean.TRUE.equals(ticket.getReadCustomer()));
+        }
+    } else {
+        // Pas de discussionGroup → on inverse aussi
+        ticket.setReadCustomer(!Boolean.TRUE.equals(ticket.getReadCustomer()));
+    }
+
+    ticketBuilderService.saveTicket(ticket);
+}
