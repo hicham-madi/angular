@@ -1,21 +1,55 @@
-protected newIcon(ticket: Ticket): void {
-  const next = this.getNextReadValue(ticket);   // ✅ calcule le bon toggle
 
-  // MAJ optimiste pour déclencher le CSS immédiatement
-  this.applyReadCustomerLocally(ticket, next);
 
-  this.mbotService.updateReadCustomer(ticket.id, this.jwtService.getId()).subscribe({
-    next: () => {},
-    error: () => {
-      // rollback en cas d’échec
-      this.applyReadCustomerLocally(ticket, !next);
-    }
+<!-- Recherche -->
+<input-control
+  [type]="'INPUT'"
+  [control]="searchControl"
+  [placeholder]="'Rechercher…'">
+</input-control>
+
+<!-- Statuts -->
+<input-control
+  [type]="'INPUT_SELECT'"
+  [control]="statusControl"
+  [options]="statusList">  <!-- [{label:string, value:string}] -->
+</input-control>
+
+
+import { FormControl, FormGroup } from '@angular/forms';
+
+export class TonComposant /* … */ {
+
+  // === Range date pour INPUT_DATE_RANGE ===
+  public dateRangeControl = new FormGroup({
+    start: new FormControl<Date | null>(null, { nonNullable: false }),
+    end:   new FormControl<Date | null>(null, { nonNullable: false }),
   });
-}
 
-// Détermine la prochaine valeur correcte à appliquer
-private getNextReadValue(ticket: Ticket): boolean {
-  const myId = this.jwtService.getId();
-  const me = ticket.discussionGroup?.users?.find(u => u.id === myId);
-  return me ? !me.ticketRead : !ticket.readCustomer;
+  // (optionnels) Les autres contrôles si tu les utilises :
+  public searchControl = new FormControl<string>('');
+  public statusControl = new FormControl<string>('');
+
+  // Exemple d’options pour un select via input-control
+  public statusList = [
+    { label: 'Tous les statuts', value: '' },
+    { label: 'Ouvert',          value: 'OPEN' },
+    { label: 'Terminé',         value: 'DONE' },
+  ];
+
+  ngOnInit(): void {
+    // Valeur par défaut : 90 derniers jours
+    const today = new Date();
+    const past90 = new Date();
+    past90.setDate(today.getDate() - 90);
+
+    // Initialise sans déclencher d’événement si tu ne veux pas recharger tout de suite
+    this.dateRangeControl.setValue({ start: past90, end: today }, { emitEvent: false });
+
+    // Écoute les changements (si tu dois réagir côté liste)
+    this.dateRangeControl.valueChanges.subscribe(({ start, end }) => {
+      if (!start || !end) { return; }
+      // TODO: applique ton filtrage / recharge WS ici
+      // this.reloadWithDates(start, end);
+    });
+  }
 }
