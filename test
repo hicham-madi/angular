@@ -1,26 +1,21 @@
-import java.util.Objects;
-import java.util.Optional;
-
 public void updateReadCustomer(String envId, String ticketId, String userId) {
-    // 1) Ticket ou 404
     Ticket ticket = ticketRepository.findCustomTicketId(envId, ticketId)
         .orElseThrow(() -> {
             log.warn("ticket id {} could not be found", ticketId);
             return new NotFoundException("ticket id " + ticketId);
         });
 
-    // 2) Calcule readCustomer:
-    //    - si un discussionGroup existe, on regarde si l'utilisateur courant a ticketRead = true
-    //    - sinon on retombe sur la valeur déjà persistée sur le ticket
-    boolean readCustomer = Optional.ofNullable(ticket.getDiscussionGroup())
+    Optional.ofNullable(ticket.getDiscussionGroup())
         .map(DiscussionGroup::getUsers)
         .filter(users -> !users.isEmpty())
-        .map(users -> users.stream()
-            .anyMatch(u -> Objects.equals(u.getId(), userId)
-                        && Boolean.TRUE.equals(u.getTicketRead())))
-        .orElse(Boolean.TRUE.equals(ticket.getReadCustomer()));
+        .ifPresent(users -> {
+            boolean found = users.stream()
+                .anyMatch(u -> Objects.equals(u.getId(), userId) && Boolean.TRUE.equals(u.getTicketRead()));
 
-    // 3) Persistance
-    ticket.setReadCustomer(readCustomer);
+            if (found) {
+                ticket.setReadCustomer(!Boolean.TRUE.equals(ticket.getReadCustomer()));
+            }
+        });
+
     ticketBuilderService.saveTicket(ticket);
 }
