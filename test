@@ -2,19 +2,36 @@ private applyReadCustomerLocally(ticket: Ticket, value: boolean): void {
   const idx = this.tickets.findIndex(t => t.id === ticket.id);
   if (idx === -1) return;
 
-  let newValue = value;
+  const current = this.tickets[idx];
+  let updated: Ticket = current;
 
-  // Vérifie si l’utilisateur courant existe dans le discussionGroup et a ticketRead = true
-  if (ticket.discussionGroup?.users?.some(u => u.id === this.jwtService.getId() && u.ticketRead)) {
-    newValue = !ticket.readCustomer; // on inverse
+  const group = current.discussionGroup;
+  const users = group?.users ?? [];
+  const myId = this.jwtService.getId();
+
+  if (users.length > 0) {
+    // Cas discussionGroup : on met à jour ticketRead de l'utilisateur courant
+    const hasMe = users.some(u => u.id === myId);
+    if (hasMe) {
+      const newUsers = users.map(u =>
+        u.id === myId ? { ...u, ticketRead: value } : u
+      );
+
+      updated = {
+        ...current,
+        discussionGroup: { ...group!, users: newUsers },
+      };
+    }
+    // (Sinon: group présent mais sans moi -> on ne touche à rien)
+  } else {
+    // Pas de discussionGroup : on met à jour le flag global
+    updated = { ...current, readCustomer: value };
   }
-
-  const updated: Ticket = { ...this.tickets[idx], readCustomer: newValue };
 
   this.tickets = [
     ...this.tickets.slice(0, idx),
     updated,
-    ...this.tickets.slice(idx + 1)
+    ...this.tickets.slice(idx + 1),
   ];
 
   this.cdr.markForCheck();
