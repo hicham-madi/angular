@@ -1,30 +1,26 @@
-protected newIcon(ticket: Ticket): void {
-  // 1) Optimistic update (immédiat côté UI)
-  this.applyReadCustomerLocally(ticket, !ticket.readCustomer);
+import java.util.Objects;
+import java.util.Optional;
 
-  this.mbotService.updateReadCustomer(ticket.id).subscribe({
-    next: () => {
-      // OK: on laisse la valeur appliquée
-    },
-    error: () => {
-      // KO: rollback si l’API échoue
-      this.applyReadCustomerLocally(ticket, !ticket.readCustomer);
-    }
-  });
-}
+public void updateReadCustomer(String envId, String ticketId, String userId) {
+    // 1) Ticket ou 404
+    Ticket ticket = ticketRepository.findCustomTicketId(envId, ticketId)
+        .orElseThrow(() -> {
+            log.warn("ticket id {} could not be found", ticketId);
+            return new NotFoundException("ticket id " + ticketId);
+        });
 
-// Met à jour **immuablement** le ticket + notifie le composant enfant (OnPush)
-private applyReadCustomerLocally(ticket: Ticket, value: boolean): void {
-  const idx = this.tickets.findIndex(t => t.id === ticket.id);
-  if (idx === -1) return;
+    // 2) Calcule readCustomer:
+    //    - si un discussionGroup existe, on regarde si l'utilisateur courant a ticketRead = true
+    //    - sinon on retombe sur la valeur déjà persistée sur le ticket
+    boolean readCustomer = Optional.ofNullable(ticket.getDiscussionGroup())
+        .map(DiscussionGroup::getUsers)
+        .filter(users -> !users.isEmpty())
+        .map(users -> users.stream()
+            .anyMatch(u -> Objects.equals(u.getId(), userId)
+                        && Boolean.TRUE.equals(u.getTicketRead())))
+        .orElse(Boolean.TRUE.equals(ticket.getReadCustomer()));
 
-  // créer une **nouvelle** référence d’objet et de tableau
-  const updated: Ticket = { ...this.tickets[idx], readCustomer: value };
-  this.tickets = [
-    ...this.tickets.slice(0, idx),
-    updated,
-    ...this.tickets.slice(idx + 1)
-  ];
-
-  this.cdr.markForCheck(); // ou this.cdr.detectChanges();
+    // 3) Persistance
+    ticket.setReadCustomer(readCustomer);
+    ticketBuilderService.saveTicket(ticket);
 }
