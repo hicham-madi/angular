@@ -1,38 +1,25 @@
-private applyReadCustomerLocally(ticket: Ticket, value: boolean): void {
-  const idx = this.tickets.findIndex(t => t.id === ticket.id);
-  if (idx === -1) return;
+protected newIcon(ticket: Ticket): void {
+  const next = this.getNextReadValue(ticket);   // <-- calcule le toggle
+  this.applyReadCustomerLocally(ticket, next);  // MAJ optimiste
 
-  const current = this.tickets[idx];
-  let updated: Ticket = current;
-
-  const group = current.discussionGroup;
-  const users = group?.users ?? [];
-  const myId = this.jwtService.getId();
-
-  if (users.length > 0) {
-    // Cas discussionGroup : on met à jour ticketRead de l'utilisateur courant
-    const hasMe = users.some(u => u.id === myId);
-    if (hasMe) {
-      const newUsers = users.map(u =>
-        u.id === myId ? { ...u, ticketRead: value } : u
-      );
-
-      updated = {
-        ...current,
-        discussionGroup: { ...group!, users: newUsers },
-      };
+  this.mbotService.updateReadCustomer(ticket.id, this.jwtService.getId()).subscribe({
+    next: () => {},
+    error: () => {
+      // rollback si échec WS
+      this.applyReadCustomerLocally(ticket, this.getOppositeReadValue(ticket, next));
     }
-    // (Sinon: group présent mais sans moi -> on ne touche à rien)
-  } else {
-    // Pas de discussionGroup : on met à jour le flag global
-    updated = { ...current, readCustomer: value };
-  }
+  });
+}
 
-  this.tickets = [
-    ...this.tickets.slice(0, idx),
-    updated,
-    ...this.tickets.slice(idx + 1),
-  ];
+// Détermine la prochaine valeur à afficher localement (toggle)
+private getNextReadValue(ticket: Ticket): boolean {
+  const myId = this.jwtService.getId();
+  const me = ticket.discussionGroup?.users?.find(u => u.id === myId);
+  return me ? !me.ticketRead : !ticket.readCustomer;
+}
 
-  this.cdr.markForCheck();
+// Optionnel: si tu veux remettre l’état précédent lors d’une erreur
+private getOppositeReadValue(ticket: Ticket, applied: boolean): boolean {
+  // L'opposé de ce que tu viens d'appliquer
+  return !applied;
 }
