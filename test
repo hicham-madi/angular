@@ -1,67 +1,24 @@
-// helper local
-private mapSortKey(column: string | null): string | null {
-  if (!column) return null;
-  if (column === 'status') return 'statusRank';                 // ⬅️ clé métier
-  if (column === 'lastActivityLabel') return 'lastActivityTimestamp'; // si besoin
-  return column;
+// Mettez ici VOS codes techniques de statut, dans l'ordre métier voulu.
+private static final List<String> STATUS_ORDER = List.of(
+    "NEW",
+    "IN_PROGRESS",
+    "WAITING_CUSTOMER",
+    "WAITING_SUPPORT",
+    "RESOLVED",
+    "CLOSED"
+);
+
+// Lookup O(1)
+private static final Map<String, Integer> STATUS_RANK = new HashMap<>();
+static {
+    for (int i = 0; i < STATUS_ORDER.size(); i++) {
+        STATUS_RANK.put(STATUS_ORDER.get(i), i + 1); // 1..N
+    }
 }
 
-// scroll infini
-public onCdkScroll(): void {
-  const el = this.cdkVirtualScroll.elementRef.nativeElement;
-  const offsetHeight = el.offsetHeight;
-  const scrollHeight = el.scrollHeight;
-  const scrollTop = el.scrollTop;
-
-  if (scrollTop + offsetHeight >= scrollHeight - 50) {
-    this.loadMore.emit({
-      sortKey: this.mapSortKey(this.sort.active),
-      isAsc: this.sort.direction ? this.sort.direction === 'asc' : null,
-    });
-  }
+private static int rankOfStatus(String status) {
+    return STATUS_RANK.getOrDefault(status, Integer.MAX_VALUE); // inconnus/null à la fin
 }
 
-// clic sur l’en-tête
-protected sortData(column: string): void {
-  if (this.sort.active !== column) {
-    this.sort.active = column;
-    this.sort.direction = 'asc';
-  } else {
-    this.sort.direction = this.sort.direction === 'asc' ? 'desc' : 'asc';
-  }
-
-  this.sortchanged.emit({
-    sortKey: this.mapSortKey(this.sort.active),
-    isAsc: this.sort.direction === 'asc',
-  });
-}
-
-protected onSortChanged(sort: { sortKey: string; isAsc: boolean }): void {
-  this.currentSort = sort;
-
-  this.currentPage = 0;
-  this.scrollCompleted = false;
-  this.allPagesLoaded = false;
-  this.tickets = [];
-  this.loadedElements = [];
-  this.hasPendingPage = true;
-
-  const card = this.activeCard ?? FilterCardType.NONE;
-  const opts = {
-    sortKey: sort.sortKey,       // <- peut valoir 'statusRank'
-    isAsc: sort.isAsc,
-    searchTerm: this.searchTerm?.trim() ?? '',
-    statusFilter: this.selectedStatus ?? '',
-    agencyFilter: this.selectedAgency ?? '',
-    collaboratorFilter: this.selectedCollaborator ?? '',
-    campaignFilter: this.selectedCampaign ?? '',
-  };
-
-  this.loadTicketsByCard(card, this.currentContext, 0, opts)
-    .subscribe({
-      next: r => this.handleTicketResponse(r),
-      error: err => console.error('Erreur tri page 0 :', err),
-    });
-}
-
-ORDER BY FIELD(status, 'NEW','IN_PROGRESS','WAITING_CUSTOMER','WAITING_SUPPORT','RESOLVED','CLOSED') ASC|DESC
+case "STATUS_RANK", "statusRank" ->
+    Comparator.comparingInt(t -> rankOfStatus(t.getStatus()));
