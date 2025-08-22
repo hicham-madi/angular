@@ -1,34 +1,13 @@
-closeAttachmentPopup(): void {
-  this.isFileAttachmentOpen = false;
-  this.ref?.markForCheck(); // si composant en OnPush
-}
+tooltipContent = `
+  Consulter les tickets en cours
+  <div>RC : Réclamation Client</div>
+  <div>DC : Demande Client</div>
+  <div>DS : Demande Service expert</div>
+`;
 
-<!-- la popIn -->
-<div *ngIf="isFileAttachmentOpen"
-     class="uk-animation-slide-right-medium uk-animation-fast tooltip-position"
-     (mouseleave)="closeAttachmentPopup()"
-     (pointerleave)="closeAttachmentPopup()">
-  <header class="uk-text-left">
-    Pièces jointes :
-    <mat-icon (click)="isFileAttachmentOpen = false">close</mat-icon>
-  </header>
-
-  <!-- Liste des fichiers insérés -->
-  <div [ngClass]="{ 'body': true, 'uk-flex uk-flex-center': loadInseredFile }">
-    <div *ngIf="inseredFile?.length === 0" class="uk-text-italic">Aucune</div>
-    <file-viewer *ngIf="!loadInseredFile" [files]="inseredFile"></file-viewer>
-    <div *ngIf="loadInseredFile" style="height:18px;width:18px" uk-spinner></div>
-  </div>
-
-  <hr />
-
-  <footer class="uk-flex uk-flex-column menu">
-    <div class="action" (click)="file.click()">
-      <mat-icon>attach_file</mat-icon>
-      Ajouter une pièce jointe
-    </div>
-    <input id="attachements-file" type="file" [accept]="requiredFileType"
-           class="display-none" (change)="handleAttachmentFiles($event.target.files); $event.target.value='';"
-           #file multiple />
-  </footer>
+<div 
+  class="uk-text-nowrap sticker_default sticker-padding font-size-medium pointer canard-moyen-background _count-part"
+  (click)="goToCustomer()"
+  [tooltip]="tooltipContent">
 </div>
+
