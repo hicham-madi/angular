@@ -1,24 +1,56 @@
-// Mettez ici VOS codes techniques de statut, dans l'ordre métier voulu.
-private static final List<String> STATUS_ORDER = List.of(
-    "NEW",
-    "IN_PROGRESS",
-    "WAITING_CUSTOMER",
-    "WAITING_SUPPORT",
-    "RESOLVED",
-    "CLOSED"
-);
-
-// Lookup O(1)
-private static final Map<String, Integer> STATUS_RANK = new HashMap<>();
-static {
-    for (int i = 0; i < STATUS_ORDER.size(); i++) {
-        STATUS_RANK.put(STATUS_ORDER.get(i), i + 1); // 1..N
+public Comparator<Ticket> getComparator(String sortKey, boolean isAsc) {
+    if (sortKey == null) {
+        return null;
     }
-}
 
-private static int rankOfStatus(String status) {
-    return STATUS_RANK.getOrDefault(status, Integer.MAX_VALUE); // inconnus/null à la fin
-}
+    Comparator<Ticket> comparator = switch (sortKey) {
+        case "ID" -> Comparator.comparing(Ticket::getId);
 
-case "STATUS_RANK", "statusRank" ->
-    Comparator.comparingInt(t -> rankOfStatus(t.getStatus()));
+        case "LAST_ACTIVITY_TIMESTAMP" ->
+            Comparator.comparing(Ticket::getLastActivityTimeStamp,
+                Comparator.nullsLast(Comparator.naturalOrder()));
+
+        case "PART_LABEL" ->
+            Comparator.comparing(
+                t -> t.getPart() != null ? t.getPart().getPartLabel() : null,
+                Comparator.nullsLast(String::compareToIgnoreCase)
+            );
+
+        case "DOMAIN_LABEL" ->
+            Comparator.comparing(
+                t -> t.getDomain() != null ? t.getDomain().getLabel() : null,
+                Comparator.nullsLast(String::compareToIgnoreCase)
+            );
+
+        case "OBJECT_LABEL" ->
+            Comparator.comparing(
+                t -> t.getObject() != null ? t.getObject().getLabel() : null,
+                Comparator.nullsLast(String::compareToIgnoreCase)
+            );
+
+        case "CLAIM_TYPE_LABEL" ->
+            Comparator.comparing(
+                t -> t.getClaimType() != null ? t.getClaimType().getLabel() : null,
+                Comparator.nullsLast(String::compareToIgnoreCase)
+            );
+
+        case "SLA_LABEL" ->
+            Comparator.comparing(
+                t -> t.getSla(),
+                Comparator.nullsLast(String::compareToIgnoreCase)
+            );
+
+        case "STATUS_RANK" -> // <-- ici tri métier
+            Comparator.comparingInt(t -> rankOfStatus(t.getStatus()));
+
+        case "STATUS" ->
+            Comparator.comparing(
+                Ticket::getStatus,
+                Comparator.nullsLast(String::compareToIgnoreCase)
+            );
+
+        default -> null;
+    };
+
+    return comparator != null && !isAsc ? comparator.reversed() : comparator;
+}
