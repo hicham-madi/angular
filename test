@@ -1,1 +1,13 @@
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
+ngOnInit(): void {
+  this.searchTextControl.valueChanges
+    .pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      takeUntilDestroyed()   // auto-cleanup
+    )
+    .subscribe(value => {
+      this.searchChanged.emit(value.trim());
+    });
+}
