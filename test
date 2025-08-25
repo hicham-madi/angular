@@ -1,8 +1,24 @@
-db.getCollection("tickets_CR88B2").aggregate([
-  {
-    $group: {
-      _id: "$claimType.label",   // distinct sur label
-      ids: { $addToSet: "$_id" } // regroupe les ids liés à chaque label
+import java.util.Map;
+
+public class TicketIconLabelMapper {
+
+    private static final Map<String, String> ICON_LABEL_MAP = Map.of(
+        "REQUEST", "Demande",
+        "CLAIM", "Réclamation",
+        "APPROVAL", "Approbation",
+        "DISCUSSION", "Groupe de discussion",
+        "REQUEST_EXPERT_SERVICE", "Demande service expert"
+    );
+
+    public static String getIconLabel(String iconKey) {
+        return ICON_LABEL_MAP.getOrDefault(iconKey, "");
     }
-  }
-])
+}
+
+case CLAIM_TYPE_LABEL -> Comparator.comparing(
+    ticket -> {
+        String iconKey = ticket.getClaimType() != null ? ticket.getClaimType().getCode() : null;
+        return iconKey != null ? TicketIconLabelMapper.getIconLabel(iconKey) : "";
+    },
+    Comparator.nullsLast(String::compareToIgnoreCase)
+);
