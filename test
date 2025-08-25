@@ -1,24 +1,73 @@
-import java.util.Map;
+// tickets-page.base.ts
 
-public class TicketIconLabelMapper {
+export abstract class TicketsPageBase {
+  // ...
+  public resetSortToken = 0;
 
-    private static final Map<String, String> ICON_LABEL_MAP = Map.of(
-        "REQUEST", "Demande",
-        "CLAIM", "Réclamation",
-        "APPROVAL", "Approbation",
-        "DISCUSSION", "Groupe de discussion",
-        "REQUEST_EXPERT_SERVICE", "Demande service expert"
-    );
+  protected onCardClicked(type: FilterCardType): void {
+    // ... ta logique existante (navigation, etc.)
 
-    public static String getIconLabel(String iconKey) {
-        return ICON_LABEL_MAP.getOrDefault(iconKey, "");
-    }
+    // reset pagination & comptages (si tu le fais déjà)
+    this.resetPagination();
+
+    // ❗ reset tri côté parent
+    this.currentSort = { sortKey: null, isAsc: null };
+
+    // ❗ trigger pour l’enfant
+    this.resetSortToken++;
+
+    // recharge
+    this.loadTickets(this.activeCard);
+  }
+
+  protected applyFilters(): void {
+    // si tu veux aussi reset le tri quand on applique des filtres, même principe:
+    // this.currentSort = { sortKey: null, isAsc: null };
+    // this.resetSortToken++;
+    // ... puis reload
+  }
 }
 
-case CLAIM_TYPE_LABEL -> Comparator.comparing(
-    ticket -> {
-        String iconKey = ticket.getClaimType() != null ? ticket.getClaimType().getCode() : null;
-        return iconKey != null ? TicketIconLabelMapper.getIconLabel(iconKey) : "";
-    },
-    Comparator.nullsLast(String::compareToIgnoreCase)
-);
+
+<metabot-solicitings-table
+  [tickets]="tickets"
+  [displayedColumns]="displayedColumns"
+  [columnConfig]="columnConfig"
+  [context]="currentContext"
+  [selectedCard]="activeCard"
+  [resetSortToken]="resetSortToken"
+  (sortChanged)="onSortChanged($event)"
+  (loadMore)="onScroll()">
+</metabot-solicitings-table>
+
+
+// solicitings-table.component.ts
+import { SimpleChanges } from '@angular/core';
+
+export class SolicitingsTableComponent {
+  @Input() resetSortToken = 0;
+
+  protected sort = {
+    active: null as string | null,
+    direction: null as 'asc' | 'desc' | null,
+  };
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['resetSortToken'] && !changes['resetSortToken'].firstChange) {
+      // ❗ reset hard de l’état de tri => l’icône redevient 'unfold_more'
+      this.sort.active = null;
+      this.sort.direction = null;
+
+      // (optionnel) remonter en haut de la liste virtuelle
+      this.cdkvirtualscroll?.scrollToIndex?.(0);
+      // Ne pas émettre sortChanged ici
+    }
+  }
+
+  protected getSortIcon(column: string): string {
+    if (!this.sort || this.sort.active !== column || !this.sort.direction) {
+      return 'unfold_more';
+    }
+    return this.sort.direction === 'asc' ? 'arrow_upward' : 'arrow_downward';
+  }
+}
