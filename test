@@ -1,14 +1,23 @@
+import { Component, Output, EventEmitter } from '@angular/core';
+import { FormControl } from '@angular/forms';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
+@Component({ /* ... */ })
 export class FilterBarComponent {
-  searchTextControl = new FormControl<string>('');
+  @Output() searchChanged = new EventEmitter<string>();
 
-  // Initialiseur de champ = contexte d’injection ✅
+  public searchTextControl = new FormControl<string>('');
+
+  // Initialiseur de champ = contexte d’injection => pas besoin de DestroyRef
   private readonly _sub = this.searchTextControl.valueChanges
     .pipe(
       debounceTime(300),
       distinctUntilChanged(),
-      takeUntilDestroyed() // ✅ ok ici
+      takeUntilDestroyed() // auto-unsubscribe
     )
     .subscribe(v => this.searchChanged.emit((v ?? '').trim()));
+
+  // Supprime ngOnInit si elle n’a plus d’autre logique
+  // ngOnInit() {}  // ← inutile ici
 }
