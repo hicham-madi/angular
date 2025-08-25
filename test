@@ -1,13 +1,14 @@
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-ngOnInit(): void {
-  this.searchTextControl.valueChanges
+export class FilterBarComponent {
+  searchTextControl = new FormControl<string>('');
+
+  // Initialiseur de champ = contexte d’injection ✅
+  private readonly _sub = this.searchTextControl.valueChanges
     .pipe(
       debounceTime(300),
       distinctUntilChanged(),
-      takeUntilDestroyed()   // auto-cleanup
+      takeUntilDestroyed() // ✅ ok ici
     )
-    .subscribe(value => {
-      this.searchChanged.emit(value.trim());
-    });
+    .subscribe(v => this.searchChanged.emit((v ?? '').trim()));
 }
