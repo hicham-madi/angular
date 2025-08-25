@@ -1,23 +1,8 @@
-import { Component, Output, EventEmitter, DestroyRef } from '@angular/core';
-import { FormControl } from '@angular/forms';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-
-@Component({ /* ... */ })
-export class FilterBarComponent {
-  @Output() searchChanged = new EventEmitter<string>();
-
-  public searchTextControl = new FormControl<string>('', { nonNullable: true });
-
-  constructor(private destroyRef: DestroyRef) {}
-
-  ngOnInit(): void {
-    this.searchTextControl.valueChanges
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        takeUntilDestroyed(this.destroyRef) // ici ça marche
-      )
-      .subscribe(v => this.searchChanged.emit((v ?? '').trim()));
+db.getCollection("tickets_CR88B2").aggregate([
+  {
+    $group: {
+      _id: "$claimType.label",   // distinct sur label
+      ids: { $addToSet: "$_id" } // regroupe les ids liés à chaque label
+    }
   }
-}
+])
