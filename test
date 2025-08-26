@@ -1,51 +1,34 @@
-<div class="uk-grid uk-grid-collapse uk-child-width-auto uk-margin-small-bottom">
-  @for (tab of tabs; track tab) {
-    <div class="tab padding-small top padding-small-bottom"
-         [ngClass]="{ 'active-tab': tab === activeTab }">
-      <button class="text-button border-none height-btn"
-              [ngClass]="{
-                'solicitations-tab': tab === Tab.SOLICITING,
-                'team-tab': tab === Tab.MY_TEAM,
-                'regional-fund-tab': tab === Tab.MY_REGIONAL_FUND
-              }"
-              (click)="handleTabClick(tab)">
-        <div>{{ tab }}</div>
-        @if (showBadge(tab)) {
-          <span class="uk-margin-small-left sticker-canard-moyen sticker-padding">
-            {{ currentCount }}
-          </span>
-        }
-      </button>
-    </div>
-  }
-</div>
-
-public Tab = Tab; // en haut du composant pour l’utiliser dans le template
-
-.tab { border-bottom: 2px solid $text-border; }
-.active-tab { border-bottom: 2px solid $canard-moyen; }
-
-.solicitations-tab:hover,
-.team-tab:hover,
-.regional-fund-tab:hover {
-  color: $canard-moyen;
-  background-color: $vert-prairie;
+protected handleTabClick(tab: Tab): void {
+  this.activeTab = tab;   // applique immédiatement le style actif
+  this.tabClick.emit(tab);
+  this.maximize();
+  localStorage.removeItem('lastSelectedCard');
+  this.router.navigate([this.tabsUrls.get(tab)]);
 }
 
-.height-btn { height: 35px; }
+public ngOnInit(): void {
+  const setActiveFromRoute = () => {
+    let r = this.route;
+    while (r.firstChild) {
+      r = r.firstChild;
+    }
 
-const ctx = r.snapshot.data?.['context'] as TicketContext | undefined;
+    const ctx = r.snapshot.data?.['context'] as TicketContext | undefined;
 
-if (ctx === TicketContext.SOLICITATIONS || ctx === TicketContext.TERMINATED) {
-  this.activeTab = Tab.SOLICITING;
-} else if (ctx === TicketContext.TEAM || ctx === TicketContext.TERMINATED_TEAM) {
-  this.activeTab = Tab.MY_TEAM;
-} else if (ctx === TicketContext.REGIONAL_FUND) {
-  this.activeTab = Tab.MY_REGIONAL_FUND;
+    if (ctx === TicketContext.SOLICITATIONS || ctx === TicketContext.TERMINATED) {
+      this.activeTab = Tab.SOLICITING;
+    } else if (ctx === TicketContext.TEAM || ctx === TicketContext.TERMINATED_TEAM) {
+      this.activeTab = Tab.MY_TEAM;
+    } else if (ctx === TicketContext.REGIONAL_FUND) {
+      this.activeTab = Tab.MY_REGIONAL_FUND;
+    }
+  };
+
+  // première synchro à l’ouverture
+  setActiveFromRoute();
+
+  // écoute les changements de route (navigation entre onglets via URL)
+  this.router.events
+    .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+    .subscribe(() => setActiveFromRoute());
 }
-this.cdr.markForCheck();
-
-private readonly tabsUrls = new Map<Tab, string>()
-  .set(Tab.SOLICITING, '/ticket-list')
-  .set(Tab.MY_TEAM, '/ticket-list/team-list')
-  .set(Tab.MY_REGIONAL_FUND, '/ticket-list/regional-fund-list');
