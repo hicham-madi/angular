@@ -1,39 +1,39 @@
-// add this small type (optional but clean)
-type SelectOption = { id: string; label: string };
-
-// control must hold the whole object (or null)
-protected searchTypeControl = new FormControl<SelectOption | null>(null, { nonNullable: false });
-
-// values must be objects with id & label
-protected categoriesValues: SelectOption[] = [
-  { id: 'customerName',  label: 'Nom de client' },
-  { id: 'accountNumber', label: 'Numéro de compte' },
-  { id: 'ticketNumber',  label: 'Numéro de ticket' },
-];
-
-ngOnInit(): void {
-  // (Optionnel) définir une valeur par défaut
-  // this.searchTypeControl.setValue(this.categoriesValues[0]);
-  
-  // ton code existant pour le champ texte
-  this.searchTextControl.valueChanges
-    .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
-    .subscribe(v => this.searchChanged.emit((v ?? '').trim()));
+/* Conteneur du champ */
+.status {
+  position: relative;
+  display: inline-block;
+  width: 250px; /* ajuste selon ta maquette */
 }
 
-<input-control
-  [label]="'Type de recherche'"
-  [labelPosition]="'LEFT'"
-  [control]="searchTypeControl"
-  [type]="'SELECT'"
-  [values]="categoriesValues">
-</input-control>
+/* Le select styled */
+.status select {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid $text-border; /* utilise ta variable SCSS */
+  border-radius: 6px;
+  font-size: 14px;
+  background: #fff;
+  appearance: none; /* supprime la flèche par défaut */
+}
 
-<input-control
-  class="search-control"
-  [inputIcon]="searchTextControl.value ? 'close' : 'search'"
-  [classes]="searchTextControl.value ? ['danger-color'] : []"
-  [control]="searchTextControl"
-  [onClick]="createSearchTextControlEmitter()"
-  [labelPlaceholder]="'Rechercher...'">
-</input-control>
+/* Label encapsulé dans la bordure */
+.status label {
+  position: absolute;
+  top: -10px; /* remonte dans la bordure */
+  left: 10px;
+  background: #fff; /* blanc pour masquer le fond */
+  padding: 0 4px;
+  font-size: 12px;
+  color: $text-border; /* harmonisé avec la bordure */
+}
+
+<div class="status">
+  <label for="searchType">Type de recherche</label>
+  <select id="searchType"
+          [(ngModel)]="selectedSearchType"
+          (change)="onSearchTypeChange()">
+    <option *ngFor="let searchType of searchTypes" [value]="searchType">
+      {{ searchType }}
+    </option>
+  </select>
+</div>
