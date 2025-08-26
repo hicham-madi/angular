@@ -1,34 +1,55 @@
-protected handleTabClick(tab: Tab): void {
-  this.activeTab = tab;   // applique immédiatement le style actif
-  this.tabClick.emit(tab);
-  this.maximize();
-  localStorage.removeItem('lastSelectedCard');
-  this.router.navigate([this.tabsUrls.get(tab)]);
-}
+<button
+  class="text-button border-none height-btn tab padding-small-top padding-small-bottom margin-xsmall-bottom"
+  [routerLink]="tabsUrls.get(tab)"               <!-- navigation pilotée par Angular -->
+  routerLinkActive="active-tab active-button"    <!-- applique le style immédiatement -->
+  [routerLinkActiveOptions]="{ exact: true }"
+  (click)="handleTabClick(tab)"
+  [ngClass]="{
+    'solicitations-tab': tab === Tab.SOLICITING,
+    'team-tab':          tab === Tab.MY_TEAM,
+    'regional-fund-tab': tab === Tab.MY_REGIONAL_FUND
+  }"
+>
+  <div>{{ tab }}</div>
+  @if (showBadge(tab)) {
+    <span class="uk-margin-small-left sticker-canard-moyen sticker-padding">{{ currentCount }}</span>
+  }
+</button>
 
-public ngOnInit(): void {
-  const setActiveFromRoute = () => {
-    let r = this.route;
-    while (r.firstChild) {
-      r = r.firstChild;
+export class PageHeaderComponent {
+  Tab = Tab; // pour le template
+
+  @Input() public currentCount: number | undefined;
+  @Output() tabClick = new EventEmitter<Tab>();
+
+  protected tabs: Tab[] = Object.values(Tab).filter(t => t !== Tab.TERMINATED);
+
+  readonly tabsUrls = new Map<Tab, string>([
+    [Tab.SOLICITING,        '/ticket-list'],
+    [Tab.MY_TEAM,           '/ticket-list/team-list'],
+    [Tab.MY_REGIONAL_FUND,  '/ticket-list/regional-fund-list'],
+  ]);
+
+  constructor(
+    private readonly router: Router,
+    private readonly jwtService: JwtService,
+    private readonly metabotBridge: MetabotBridgeService,
+  ) {}
+
+  protected handleTabClick(tab: Tab): void {
+    this.tabClick.emit(tab);
+    this.maximize();
+    localStorage.removeItem('lastSelectedCard');
+    // pas de this.router.navigate ici : c'est [routerLink] qui s’en charge
+  }
+
+  private maximize(): void {
+    if (!this.jwtService.isEurekaEnv()) {
+      this.metabotBridge.emit(MetabotActionType.MAXIMIZE, {}).then(r => console.log(r));
     }
+  }
 
-    const ctx = r.snapshot.data?.['context'] as TicketContext | undefined;
-
-    if (ctx === TicketContext.SOLICITATIONS || ctx === TicketContext.TERMINATED) {
-      this.activeTab = Tab.SOLICITING;
-    } else if (ctx === TicketContext.TEAM || ctx === TicketContext.TERMINATED_TEAM) {
-      this.activeTab = Tab.MY_TEAM;
-    } else if (ctx === TicketContext.REGIONAL_FUND) {
-      this.activeTab = Tab.MY_REGIONAL_FUND;
-    }
-  };
-
-  // première synchro à l’ouverture
-  setActiveFromRoute();
-
-  // écoute les changements de route (navigation entre onglets via URL)
-  this.router.events
-    .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
-    .subscribe(() => setActiveFromRoute());
+  protected showBadge(tab: Tab): boolean {
+    return tab === Tab.SOLICITING;
+  }
 }
