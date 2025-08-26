@@ -1,35 +1,8 @@
-/* Conteneur du champ */
-.status {
-  position: relative;
-  display: inline-block;
-  width: 250px; /* ajuste selon ta maquette */
-}
-
-/* Le select styled */
-.status select {
-  width: 100%;
-  padding: 10px;
-  border: 2px solid $text-border; /* utilise ta variable SCSS */
-  border-radius: 6px;
-  font-size: 14px;
-  background: #fff;
-  appearance: none; /* supprime la flèche par défaut */
-}
-
-/* Label encapsulé dans la bordure */
-.status label {
-  position: absolute;
-  top: -10px; /* remonte dans la bordure */
-  left: 10px;
-  background: #fff; /* blanc pour masquer le fond */
-  padding: 0 4px;
-  font-size: 12px;
-  color: $text-border; /* harmonisé avec la bordure */
-}
-
-<div class="status">
+<div class="status field">
   <label for="searchType">Type de recherche</label>
+
   <select id="searchType"
+          class="field-select"
           [(ngModel)]="selectedSearchType"
           (change)="onSearchTypeChange()">
     <option *ngFor="let searchType of searchTypes" [value]="searchType">
@@ -37,3 +10,40 @@
     </option>
   </select>
 </div>
+
+
+/* Conteneur "input-like" avec label + select dedans */
+.field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;                 /* espace entre le label et la valeur */
+  padding: 10px 12px;       /* padding global de la “case” */
+  border: 2px solid $text-border;
+  border-radius: 6px;
+  background: #fff;
+  min-width: 280px;         /* ajuste selon la maquette */
+}
+
+/* Le label à l’intérieur de la bordure */
+.field > label {
+  font-size: 12px;
+  color: $text-border;      /* gris doux comme sur la maquette */
+  white-space: nowrap;
+  margin: 0;                /* annule marges par défaut */
+}
+
+/* Le select sans bordure, intégré dans la case */
+.field-select {
+  flex: 1 1 auto;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  padding: 0;               /* on laisse le padding au conteneur */
+  appearance: auto;         /* garde la flèche native */
+}
+
+/* Focus/hover (optionnel – style Material-ish) */
+.field:focus-within {
+  border-color: $canard-moyen;
+}
