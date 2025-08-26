@@ -1,73 +1,51 @@
-// tickets-page.base.ts
-
-export abstract class TicketsPageBase {
-  // ...
-  public resetSortToken = 0;
-
-  protected onCardClicked(type: FilterCardType): void {
-    // ... ta logique existante (navigation, etc.)
-
-    // reset pagination & comptages (si tu le fais déjà)
-    this.resetPagination();
-
-    // ❗ reset tri côté parent
-    this.currentSort = { sortKey: null, isAsc: null };
-
-    // ❗ trigger pour l’enfant
-    this.resetSortToken++;
-
-    // recharge
-    this.loadTickets(this.activeCard);
+<div class="uk-grid uk-grid-collapse uk-child-width-auto uk-margin-small-bottom">
+  @for (tab of tabs; track tab) {
+    <div class="tab padding-small top padding-small-bottom"
+         [ngClass]="{ 'active-tab': tab === activeTab }">
+      <button class="text-button border-none height-btn"
+              [ngClass]="{
+                'solicitations-tab': tab === Tab.SOLICITING,
+                'team-tab': tab === Tab.MY_TEAM,
+                'regional-fund-tab': tab === Tab.MY_REGIONAL_FUND
+              }"
+              (click)="handleTabClick(tab)">
+        <div>{{ tab }}</div>
+        @if (showBadge(tab)) {
+          <span class="uk-margin-small-left sticker-canard-moyen sticker-padding">
+            {{ currentCount }}
+          </span>
+        }
+      </button>
+    </div>
   }
+</div>
 
-  protected applyFilters(): void {
-    // si tu veux aussi reset le tri quand on applique des filtres, même principe:
-    // this.currentSort = { sortKey: null, isAsc: null };
-    // this.resetSortToken++;
-    // ... puis reload
-  }
+public Tab = Tab; // en haut du composant pour l’utiliser dans le template
+
+.tab { border-bottom: 2px solid $text-border; }
+.active-tab { border-bottom: 2px solid $canard-moyen; }
+
+.solicitations-tab:hover,
+.team-tab:hover,
+.regional-fund-tab:hover {
+  color: $canard-moyen;
+  background-color: $vert-prairie;
 }
 
+.height-btn { height: 35px; }
 
-<metabot-solicitings-table
-  [tickets]="tickets"
-  [displayedColumns]="displayedColumns"
-  [columnConfig]="columnConfig"
-  [context]="currentContext"
-  [selectedCard]="activeCard"
-  [resetSortToken]="resetSortToken"
-  (sortChanged)="onSortChanged($event)"
-  (loadMore)="onScroll()">
-</metabot-solicitings-table>
+const ctx = r.snapshot.data?.['context'] as TicketContext | undefined;
 
-
-// solicitings-table.component.ts
-import { SimpleChanges } from '@angular/core';
-
-export class SolicitingsTableComponent {
-  @Input() resetSortToken = 0;
-
-  protected sort = {
-    active: null as string | null,
-    direction: null as 'asc' | 'desc' | null,
-  };
-
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['resetSortToken'] && !changes['resetSortToken'].firstChange) {
-      // ❗ reset hard de l’état de tri => l’icône redevient 'unfold_more'
-      this.sort.active = null;
-      this.sort.direction = null;
-
-      // (optionnel) remonter en haut de la liste virtuelle
-      this.cdkvirtualscroll?.scrollToIndex?.(0);
-      // Ne pas émettre sortChanged ici
-    }
-  }
-
-  protected getSortIcon(column: string): string {
-    if (!this.sort || this.sort.active !== column || !this.sort.direction) {
-      return 'unfold_more';
-    }
-    return this.sort.direction === 'asc' ? 'arrow_upward' : 'arrow_downward';
-  }
+if (ctx === TicketContext.SOLICITATIONS || ctx === TicketContext.TERMINATED) {
+  this.activeTab = Tab.SOLICITING;
+} else if (ctx === TicketContext.TEAM || ctx === TicketContext.TERMINATED_TEAM) {
+  this.activeTab = Tab.MY_TEAM;
+} else if (ctx === TicketContext.REGIONAL_FUND) {
+  this.activeTab = Tab.MY_REGIONAL_FUND;
 }
+this.cdr.markForCheck();
+
+private readonly tabsUrls = new Map<Tab, string>()
+  .set(Tab.SOLICITING, '/ticket-list')
+  .set(Tab.MY_TEAM, '/ticket-list/team-list')
+  .set(Tab.MY_REGIONAL_FUND, '/ticket-list/regional-fund-list');
