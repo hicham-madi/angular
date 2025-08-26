@@ -1,20 +1,10 @@
-// ---- avant : plusieurs if/else ----
-// ---- après : switch exhaustif + mutualisation ----
-const cfg = (() => {
-  switch (context) {
-    case TicketContext.SOLICITATIONS:
-    case TicketContext.TERMINATED:
-      return this.tableConfigFactory.getBaseColumns();
+protected onSearchTypeFilterChanged(selectedSearchType: string): void {
+  const searchTypeMap: Record<string, string> = {
+    'Nom de Client': 'PART_NAME',
+    'Numéro de compte': 'FORM_VALUES',
+    'Numéro de ticket': 'TICKET_ID'
+  };
 
-    case TicketContext.TEAM:
-    case TicketContext.TERMINATED_TEAM:
-      return this.tableConfigFactory.getColumnsForTeamPage();
-
-    case TicketContext.REGIONAL_FUND:
-      return this.tableConfigFactory.getColumnsForRegionalFundPage();
-
-    default:
-      // fallback sûr
-      return this.tableConfigFactory.getBaseColumns();
-  }
-})();
+  this.selectedSearchType = searchTypeMap[selectedSearchType] ?? '';
+  this.applyFilters();
+}
