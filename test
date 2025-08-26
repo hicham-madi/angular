@@ -1,55 +1,39 @@
-<button
-  class="text-button border-none height-btn tab padding-small-top padding-small-bottom margin-xsmall-bottom"
-  [routerLink]="tabsUrls.get(tab)"               <!-- navigation pilotée par Angular -->
-  routerLinkActive="active-tab active-button"    <!-- applique le style immédiatement -->
-  [routerLinkActiveOptions]="{ exact: true }"
-  (click)="handleTabClick(tab)"
-  [ngClass]="{
-    'solicitations-tab': tab === Tab.SOLICITING,
-    'team-tab':          tab === Tab.MY_TEAM,
-    'regional-fund-tab': tab === Tab.MY_REGIONAL_FUND
-  }"
->
-  <div>{{ tab }}</div>
-  @if (showBadge(tab)) {
-    <span class="uk-margin-small-left sticker-canard-moyen sticker-padding">{{ currentCount }}</span>
-  }
-</button>
+// add this small type (optional but clean)
+type SelectOption = { id: string; label: string };
 
-export class PageHeaderComponent {
-  Tab = Tab; // pour le template
+// control must hold the whole object (or null)
+protected searchTypeControl = new FormControl<SelectOption | null>(null, { nonNullable: false });
 
-  @Input() public currentCount: number | undefined;
-  @Output() tabClick = new EventEmitter<Tab>();
+// values must be objects with id & label
+protected categoriesValues: SelectOption[] = [
+  { id: 'customerName',  label: 'Nom de client' },
+  { id: 'accountNumber', label: 'Numéro de compte' },
+  { id: 'ticketNumber',  label: 'Numéro de ticket' },
+];
 
-  protected tabs: Tab[] = Object.values(Tab).filter(t => t !== Tab.TERMINATED);
-
-  readonly tabsUrls = new Map<Tab, string>([
-    [Tab.SOLICITING,        '/ticket-list'],
-    [Tab.MY_TEAM,           '/ticket-list/team-list'],
-    [Tab.MY_REGIONAL_FUND,  '/ticket-list/regional-fund-list'],
-  ]);
-
-  constructor(
-    private readonly router: Router,
-    private readonly jwtService: JwtService,
-    private readonly metabotBridge: MetabotBridgeService,
-  ) {}
-
-  protected handleTabClick(tab: Tab): void {
-    this.tabClick.emit(tab);
-    this.maximize();
-    localStorage.removeItem('lastSelectedCard');
-    // pas de this.router.navigate ici : c'est [routerLink] qui s’en charge
-  }
-
-  private maximize(): void {
-    if (!this.jwtService.isEurekaEnv()) {
-      this.metabotBridge.emit(MetabotActionType.MAXIMIZE, {}).then(r => console.log(r));
-    }
-  }
-
-  protected showBadge(tab: Tab): boolean {
-    return tab === Tab.SOLICITING;
-  }
+ngOnInit(): void {
+  // (Optionnel) définir une valeur par défaut
+  // this.searchTypeControl.setValue(this.categoriesValues[0]);
+  
+  // ton code existant pour le champ texte
+  this.searchTextControl.valueChanges
+    .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+    .subscribe(v => this.searchChanged.emit((v ?? '').trim()));
 }
+
+<input-control
+  [label]="'Type de recherche'"
+  [labelPosition]="'LEFT'"
+  [control]="searchTypeControl"
+  [type]="'SELECT'"
+  [values]="categoriesValues">
+</input-control>
+
+<input-control
+  class="search-control"
+  [inputIcon]="searchTextControl.value ? 'close' : 'search'"
+  [classes]="searchTextControl.value ? ['danger-color'] : []"
+  [control]="searchTextControl"
+  [onClick]="createSearchTextControlEmitter()"
+  [labelPlaceholder]="'Rechercher...'">
+</input-control>
