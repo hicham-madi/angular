@@ -1,22 +1,62 @@
-private updateMetaLists(response: MbotList): void {
-  const statusMap = new Map<string, string>();
+@Output() public filtersChanged = new EventEmitter<{
+  search: string;
+  status: string;
+  agency: string;
+  collaborator: string;
+  campaign: string;
+  searchType: string;
+}>();
 
-  // ✅ Sécurisation
-  if (response?.statusList?.length) {
-    response.statusList.forEach((status: string) => {
-      const label = this.getStatusLabelForTicket(status);
-      if (!statusMap.has(label)) {
-        statusMap.set(label, status);
-      }
-    });
-  }
+private emitAll(): void {
+  this.filtersChanged.emit({
+    search: this.searchTextControl.value ?? '',
+    status: this.selectedStatus ?? '',
+    agency: this.selectedAgency ?? '',
+    collaborator: this.selectedCollaborator ?? '',
+    campaign: this.selectedCampaign ?? '',
+    searchType: this.selectedSearchType ?? '',
+  });
+}
 
-  this.statusList = Array.from(statusMap.entries()).map(([label, value]) => ({ label, value }));
-  this.statusList.sort((a, b) => a.label.localeCompare(b.label, 'fr'));
-
-  if (this.currentContext === TicketContext.TEAM) {
-    this.agencyList = response?.agencyList ?? [];
-    this.collaboratorsList = response?.collaboratorsList ?? [];
-    this.campaignsList = response?.campaignsList ?? [];
+ngOnInit(): void {
+  if (TicketContext.REGIONAL_FUND === this.context) {
+    this.searchTextControl.valueChanges
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.emitAll());
   }
 }
+
+public resetFilters(): void {
+  this.searchTextControl.setValue('', { emitEvent: false });
+  this.selectedStatus = '';
+  this.selectedAgency = '';
+  this.selectedCollaborator = '';
+  this.selectedCampaign = '';
+  this.emitAll(); // ➜ une seule émission
+}
+
+public onStatusChange(): void { this.emitAll(); }
+public onAgencyChange(): void { this.emitAll(); }
+public onCollaboratorChange(): void { this.emitAll(); }
+public onCampaignChange(): void { this.emitAll(); }
+public searchType(): void { this.emitAll(); }
+
+<app-filter-bar
+  (filtersChanged)="onFiltersChanged($event)">
+</app-filter-bar>
+
+onFiltersChanged(e: FiltersPayload): void {
+  this.searchTerm = e.search;
+  this.selectedStatus = e.status;
+  this.selectedAgency = e.agency;
+  this.selectedCollaborator = e.collaborator;
+  this.selectedCampaign = e.campaign;
+  this.selectedSearchType = e.searchType;
+  this.applyFilters(); // 1 seul appel
+}
+
+if (this._loading) return;
+this._loading = true;
+// ...
+.pipe(finalize(() => this._loading = false))
+
