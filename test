@@ -1,35 +1,10 @@
-<div class="search-hint">
-  <p class="title">Trouver un ticket via :</p>
-  <ul>
-    <li>Nom du client</li>
-    <li>Numéro de ticket</li>
-    <li>Numéro de compte / contrat</li>
-  </ul>
-</div>
-
-.search-hint {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;  // centre vertical
-  align-items: center;      // centre horizontal
-  height: 100vh;            // prend toute la hauteur de la page
-
-  .title {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 10px;
-    color: $text; // utilise ta variable SCSS si dispo
-  }
-
-  ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-
-    li {
-      font-size: 16px;
-      color: $text-light; // ou gris clair
-      margin: 4px 0;
-    }
-  }
-}
+<input-control
+  class="search-control"
+  [inputIcon]="{icon: searchTextControl.value ? 'close' : 'search', position: 'LEFT'}"
+  [classes]="searchTextControl.value ? ['danger-color'] : []"
+  [tooltip]="searchTextControl.value ? 'Réinitialiser la recherche' : ''"
+  (keyup.enter)="searchType()"   <!-- ICI -->
+  onClick="createSearchTextControlEmitter()"
+  [labelPlaceholder]="'Rechercher...'"
+  [control]="searchTextControl">
+</input-control>
