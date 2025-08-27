@@ -1,9 +1,103 @@
-import { of } from 'rxjs';
+// utils/mbotlist.empty.ts
+import { MbotList, TicketCardsInfos } from 'libs/metabot/shared/src/lib/model/mbotlist.interface';
 
-return of({
-  context,
-  initialTab,
-  config: { displayedColumns, columnConfig },
-  cardType,
-  tickets: [] // liste vide
-} as TicketListPrefetch);
+export function createEmptyMbotList(): MbotList {
+  return {
+    ticket_count_opened: 0,
+    ticket_count_closed: 0,
+    ticket_count_draft: 0,
+    ticket_count_approval: 0,
+    ticket_count_claim: 0,
+    ticket_count_eds: [],
+    ticket_count_customer: '',
+    ticket_count_demande_siege: 0,
+    ticket_count_demande_siege_assigned_to_me: 0,
+    ticket_count_demande_siege_not_assigned: 0,
+    ticket_count_demande_siege_validation_expert: 0,
+    ticket_count_demande_siege_unread_customer: 0,
+    ticket_count_demande_siege_eds: 0,
+    enableGlobalSearchForCustomer: false,
+    tickets: { items: [], page: 0, size: 0, total: 0 } as any, // adapte au type exact
+    associatedTicket: [],
+    stats: new TicketCardsInfos(),
+    statusList: [],
+    agencyList: [],
+    collaboratorsList: [],
+    campaignsList: [],
+  };
+}
+
+// ticket-list.resolver.ts
+import { of } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { createEmptyMbotList } from '../utils/mbotlist.empty';
+import { MbotList } from 'libs/metabot/shared/src/lib/model/mbotlist.interface';
+
+export interface TicketListPrefetch {
+  context: TicketContext;
+  initialTab: 'ongoing' | 'completed';
+  config: { displayedColumns: string[]; columnConfig: Record<string, ColumnDefinition> };
+  cardType: FilterCardType;
+  tickets: MbotList;
+}
+
+public resolve(route: ActivatedRouteSnapshot, _state: RouterStateSnapshot) {
+  const context = route.data['context'] as TicketContext;
+  const initialTab: 'ongoing' | 'completed' =
+    context === TicketContext.TERMINATED || context === TicketContext.TERMINATED_TEAM
+      ? 'completed'
+      : 'ongoing';
+
+  // … récupère cardType, cfg, displayedColumns, columnConfig …
+
+  const params: any = this.listService.reinitParam(0);
+  params.context = context;
+  params.sortKey = 'lastActivityTimestamp';
+  params.isAsc = false;
+
+  if (context === TicketContext.TERMINATED) {
+    params.status = 'CLOSED';
+  } else if (context === TicketContext.TERMINATED_TEAM) {
+    params.status = 'CLOSED';
+    params.listType = 'EDS';
+  }
+
+  const searchTerm = route.queryParamMap.get('search') ?? undefined;
+  if (searchTerm) params.searchTerm = searchTerm;
+  if (cardType !== FilterCardType.NONE) params.cardType = cardType;
+
+  // ⛔️ NE PAS appeler getTicketListV2 pour REGIONAL_FUND
+  if (context !== TicketContext.REGIONAL_FUND) {
+    return this.mbotService.getTicketListV2(params).pipe(
+      map((tickets: MbotList) => ({
+        context,
+        initialTab,
+        config: { displayedColumns, columnConfig },
+        cardType,
+        tickets,
+      } satisfies TicketListPrefetch)),
+    );
+  }
+
+  // ✅ REGIONAL_FUND : payload neutre, pas d’appel myTickets
+  return of({
+    context,
+    initialTab,
+    config: { displayedColumns, columnConfig },
+    cardType,
+    tickets: createEmptyMbotList(),
+  } satisfies TicketListPrefetch);
+}
+
+
+const data = this.route.snapshot.data['prefetch'] as TicketListPrefetch;
+this.currentContext = data.context;
+// … applique displayedColumns / columnConfig …
+this.hydrateFromResponse(data.tickets); // OK: MbotList vide pour REGIONAL_FUND
+
+
+getSearchListV2(params: any): Observable<MbotList> {
+  return this.httpClient.post<MbotList>(`${this.envApiUrl}/v2/m-bot/tck_searchTickets`, params)
+    .pipe(shareReplay({ bufferSize: 1, refCount: true }));
+}
+
