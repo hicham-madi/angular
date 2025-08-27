@@ -1,6 +1,6 @@
-List<Ticket> ticketList = Optional.ofNullable(pageDto)
+var dtoList = Optional.ofNullable(pageDto)
         .map(MbotPageDto::getTickets)
         .map(Stream::toList)
-        .filter(list -> !list.isEmpty())
-        .map(IMapperTicket.INSTANCE::listTicketMbotTicketDtoToListTicket)
         .orElseGet(List::of);
+
+List<Ticket> ticketList = IMapperTicket.INSTANCE.listTicketMbotTicketDtoToListTicket(dtoList);
