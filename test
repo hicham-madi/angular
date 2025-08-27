@@ -1,8 +1,45 @@
-export interface FiltersPayload {
-  search: string;
-  status: string;
-  agency: string;
-  collaborator: string;
-  campaign: string;
-  searchType: string;
+import { of } from 'rxjs';
+import { map } from 'rxjs/operators';
+
+resolve(route: ActivatedRouteSnapshot, _state: RouterStateSnapshot): Observable<TicketListPrefetch> {
+  // ... construction de params, context, initialTab, displayedColumns, columnConfig, cardType, etc.
+
+  if (TicketContext.REGIONAL_FUND !== context) {
+    return this.mbotService.getTicketListV2(params).pipe(
+      map((tickets) => ({
+        context,
+        initialTab,
+        config: { displayedColumns, columnConfig },
+        cardType,
+        tickets,
+      }))
+    );
+  } else {
+    // ➜ Renvoie un objet neutre, pas EMPTY
+    return of({
+      context,
+      initialTab,
+      config: { displayedColumns, columnConfig },
+      cardType,
+      tickets: [],            // liste vide
+    });
+  }
+}
+
+ngOnInit(): void {
+  const data = this.route.snapshot.data['prefetch'] as TicketListPrefetch | undefined;
+  if (!data) return; // ou afficher un message/loader
+
+  this.currentContext = data.context;
+  this.data_initialTab = data.initialTab;
+
+  if (this.displayedColumns.length && !Object.keys(this.columnConfig).length) {
+    this.columnConfig = data.config.columnConfig;
+  }
+  this.displayedColumns = data.config.displayedColumns;
+
+  this.activeCard = data.cardType ?? FilterCardType.NONE;
+  // etc.
+  this.initialization(this.currentContext);
+  this.hydrateFromResponse(data.tickets);
 }
