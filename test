@@ -1,16 +1,7 @@
-Map<String, Long> counts = ticketList.stream()
-    .map(t -> t != null && t.getClaimType() != null ? t.getClaimType().getCode() : null)
-    .filter(Objects::nonNull)
-    .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+String trimmed = query.trim();
+String sub = trimmed.length() > 11 ? trimmed.substring(0, 11) : trimmed;
+String format = String.format("%s", sub);
 
-int requests = (int)(
-      counts.getOrDefault(ClaimTypeCode.DC.getCode(), 0L)
-    + counts.getOrDefault(ClaimTypeCode.D.getCode(), 0L)
-);
-int claims = (int) counts.getOrDefault(ClaimTypeCode.RC.getCode(), 0L);
-int requestsExpertService = (int) counts.getOrDefault(ClaimTypeCode.DS.getCode(), 0L);
-
-builder
-    .requests(requests)
-    .claims(claims)
-    .requestsExpertService(requestsExpertService);
+case "FORM_VALUES":
+    return Criteria.where(FORMS_FIELD)
+                   .elemMatch(Criteria.where("fValue").regex("^" + Pattern.quote(format)));
