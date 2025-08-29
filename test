@@ -1,39 +1,39 @@
-// app routing (ou module racine)
-RouterModule.forRoot(routes, {
-  onSameUrlNavigation: 'reload'
-});
-
-// ta route liste
-{
-  path: 'ticket-list/regional-fund-list',
-  loadComponent: () => import(...).then(m => m.TicketListPageComponent),
-  resolve: { prefetch: TicketListResolver },
-  runGuardsAndResolvers: 'always',   // 👈 important
-  data: { context: TicketContext.REGIONAL_FUND }
-}
+// TicketsPageBase (ou le composant concret)
+private ignoreCardOnce = false;
 
 protected onHeaderTabClick(): void {
   const next = this.currentTab === 'ongoing' ? 'completed' : 'ongoing';
 
-  // nettoie l’état local minimal avant navigation (facultatif)
+  // Demander au listener de card d’ignorer la prochaine valeur
+  this.ignoreCardOnce = true;
+
+  // Réinitialisations locales (si besoin)
   this.activeCard = null!;
   localStorage.removeItem('lastSelectedCard');
+  this.resetPagination();
 
+  // Navigation: change le tab et SUPPRIME ?card=... de l’URL
   this.router.navigate([], {
     relativeTo: this.route,
-    queryParams: { tab: next, card: null, ts: Date.now() }, // ts pour être sûr que l’URL change
-    queryParamsHandling: 'merge'
+    queryParams: { tab: next, card: null }, // null => suppression
+    queryParamsHandling: 'merge',
+    replaceUrl: true
   });
 }
 
-public ngOnInit(): void {
-  const data = this.route.snapshot.data['prefetch'] as TicketListPrefetch;
-  const tab = this.route.snapshot.queryParamMap.get('tab') as 'ongoing' | 'completed' | null;
-
-  this.bootstrapFromPrefetch(data);
-  if (tab) this.currentTab = tab;
-}
-
-private bootstrapFromPrefetch(data: TicketListPrefetch): void {
-  // <= le contenu actuel de ton ngOnInit (affectations env, context, columns, hydrate…)
-}
+// À un seul endroit (évite les doubles subs)
+this.route.queryParamMap
+  .pipe(
+    map(p => p.get('card') as FilterCardType | null),
+    distinctUntilChanged()
+  )
+  .subscribe(cardType => {
+    // Si on vient de cliquer sur l’onglet, on ignore UNE fois la valeur de 'card'
+    if (this.ignoreCardOnce) {
+      this.ignoreCardOnce = false;
+      return;
+    }
+    if (cardType && this.activeCard !== cardType) {
+      this.onCardClicked(cardType);
+    }
+  });
