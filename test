@@ -1,17 +1,39 @@
-import { ViewChild } from '@angular/core';
-import { FilterBarComponent } from '../components/filter-bar/filter-bar.component';
+// app routing (ou module racine)
+RouterModule.forRoot(routes, {
+  onSameUrlNavigation: 'reload'
+});
 
-export class TicketsPageComponent extends TicketsPageBase {
-  @ViewChild('filterBar') filterBar!: FilterBarComponent;
+// ta route liste
+{
+  path: 'ticket-list/regional-fund-list',
+  loadComponent: () => import(...).then(m => m.TicketListPageComponent),
+  resolve: { prefetch: TicketListResolver },
+  runGuardsAndResolvers: 'always',   // 👈 important
+  data: { context: TicketContext.REGIONAL_FUND }
+}
 
-  protected onCardClicked(type: FilterCardType): void {
-    // ... ta logique existante (chargement, etc.)
-    this.filterBar?.resetFilters();   // <-- réinitialise les filtres
-    // éventuellement relancer la recherche ici si besoin
-  }
+protected onHeaderTabClick(): void {
+  const next = this.currentTab === 'ongoing' ? 'completed' : 'ongoing';
 
-  protected onHeaderTabClick(): void {
-    // quand on change d’onglet
-    this.filterBar?.resetFilters();
-  }
+  // nettoie l’état local minimal avant navigation (facultatif)
+  this.activeCard = null!;
+  localStorage.removeItem('lastSelectedCard');
+
+  this.router.navigate([], {
+    relativeTo: this.route,
+    queryParams: { tab: next, card: null, ts: Date.now() }, // ts pour être sûr que l’URL change
+    queryParamsHandling: 'merge'
+  });
+}
+
+public ngOnInit(): void {
+  const data = this.route.snapshot.data['prefetch'] as TicketListPrefetch;
+  const tab = this.route.snapshot.queryParamMap.get('tab') as 'ongoing' | 'completed' | null;
+
+  this.bootstrapFromPrefetch(data);
+  if (tab) this.currentTab = tab;
+}
+
+private bootstrapFromPrefetch(data: TicketListPrefetch): void {
+  // <= le contenu actuel de ton ngOnInit (affectations env, context, columns, hydrate…)
 }
