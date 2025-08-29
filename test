@@ -1,18 +1,10 @@
-// resolver
 return forkJoin({
-  env: this.mbotService.getEnvConfig(),
-  tickets: this.mbotService.getTicketListV2(params)
+  env: this.mbotService.getEnvConfig().pipe(take(1)),
+  tickets: this.mbotService.getTicketListV2(params).pipe(take(1)),
 }).pipe(
   map(({ env, tickets }) => ({
-    context, initialTab, config: { displayedColumns, columnConfig }, cardType,
-    tickets, env
-  }))
+    ...base,
+    env,
+    tickets,
+  } satisfies TicketListPrefetch))
 );
-
-// composant ngOnInit
-const data = this.route.snapshot.data['prefetch'];
-this.enableDiscussionGroupForCustomer = data.env?.preferences?.enableDiscussionGroupForCustomer;
-this.enableDs = data.env?.preferences?.enableDs;
-this.enableGlobalSearchForCustomer = data.env?.preferences?.enableGlobalSearchForCustomer;
-// puis hydrate
-this.hydrateFromResponse(data.tickets);
