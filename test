@@ -1,7 +1,18 @@
-String trimmed = query.trim();
-String sub = trimmed.length() > 11 ? trimmed.substring(0, 11) : trimmed;
-String format = String.format("%s", sub);
+// resolver
+return forkJoin({
+  env: this.mbotService.getEnvConfig(),
+  tickets: this.mbotService.getTicketListV2(params)
+}).pipe(
+  map(({ env, tickets }) => ({
+    context, initialTab, config: { displayedColumns, columnConfig }, cardType,
+    tickets, env
+  }))
+);
 
-case "FORM_VALUES":
-    return Criteria.where(FORMS_FIELD)
-                   .elemMatch(Criteria.where("fValue").regex("^" + Pattern.quote(format)));
+// composant ngOnInit
+const data = this.route.snapshot.data['prefetch'];
+this.enableDiscussionGroupForCustomer = data.env?.preferences?.enableDiscussionGroupForCustomer;
+this.enableDs = data.env?.preferences?.enableDs;
+this.enableGlobalSearchForCustomer = data.env?.preferences?.enableGlobalSearchForCustomer;
+// puis hydrate
+this.hydrateFromResponse(data.tickets);
