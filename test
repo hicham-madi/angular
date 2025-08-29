@@ -1,13 +1,17 @@
-<button
-  class="uk-button uk-button-default"
-  [ngClass]="{ 'to-be-closed': ticket?.statut === 'TO_BE_CLOSED' }"
->
-  Clôturer la demande
-</button>
+import { ViewChild } from '@angular/core';
+import { FilterBarComponent } from '../components/filter-bar/filter-bar.component';
 
-.to-be-closed {
-  background-color: #ffabab !important;
-  color: white !important;
+export class TicketsPageComponent extends TicketsPageBase {
+  @ViewChild('filterBar') filterBar!: FilterBarComponent;
+
+  protected onCardClicked(type: FilterCardType): void {
+    // ... ta logique existante (chargement, etc.)
+    this.filterBar?.resetFilters();   // <-- réinitialise les filtres
+    // éventuellement relancer la recherche ici si besoin
+  }
+
+  protected onHeaderTabClick(): void {
+    // quand on change d’onglet
+    this.filterBar?.resetFilters();
+  }
 }
-
-feat(ui): mise en valeur du bouton "Clôturer la demande" quand le statut est TO_BE_CLOSED
