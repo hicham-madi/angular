@@ -1,10 +1,41 @@
-return forkJoin({
-  env: this.mbotService.getEnvConfig().pipe(take(1)),
-  tickets: this.mbotService.getTicketListV2(params).pipe(take(1)),
-}).pipe(
-  map(({ env, tickets }) => ({
-    ...base,
-    env,
-    tickets,
-  } satisfies TicketListPrefetch))
-);
+private buildCardsFrom(response: MbotList): void {
+  this.ticketCardInfos = response.stats;
+
+  const { largeCards, smallCards } = this.cardConfigFactory.countCards(
+    this.ticketCardInfos,
+    this.activeCard,
+    this.cardClicked
+  );
+
+  const disabled = this.getDisabledCardTypes();
+
+  const keepCard = (c: { type?: string }) =>
+    !!c.type && !disabled.has(c.type as string);
+
+  // 1) filtre de base (désactivées)
+  let filteredLarge = largeCards.filter(keepCard);
+
+  // 2) exclusions selon le contexte
+  const isSolicitationsOrTeam =
+    this.currentContext === TicketContext.SOLICITATIONS ||
+    this.currentContext === TicketContext.TEAM;
+
+  if (!isSolicitationsOrTeam) {
+    const excluded = new Set<string>(['APPROVALS', 'DISCUSSION_GROUPS']);
+    filteredLarge = filteredLarge.filter(c => !excluded.has(c.type!));
+  }
+
+  // 3) affectations finales
+  this.largeCards = filteredLarge;
+  this.smallCards = isSolicitationsOrTeam ? smallCards : [];
+
+  this.cdr.detectChanges();
+}
+
+private getDisabledCardTypes(): Set<string> {
+  const s = new Set<string>();
+  if (this.enableReclamation) s.add('CLAIMS');
+  if (this.enableDiscussionGroupForCustomer) s.add('DISCUSSION_GROUPS');
+  if (this.enableDs) s.add('REQUESTS_EXPERT_SERVICE');
+  return s;
+}
