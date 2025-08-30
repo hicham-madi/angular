@@ -1,40 +1,123 @@
-// 1) Normalise le type : peut arriver depuis l’URL en string
-const normalizeCardType = (t: unknown): FilterCardType | undefined => {
-  if (!t) return undefined;
-  // Si déjà une valeur de l'enum string (ex: 'REQUESTS_EXPERT_SERVICE')
-  if (Object.values(FilterCardType).includes(t as FilterCardType)) {
-    return t as FilterCardType;
-  }
-  // Si clé de l'enum (ex: 'REQUESTS_EXPERT_SERVICE' côté clé)
-  const byKey = (FilterCardType as any)[t as string];
-  return byKey as FilterCardType | undefined;
-};
+// tickets-page.base.ts
+import { Observable } from 'rxjs';
+import { FilterCardType } from '../models/filter-card-type.enum';
+import { TicketContext } from '../models/my-solicitings.constants';
+import { TicketStatus } from '../models/status.model';
+import { TicketListParams } from './ticketListParams.interface';
 
-// ---- plus bas dans loadTicketsByCard(...) ----
+export abstract class TicketsPageBase {
+  // ... vos injections & propriétés
 
-// Assigne d'abord cardType à partir de "type" (le param du method / de l'URL)
-const ct = normalizeCardType(type);
-if (ct && ct !== FilterCardType.NONE) {
-  params.cardType = ct;
-}
-
-// Puis construis claimCodeFilter à partir de params.cardType
-if (params.cardType) {
-  // switch sur la STRING (sécurise la comparaison)
-  const ctStr = String(params.cardType);
-  const filters: string[] = [];
-
-  switch (ctStr) {
-    case 'CLAIMS':
-      filters.push('RC');
-      break;
-    case 'REQUESTS':
-      filters.push('D', 'DC');
-      break;
-    case 'REQUESTS_EXPERT_SERVICE':
-      filters.push('DS');
-      break;
+  /** 1) Params de base fusionnés avec l'état courant */
+  private buildBaseParams(page: number, context: TicketContext): TicketListParams {
+    const params = { ...this.listService.getCurrentParams() } as TicketListParams;
+    params.currentPages = page;
+    params.context = context;
+    return params;
   }
 
-  params.claimCodeFilter = filters;
+  /** 2) Paramètres dépendants du contexte (TERMINATED, TEAM, REGIONAL_FUND) */
+  private applyContextParams(params: TicketListParams, context: TicketContext): void {
+    if (context === TicketContext.TERMINATED) {
+      params.status = TicketStatus.CLOSED;
+      return;
+    }
+    if (context === TicketContext.TERMINATED_TEAM) {
+      params.status = TicketStatus.CLOSED;
+      params.listType = 'EDS';
+      return;
+    }
+    if (context === TicketContext.REGIONAL_FUND) {
+      params.listType = 'SEARCH';
+      params.searchQuery = this.searchTerm;
+      params.querySearchKey = this.selectedSearchType;
+      params.isAsc = false;
+      params.sortKey = 'lastActivityTimestamp';
+      return;
+    }
+    // sinon: contexte "normal" → rien de spécial
+  }
+
+  /** 3) Mapping cardType → codes de réclamation */
+  private getClaimCodesFromCardType(cardType?: FilterCardType): string[] {
+    switch (cardType) {
+      case FilterCardType.CLAIMS:
+        return ['RC'];
+      case FilterCardType.REQUESTS:
+        return ['D', 'DC'];
+      case FilterCardType.REQUESTS_EXPERT_SERVICE:
+        return ['DS'];
+      default:
+        return [];
+    }
+  }
+
+  private applyClaimCodes(params: TicketListParams): void {
+    params.claimCodeFilter = this.getClaimCodesFromCardType(params.cardType);
+  }
+
+  /** 4) Overrides passés via opts (tri, sens, filtres) */
+  private applyOptionalOverrides(
+    params: TicketListParams,
+    context: TicketContext,
+    opts?: {
+      sortKey?: string | null;
+      isAsc?: boolean | null;
+      searchTerm?: string;
+      statusFilter?: string;
+      agencyFilter?: string;
+      collaboratorFilter?: string;
+      campaignFilter?: string;
+    }
+  ): void {
+    if (!opts) return;
+
+    if (opts.sortKey != null) params.sortKey = opts.sortKey;
+    if (opts.isAsc != null) params.isAsc = opts.isAsc;
+
+    // On ne remplace pas la recherche du contexte REGIONAL_FUND (déjà fixé)
+    if (opts.searchTerm !== undefined && context !== TicketContext.REGIONAL_FUND) {
+      params.searchTerm = opts.searchTerm;
+    }
+
+    if (opts.statusFilter !== undefined)       params.statusFilter       = opts.statusFilter;
+    if (opts.agencyFilter !== undefined)       params.agencyFilter       = opts.agencyFilter;
+    if (opts.collaboratorFilter !== undefined) params.collaboratorFilter = opts.collaboratorFilter;
+    if (opts.campaignFilter !== undefined)     params.campaignFilter     = opts.campaignFilter;
+  }
+
+  /** Méthode publique allégée */
+  public loadTicketsByCard(
+    type: FilterCardType,
+    context: TicketContext,
+    page: number = 0,
+    opts?: {
+      sortKey?: string | null;
+      isAsc?: boolean | null;
+      searchTerm?: string;
+      statusFilter?: string;
+      agencyFilter?: string;
+      collaboratorFilter?: string;
+      campaignFilter?: string;
+    }
+  ): Observable<MbotList> {
+    const params = this.buildBaseParams(page, context);
+
+    this.applyContextParams(params, context);
+
+    if (type !== FilterCardType.NONE) {
+      params.cardType = FilterCardType[type];
+    }
+
+    if (params.cardType) {
+      this.applyClaimCodes(params);
+    }
+
+    this.applyOptionalOverrides(params, context, opts);
+
+    // Service à appeler selon le contexte
+    return context === TicketContext.REGIONAL_FUND
+      ? this.mbotService.getSearchListV2(params)
+      : this.mbotService.getTicketListV2(params);
+  }
 }
