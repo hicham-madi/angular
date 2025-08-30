@@ -1,39 +1,40 @@
-// TicketsPageBase (ou le composant concret)
-private ignoreCardOnce = false;
+// 1) Normalise le type : peut arriver depuis l’URL en string
+const normalizeCardType = (t: unknown): FilterCardType | undefined => {
+  if (!t) return undefined;
+  // Si déjà une valeur de l'enum string (ex: 'REQUESTS_EXPERT_SERVICE')
+  if (Object.values(FilterCardType).includes(t as FilterCardType)) {
+    return t as FilterCardType;
+  }
+  // Si clé de l'enum (ex: 'REQUESTS_EXPERT_SERVICE' côté clé)
+  const byKey = (FilterCardType as any)[t as string];
+  return byKey as FilterCardType | undefined;
+};
 
-protected onHeaderTabClick(): void {
-  const next = this.currentTab === 'ongoing' ? 'completed' : 'ongoing';
+// ---- plus bas dans loadTicketsByCard(...) ----
 
-  // Demander au listener de card d’ignorer la prochaine valeur
-  this.ignoreCardOnce = true;
-
-  // Réinitialisations locales (si besoin)
-  this.activeCard = null!;
-  localStorage.removeItem('lastSelectedCard');
-  this.resetPagination();
-
-  // Navigation: change le tab et SUPPRIME ?card=... de l’URL
-  this.router.navigate([], {
-    relativeTo: this.route,
-    queryParams: { tab: next, card: null }, // null => suppression
-    queryParamsHandling: 'merge',
-    replaceUrl: true
-  });
+// Assigne d'abord cardType à partir de "type" (le param du method / de l'URL)
+const ct = normalizeCardType(type);
+if (ct && ct !== FilterCardType.NONE) {
+  params.cardType = ct;
 }
 
-// À un seul endroit (évite les doubles subs)
-this.route.queryParamMap
-  .pipe(
-    map(p => p.get('card') as FilterCardType | null),
-    distinctUntilChanged()
-  )
-  .subscribe(cardType => {
-    // Si on vient de cliquer sur l’onglet, on ignore UNE fois la valeur de 'card'
-    if (this.ignoreCardOnce) {
-      this.ignoreCardOnce = false;
-      return;
-    }
-    if (cardType && this.activeCard !== cardType) {
-      this.onCardClicked(cardType);
-    }
-  });
+// Puis construis claimCodeFilter à partir de params.cardType
+if (params.cardType) {
+  // switch sur la STRING (sécurise la comparaison)
+  const ctStr = String(params.cardType);
+  const filters: string[] = [];
+
+  switch (ctStr) {
+    case 'CLAIMS':
+      filters.push('RC');
+      break;
+    case 'REQUESTS':
+      filters.push('D', 'DC');
+      break;
+    case 'REQUESTS_EXPERT_SERVICE':
+      filters.push('DS');
+      break;
+  }
+
+  params.claimCodeFilter = filters;
+}
