@@ -1,21 +1,63 @@
-case "ACCOUNT_NUMBER": {
-    // 1) Nettoyer : garder que les chiffres (au cas où il y ait des espaces/typos)
-    String raw = query == null ? "" : query.trim();
-    String digits = raw.replaceAll("\\D+", "");
+export class SolicitingsTableComponent {
+  @Input() resetSortToken = 0;
+  @Output() sortChanged = new EventEmitter<{ sortKey: string | null; isAsc: boolean | null }>();
 
-    // 2) Tronquer à 11 si votre modèle est sur 11 chiffres (adaptez si besoin)
-    if (digits.length() > 11) {
-        digits = digits.substring(0, 11);
+  // État local du tri
+  protected sort: { active: string | null; direction: 'asc' | 'desc' | null } = {
+    active: null,
+    direction: null,
+  };
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if ('resetSortToken' in changes && !changes['resetSortToken'].firstChange) {
+      // ⚠️ réassignation, pas mutation
+      this.sort = { active: null, direction: null };
+      this.cdkVirtualScroll?.scrollToIndex(0);
+      this.cdr?.markForCheck?.();
+    }
+  }
+
+  protected sortData(column: string): void {
+    if (this.sort.active !== column) {
+      this.sort = { active: column, direction: 'asc' };
+    } else {
+      const next =
+        this.sort.direction === 'asc' ? 'desc' :
+        this.sort.direction === 'desc' ? null : 'asc';
+
+      this.sort = { active: next ? column : null, direction: next };
     }
 
-    // 3) Si vous devez **aligner à 11** avec des zéros à gauche,
-    // utilisez BigInteger pour éviter les overflows et conserver le formatage :
-    String fmt = String.format("%011d", new java.math.BigInteger(digits.isEmpty() ? "0" : digits));
+    // Émettre la valeur de tri
+    if (!this.sort.direction) {
+      this.sortChanged.emit({ sortKey: 'lastActivityTimestamp', isAsc: false });
+    } else {
+      this.sortChanged.emit({
+        sortKey: this.sort.active!,
+        isAsc: this.sort.direction === 'asc'
+      });
+    }
 
-    // 4) Equality plutôt que regex si stocké en String en base
-    return new Criteria().orOperator(
-        Criteria.where(FORMS_FIELD).is(fmt),
-        Criteria.where("comCliCoord.address.numAccount").is(fmt),
-        Criteria.where("part.partAccount").is(fmt)
-    );
+    this.cdr?.markForCheck?.();
+  }
+
+  protected getSortIcon(column: string): string {
+    if (this.sort.active !== column || !this.sort.direction) return 'unfold_more';
+    return this.sort.direction === 'asc' ? 'arrow_upward' : 'arrow_downward';
+  }
+}
+
+protected onCardClicked(card: FilterCardType): void {
+  // ... votre logique ...
+  this.resetSortToken++;          // remet le tri du tableau à l’état neutre
+}
+
+protected onHeaderTabClick(): void {
+  // ... votre logique ...
+  this.resetSortToken++;          // idem
+}
+
+protected onFiltersChanged(e: FiltersPayload): void {
+  // ... votre logique ...
+  // this.resetSortToken++;       // ➜ mettez-le seulement si vous voulez perdre le tri après filtrage
 }
