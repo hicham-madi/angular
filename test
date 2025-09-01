@@ -1,123 +1,21 @@
-// tickets-page.base.ts
-import { Observable } from 'rxjs';
-import { FilterCardType } from '../models/filter-card-type.enum';
-import { TicketContext } from '../models/my-solicitings.constants';
-import { TicketStatus } from '../models/status.model';
-import { TicketListParams } from './ticketListParams.interface';
+case "ACCOUNT_NUMBER": {
+    // 1) Nettoyer : garder que les chiffres (au cas où il y ait des espaces/typos)
+    String raw = query == null ? "" : query.trim();
+    String digits = raw.replaceAll("\\D+", "");
 
-export abstract class TicketsPageBase {
-  // ... vos injections & propriétés
-
-  /** 1) Params de base fusionnés avec l'état courant */
-  private buildBaseParams(page: number, context: TicketContext): TicketListParams {
-    const params = { ...this.listService.getCurrentParams() } as TicketListParams;
-    params.currentPages = page;
-    params.context = context;
-    return params;
-  }
-
-  /** 2) Paramètres dépendants du contexte (TERMINATED, TEAM, REGIONAL_FUND) */
-  private applyContextParams(params: TicketListParams, context: TicketContext): void {
-    if (context === TicketContext.TERMINATED) {
-      params.status = TicketStatus.CLOSED;
-      return;
-    }
-    if (context === TicketContext.TERMINATED_TEAM) {
-      params.status = TicketStatus.CLOSED;
-      params.listType = 'EDS';
-      return;
-    }
-    if (context === TicketContext.REGIONAL_FUND) {
-      params.listType = 'SEARCH';
-      params.searchQuery = this.searchTerm;
-      params.querySearchKey = this.selectedSearchType;
-      params.isAsc = false;
-      params.sortKey = 'lastActivityTimestamp';
-      return;
-    }
-    // sinon: contexte "normal" → rien de spécial
-  }
-
-  /** 3) Mapping cardType → codes de réclamation */
-  private getClaimCodesFromCardType(cardType?: FilterCardType): string[] {
-    switch (cardType) {
-      case FilterCardType.CLAIMS:
-        return ['RC'];
-      case FilterCardType.REQUESTS:
-        return ['D', 'DC'];
-      case FilterCardType.REQUESTS_EXPERT_SERVICE:
-        return ['DS'];
-      default:
-        return [];
-    }
-  }
-
-  private applyClaimCodes(params: TicketListParams): void {
-    params.claimCodeFilter = this.getClaimCodesFromCardType(params.cardType);
-  }
-
-  /** 4) Overrides passés via opts (tri, sens, filtres) */
-  private applyOptionalOverrides(
-    params: TicketListParams,
-    context: TicketContext,
-    opts?: {
-      sortKey?: string | null;
-      isAsc?: boolean | null;
-      searchTerm?: string;
-      statusFilter?: string;
-      agencyFilter?: string;
-      collaboratorFilter?: string;
-      campaignFilter?: string;
-    }
-  ): void {
-    if (!opts) return;
-
-    if (opts.sortKey != null) params.sortKey = opts.sortKey;
-    if (opts.isAsc != null) params.isAsc = opts.isAsc;
-
-    // On ne remplace pas la recherche du contexte REGIONAL_FUND (déjà fixé)
-    if (opts.searchTerm !== undefined && context !== TicketContext.REGIONAL_FUND) {
-      params.searchTerm = opts.searchTerm;
+    // 2) Tronquer à 11 si votre modèle est sur 11 chiffres (adaptez si besoin)
+    if (digits.length() > 11) {
+        digits = digits.substring(0, 11);
     }
 
-    if (opts.statusFilter !== undefined)       params.statusFilter       = opts.statusFilter;
-    if (opts.agencyFilter !== undefined)       params.agencyFilter       = opts.agencyFilter;
-    if (opts.collaboratorFilter !== undefined) params.collaboratorFilter = opts.collaboratorFilter;
-    if (opts.campaignFilter !== undefined)     params.campaignFilter     = opts.campaignFilter;
-  }
+    // 3) Si vous devez **aligner à 11** avec des zéros à gauche,
+    // utilisez BigInteger pour éviter les overflows et conserver le formatage :
+    String fmt = String.format("%011d", new java.math.BigInteger(digits.isEmpty() ? "0" : digits));
 
-  /** Méthode publique allégée */
-  public loadTicketsByCard(
-    type: FilterCardType,
-    context: TicketContext,
-    page: number = 0,
-    opts?: {
-      sortKey?: string | null;
-      isAsc?: boolean | null;
-      searchTerm?: string;
-      statusFilter?: string;
-      agencyFilter?: string;
-      collaboratorFilter?: string;
-      campaignFilter?: string;
-    }
-  ): Observable<MbotList> {
-    const params = this.buildBaseParams(page, context);
-
-    this.applyContextParams(params, context);
-
-    if (type !== FilterCardType.NONE) {
-      params.cardType = FilterCardType[type];
-    }
-
-    if (params.cardType) {
-      this.applyClaimCodes(params);
-    }
-
-    this.applyOptionalOverrides(params, context, opts);
-
-    // Service à appeler selon le contexte
-    return context === TicketContext.REGIONAL_FUND
-      ? this.mbotService.getSearchListV2(params)
-      : this.mbotService.getTicketListV2(params);
-  }
+    // 4) Equality plutôt que regex si stocké en String en base
+    return new Criteria().orOperator(
+        Criteria.where(FORMS_FIELD).is(fmt),
+        Criteria.where("comCliCoord.address.numAccount").is(fmt),
+        Criteria.where("part.partAccount").is(fmt)
+    );
 }
