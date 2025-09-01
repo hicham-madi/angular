@@ -1,114 +1,72 @@
-// au-dessus : imports…
+// 1) Déclare un type unique
+export type SortState = {
+  sortKey: string | null;
+  isAsc: boolean | null;
+};
 
-export type SortState = { active: string | null; direction: 'asc' | 'desc' | null };
+// 2) État initial
+protected currentSort: SortState = { sortKey: null, isAsc: null };
 
-@Component({
-  // …
-  changeDetection: ChangeDetectionStrategy.OnPush,
-})
-export class SolicitingsTableComponent {
-  @Input() public tickets: Ticket[] = [];
-  @Input() public displayedColumns: string[] = [];
-  // …
-  @Input() public resetSortToken = 0;
+// 3) Handler appelé par (sortChanged)
+protected onSortChanged(sort: { sortKey: string | null; isAsc: boolean | null }): void {
+  this.currentSort = { sortKey: sort.sortKey, isAsc: sort.isAsc }; // << nouvelle référence
+  this.currentPage = 0;
+  this.scrollCompleted = false;
+  this.allPagesLoaded = false;
+  this.tickets = [];
+  this.loadedElements = 0;
+  this.hasPendingPage = true;
 
-  // 🔁 NOUVEAU : l’état de tri vient du parent
-  @Input() public sort!: SortState;
+  const card = this.activeCard ?? FilterCardType.NONE;
+  const opts = {
+    sortKey: sort.sortKey,
+    isAsc: sort.isAsc,
+    searchTerm: this.searchTerm?.trim() ?? '',
+    statusFilter: this.selectedStatus ?? '',
+    agencyFilter: this.selectedAgency ?? '',
+    collaboratorFilter: this.selectedCollaborator ?? '',
+    campaignFilter: this.selectedCampaign ?? '',
+    searchTypeFilter: this.selectedSearchType ?? '',
+  };
 
-  @Output() public sortChanged = new EventEmitter<{ sortKey: string; isAsc: boolean }>();
-
-  public ngOnChanges(changes: SimpleChanges): void {
-    if (changes['resetSortToken'] && !changes['resetSortToken'].firstChange) {
-      // on ne touche PAS au tri ici : on ne fait que remonter en haut de la liste
-      this.cdkVirtualScroll?.scrollToIndex?.(0);
-    }
-  }
-
-  protected getSortIcon(column: string): string {
-    if (!this.sort || this.sort.active !== column || !this.sort.direction) return 'unfold_more';
-    return this.sort.direction === 'asc' ? 'arrow_upward' : 'arrow_downward';
-  }
-
-  protected sortData(column: string): void {
-    // On ne modifie pas this.sort ici, on demande au parent quoi faire
-    if (!this.sort || this.sort.active !== column) {
-      this.sortChanged.emit({ sortKey: column, isAsc: true });
-      return;
-    }
-    if (this.sort.direction === 'asc') {
-      this.sortChanged.emit({ sortKey: column, isAsc: false });
-      return;
-    }
-    // 3e clic : retour tri par défaut
-    this.sortChanged.emit({ sortKey: 'lastActivityTimestamp', isAsc: false });
-  }
+  this.loadTicketsByCard(card, this.currentContext, 0, opts).subscribe({
+    next: (response) => this.handleTicketResponse(response),
+    error: (err) => console.error('Erreur tri page 0 :', err),
+  });
 }
 
-<!-- icône liée par property binding (pas d'interpolation) -->
-<mat-header-cell *matHeaderCellDef="let column" (click)="sortData(column)" [ngStyle]="columnConfig[column]?.style || {}">
-  <ng-container *ngIf="column !== 'action'">
-    <span class="column-label" [innerHTML]="columnConfig[column]?.label || column"></span>
-    <mat-icon class="sort-icon" [fontIcon]="getSortIcon(column)"></mat-icon>
-  </ng-container>
-</mat-header-cell>
+// 4) Dans loadTicketsByCard(...) : utilise le même modèle
+public loadTicketsByCard(
+  type: FilterCardType,
+  context: TicketContext,
+  page: number = 0,
+  opts?: {
+    sortKey?: string | null;
+    isAsc?: boolean | null;
+    searchTerm?: string;
+    statusFilter?: string;
+    agencyFilter?: string;
+    collaboratorFilter?: string;
+    campaignFilter?: string;
+    searchTypeFilter?: string;
+  }
+): Observable<MbotList> {
+  const params = { ...this.listService.getCurrentParams() };
 
-// même type que dans l’enfant
-type SortState = { active: string | null; direction: 'asc' | 'desc' | null };
+  // ... (status/listType/etc.)
 
-export abstract class TicketsPageBase {
-  // 🔁 NOUVEAU : l’état de tri vit ici
-  protected currentSort: SortState = { active: null, direction: null };
+  // ➜ prend le tri depuis opts sinon depuis currentSort
+  const effective = (opts && (opts.sortKey != null || opts.isAsc != null))
+    ? { sortKey: opts.sortKey ?? null, isAsc: opts.isAsc ?? null }
+    : this.currentSort;
 
-  protected onSortChanged(sort: { sortKey: string; isAsc: boolean }): void {
-    // mettre à jour l’état (pilotera l’icône du child)
-    this.currentSort = { active: sort.sortKey, direction: sort.isAsc ? 'asc' : 'desc' };
-
-    this.currentPage = 0;
-    this.scrollCompleted = false;
-    this.allPagesLoaded = false;
-    this.tickets = [];
-    this.loadedElements = 0;
-    this.hasPendingPage = true;
-
-    const card = this.activeCard ?? FilterCardType.NONE;
-    const opts = {
-      sortKey: sort.sortKey,
-      isAsc: sort.isAsc,
-      searchTerm: this.searchTerm?.trim() ?? '',
-      statusFilter: this.selectedStatus ?? '',
-      agencyFilter: this.selectedAgency ?? '',
-      collaboratorFilter: this.selectedCollaborator ?? '',
-      campaignFilter: this.selectedCampaign ?? '',
-      searchTypeFilter: this.selectedSearchType ?? '',
-    };
-
-    this.loadTicketsByCard(card, this.currentContext, 0, opts).subscribe({
-      next: (response) => this.handleTicketResponse(response),
-      error: (err) => console.error('Erreur tri page 0 :', err),
-    });
+  if (effective.sortKey != null && effective.isAsc != null) {
+    params.sortKey = effective.sortKey;
+    params.isAsc = effective.isAsc;
   }
 
-  /** Quand vous réinitialisez (changement d’onglet, clic carte, reset filtres) */
-  protected resetSort(): void {
-    this.currentSort = { active: null, direction: null }; // icônes -> 'unfold_more'
-    this.resetSortToken++;                                // pour remonter en haut si besoin
-  }
+  // ... (autres filtres + return service)
 }
 
 
-<metabot-solicitings-table
-  *ngIf="tickets.length > 0"
-  [tickets]="tickets"
-  [displayedColumns]="displayedColumns"
-  [columnConfig]="columnConfig"
-  [columnTemplates]="columnTemplates"
-  [rowClick]="rowClickFn"
-  [context]="this.currentContext"
-  [selectedCard]="activeCard"
-  [hasPendingPage]="hasPendingPage"
-  [readCustomer]="readCustomerTable"
-  [resetSortToken]="resetSortToken"
-  [sort]="currentSort"                   <!-- 🔁 NOUVEAU -->
-  (sortChanged)="onSortChanged($event)"
-  (loadMore)="onScroll($event)"
-></metabot-solicitings-table>
+
