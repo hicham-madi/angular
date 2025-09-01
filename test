@@ -1,32 +1,73 @@
-// Définition locale du sort
-protected sort: SortState = {
-  sortKey: null,
-  isAsc: null
-};
+// onCdkScroll(): emit the current sort to the parent when we ask more data
+public onCdkScroll(): void {
+  const offsetHeight = this.cdkVirtualScroll.elementRef.nativeElement.offsetHeight;
+  const scrollHeight = this.cdkVirtualScroll.elementRef.nativeElement.scrollHeight;
+  const scrollTop    = this.cdkVirtualScroll.elementRef.nativeElement.scrollTop;
 
-protected getSortIcon(column: string): string {
-  if (this.sort.sortKey !== column) {
-    return 'unfold_more'; // pas trié
+  if (scrollTop + offsetHeight >= scrollHeight - 50) {
+    this.loadMore.emit({
+      sortKey: this.sort?.sortKey ?? null,
+      isAsc:   this.sort?.isAsc   ?? null,
+    });
   }
+}
+
+// Icon helper
+protected getSortIcon(column: string): string {
+  if (!this.sort || this.sort.sortKey !== column) return 'unfold_more';
   return this.sort.isAsc ? 'arrow_upward' : 'arrow_downward';
 }
 
+// Click on a header to change the sort
 protected sortData(column: string): void {
-  if (this.sort.sortKey !== column) {
-    // Nouveau tri sur une colonne
-    this.sort = { sortKey: column, isAsc: true };
-  } else {
-    // Toggle entre asc / desc / reset
-    if (this.sort.isAsc === true) {
-      this.sort = { sortKey: column, isAsc: false };
-    } else if (this.sort.isAsc === false) {
-      // Reset (pas de tri)
-      this.sort = { sortKey: null, isAsc: null };
-    } else {
-      this.sort = { sortKey: column, isAsc: true };
-    }
+  // Don’t mutate @Input() directly; send intent to parent
+  if (!this.sort || this.sort.sortKey !== column) {
+    this.sortChanged.emit({ sortKey: column, isAsc: true });   // 1st click: asc
+    return;
   }
-
-  // Émettre vers parent
-  this.sortChanged.emit(this.sort);
+  if (this.sort.isAsc === true) {
+    this.sortChanged.emit({ sortKey: column, isAsc: false });  // 2nd click: desc
+    return;
+  }
+  // 3rd click: reset
+  this.sortChanged.emit({ sortKey: null, isAsc: null });
 }
+
+
+
+public ngOnChanges(changes: SimpleChanges): void {
+  if (changes['resetSortToken'] && !changes['resetSortToken'].firstChange) {
+    // only scroll back to top; DO NOT touch this.sort here
+    this.cdkVirtualScroll.scrollToIndex?.(0);
+  }
+}
+
+<th mat-header-cell *matHeaderCellDef (click)="sortData(column)">
+  <span class="column-label" [innerHTML]="columnConfig[column]?.label || column"></span>
+  <mat-icon class="sort-icon" fontIcon="{{ getSortIcon(column) }}"></mat-icon>
+</th>
+
+// parent .ts
+currentSort: SortState = { sortKey: null, isAsc: null };
+
+onSortChanged(sort: SortState) {
+  this.currentSort = sort;
+  this.onSortChangedInternal(sort);  // your existing method that reloads data
+}
+
+<!-- parent template -->
+<metabot-solicitings-table
+  [tickets]="tickets"
+  [displayedColumns]="displayedColumns"
+  [columnConfig]="columnConfig"
+  [columnTemplates]="columnTemplates"
+  [rowClick]="rowClickFn"
+  [context]="currentContext"
+  [selectedCard]="activeCard"
+  [hasPendingPage]="hasPendingPage"
+  [readCustomer]="readCustomerTable"
+  [resetSortToken]="resetSortToken"
+  [sort]="currentSort"                       <!-- pass SortState -->
+  (sortChanged)="onSortChanged($event)"      <!-- handle SortState -->
+  (loadMore)="onScroll($event)">
+</metabot-solicitings-table>
