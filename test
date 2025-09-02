@@ -1,19 +1,16 @@
-// Avant (cas qui peut renvoyer undefined)
-loadTicketsByCard(card: FilterCardType, ctx: TicketContext, page = 0, opts: LoadOpts) {
-  if (card === FilterCardType.NONE) {
-    // appel qui ne retourne rien → problème
-    // this.loadAllTickets(ctx, page, opts); // void
-    // return; // <-- undefined
-  }
-  return this.ticketService.loadByCard(card, ctx, page, opts); // Observable
-}
+// tickets-page.base.ts (ou component.ts)
 
-// Après (toujours un Observable)
-loadTicketsByCard(card: FilterCardType, ctx: TicketContext, page = 0, opts: LoadOpts): Observable<TicketsResponse> {
-  if (card === FilterCardType.NONE) {
-    // Choisis l’API “générique” équivalente qui RETOURNE un Observable
-    return this.ticketService.loadAllTickets(ctx, page, opts);
-    // ou: return this.ticketService.getMyTickets(ctx, page, opts);
-  }
-  return this.ticketService.loadByCard(card, ctx, page, opts);
+// --- utilitaire : enlève toute sélection de carte et nettoie l'URL ---
+protected clearCardSelection(): void {
+  // 1) état UI
+  this.activeCard = FilterCardType.NONE;
+  this.cardClickedOnce = false; // si tu l’utilises pour bloquer le 2e clic
+
+  // 2) retirer le param `card` de l'URL
+  this.router.navigate([], {
+    relativeTo: this.route,
+    queryParams: { card: null },   // null/undefined => suppression
+    queryParamsHandling: 'merge',  // merge pour garder les autres params
+    replaceUrl: true,              // évite d’empiler l’historique
+  });
 }
