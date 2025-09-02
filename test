@@ -1,16 +1,1 @@
-// tickets-page.base.ts (ou component.ts)
 
-// --- utilitaire : enlève toute sélection de carte et nettoie l'URL ---
-protected clearCardSelection(): void {
-  // 1) état UI
-  this.activeCard = FilterCardType.NONE;
-  this.cardClickedOnce = false; // si tu l’utilises pour bloquer le 2e clic
-
-  // 2) retirer le param `card` de l'URL
-  this.router.navigate([], {
-    relativeTo: this.route,
-    queryParams: { card: null },   // null/undefined => suppression
-    queryParamsHandling: 'merge',  // merge pour garder les autres params
-    replaceUrl: true,              // évite d’empiler l’historique
-  });
-}
