@@ -1,1 +1,19 @@
+// Avant (cas qui peut renvoyer undefined)
+loadTicketsByCard(card: FilterCardType, ctx: TicketContext, page = 0, opts: LoadOpts) {
+  if (card === FilterCardType.NONE) {
+    // appel qui ne retourne rien → problème
+    // this.loadAllTickets(ctx, page, opts); // void
+    // return; // <-- undefined
+  }
+  return this.ticketService.loadByCard(card, ctx, page, opts); // Observable
+}
 
+// Après (toujours un Observable)
+loadTicketsByCard(card: FilterCardType, ctx: TicketContext, page = 0, opts: LoadOpts): Observable<TicketsResponse> {
+  if (card === FilterCardType.NONE) {
+    // Choisis l’API “générique” équivalente qui RETOURNE un Observable
+    return this.ticketService.loadAllTickets(ctx, page, opts);
+    // ou: return this.ticketService.getMyTickets(ctx, page, opts);
+  }
+  return this.ticketService.loadByCard(card, ctx, page, opts);
+}
