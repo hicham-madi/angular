@@ -1,1 +1,18 @@
+// ----- Clients trouvés : distinct part.partId -----
+Criteria criteriaQueryOther = getCriteriaSearchForCustomer(filters); // même base que la liste
+countFoundCustomers = getDistinctPartIdCount(criteriaQueryOther, envName);
+
+
+private long getDistinctPartIdCount(Criteria match, String envName) {
+    Aggregation agg = Aggregation.newAggregation(
+        Aggregation.match(match),
+        Aggregation.group("part.partId"),      // group by
+        Aggregation.count().as("c")            // on compte les groupes
+    );
+    // on agrège sur la collection courante
+    AggregationResults<Document> res =
+        mongoTemplate.aggregate(agg, getCurrentCollectionName(), Document.class);
+
+    return res.getMappedResults().size();      // nb de part.partId distincts
+}
 
