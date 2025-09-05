@@ -1,54 +1,47 @@
 // tickets-page.base.ts
-export abstract class TicketsPageBase {
-  private booting = true;   // NEW
 
-  public ngOnInit(): void {
-    const data = this.route.snapshot.data['prefetch'] as TicketListPrefetch;
+public ngOnInit(): void {
+  const data = this.route.snapshot.data['prefetch'] as TicketListPrefetch;
+  ...
+  this.ticketCardInfos = data?.stats ?? this.ticketCardInfos; // conserve les compteurs
+  ...
+  this.initialization(this.currentContext);
+  this.hydrateFromResponse(data.tickets, true);
+}
 
-    // 1) Appliquer d'abord les stats & tickets du resolver
-    this.ticketCardInfos = data.stats;      // <-- conserve les compteurs
-    this.currentContext  = data.context;
-    this.currentTab      = data.initialTab;
+public hydrateFromResponse(response: MbotList, shouldInitCards: boolean): void {
+  this.handleTicketResponse(response);
+  this.updateMetalLists(response);
+  if (shouldInitCards) {
+    this.buildCardsFrom(); // <-- sans param
+  }
+}
 
-    if (!this.displayedColumns.length) this.displayedColumns = data.config.displayedColumns;
-    if (!Object.keys(this.columnConfig || {}).length) this.columnConfig = data.config.columnConfig;
+private buildCardsFrom(): void {
+  // ⚠️ n’écrase plus ticketCardInfos ici
+  const { smallCards, largeCards } =
+    this.cardConfigFactory.countCards(this.ticketCardInfos, this.activeCard, this.cardClicked);
 
-    // 2) Définir la carte active sans déclencher de rechargement
-    this.activeCard = data.cardType ?? FilterCardType.NONE;
-    if (this.activeCard && this.activeCard !== FilterCardType.NONE) {
-      localStorage.setItem('lastSelectedCard', this.activeCard.toString());
-      this.applyColumnsForCard(this.activeCard); // ajuste les colonnes (FOUND_CUSTOMERS, etc.)
-    } else {
-      localStorage.removeItem('lastSelectedCard');
-    }
+  let small = smallCards;
+  let large = largeCards;
 
-    // 3) Hydrater la table avec les tickets déjà résolus
-    this.hydrateFromResponse(data.tickets, true);
-
-    // 4) Fin de boot : les changements d’URL pourront déclencher onCardClicked
-    this.booting = false;
+  if (TicketContext.SOLICITATIONS !== this.currentContext && TicketContext.TEAM !== this.currentContext) {
+    large = large.filter(card => card.type !== 'APPROVALS' && card.type !== 'DISCUSSION_GROUPS');
+  }
+  if (TicketContext.REGIONAL_FUND === this.currentContext) {
+    large = large.filter(card => card.type !== 'FOUND_CUSTOMERS');
   }
 
-  protected initialization(context: TicketContext): void {
-    this.currentContext = context;
+  const disabled = this.cardConfigFactory.getDisabledCardTypes(
+    this.enableReclamation, this.enableDiscussionGroupForCustomer, this.enableDs
+  );
 
-    this.route.queryParamMap.subscribe((params) => {
-      if (this.booting) return; // NEW: ignorer le 1er passage
-
-      const cardType = params.get('card') as FilterCardType;
-      this.applyColumnsForCard(this.activeCard);
-
-      if (cardType && this.activeCard !== cardType) {
-        this.onCardClicked(cardType); // déclenchera alors le WS
-      } else if (!cardType) {
-        this.activeCard = FilterCardType.NONE;
-      }
-
-      if (cardType && cardType !== FilterCardType.NONE) {
-        localStorage.setItem('lastSelectedCard', cardType.toString());
-      } else {
-        localStorage.removeItem('lastSelectedCard');
-      }
-    });
+  if (TicketContext.REGIONAL_FUND === this.currentContext &&
+      TicketContext.TERMINATED !== this.currentContext &&
+      TicketContext.TERMINATED_TEAM !== this.currentContext) {
+    this.smallCards = small.filter(card => !disabled.has(card.type));
   }
+  this.largeCards = large.filter(card => !disabled.has(card.type));
+
+  this.cdr.detectChanges();
 }
