@@ -1,88 +1,54 @@
-public ngOnInit(): void {
-  const data = this.route.snapshot.data['prefetch'] as TicketListPrefetch;
+// tickets-page.base.ts
+export abstract class TicketsPageBase {
+  private booting = true;   // NEW
 
-  // prefs / contexte depuis le resolver
-  this.enableReclamation = data?.env?.preferences?.enableReclamation ?? false;
-  this.enableDiscussionGroupForCustomer = data?.env?.preferences?.enableDiscussionGroupForCustomer ?? false;
-  this.enableDs = data?.env?.preferences?.enableDs ?? false;
+  public ngOnInit(): void {
+    const data = this.route.snapshot.data['prefetch'] as TicketListPrefetch;
 
-  this.currentContext = data.context;
-  this.currentTab = data.initialTab;
+    // 1) Appliquer d'abord les stats & tickets du resolver
+    this.ticketCardInfos = data.stats;      // <-- conserve les compteurs
+    this.currentContext  = data.context;
+    this.currentTab      = data.initialTab;
 
-  // colonnes par défaut issues du resolver (évite le flicker)
-  if (!this.displayedColumns.length) this.displayedColumns = data.config.displayedColumns;
-  if (!Object.keys(this.columnConfig || {}).length) this.columnConfig = data.config.columnConfig;
+    if (!this.displayedColumns.length) this.displayedColumns = data.config.displayedColumns;
+    if (!Object.keys(this.columnConfig || {}).length) this.columnConfig = data.config.columnConfig;
 
-  // carte active décidée par le resolver
-  this.activeCard = data.cardType ?? FilterCardType.NONE;
-
-  // appliquer les colonnes selon la carte active
-  this.applyColumnsForCard(this.activeCard);
-
-  // mémoriser la carte sélectionnée
-  if (this.activeCard && this.activeCard !== FilterCardType.NONE) {
-    localStorage.setItem('lastSelectedCard', this.activeCard.toString());
-  } else {
-    localStorage.removeItem('lastSelectedCard');
-  }
-
-  // si le resolver renvoie des compteurs et tickets
-  this.ticketCardInfos = data.stats ?? this.ticketCardInfos;
-  this.hydrateFromResponse(data.tickets, true);
-
-  // abonner les changements d’URL/onglet
-  this.initialization(this.currentContext);
-}
-
-protected initialization(context: TicketContext): void {
-  this.currentContext = context;
-
-  let first = true; // ignorer la 1ʳᵉ émission (déjà traitée par ngOnInit)
-  this.route.queryParamMap.subscribe(params => {
-    const qp = params.get('card') as FilterCardType | null;
-    const cardType: FilterCardType = qp ?? FilterCardType.NONE;
-
-    if (first) { first = false; return; }
-
-    // adapter les colonnes à la carte demandée par l’URL
-    this.applyColumnsForCard(cardType);
-
-    // ne recharger que si la carte change
-    if (cardType !== this.activeCard) {
-      this.onCardClicked(cardType); // déclenche le WS et l’affichage
-    }
-
-    // garder l’état en mémoire
-    this.activeCard = cardType;
-    if (cardType && cardType !== FilterCardType.NONE) {
-      localStorage.setItem('lastSelectedCard', cardType.toString());
+    // 2) Définir la carte active sans déclencher de rechargement
+    this.activeCard = data.cardType ?? FilterCardType.NONE;
+    if (this.activeCard && this.activeCard !== FilterCardType.NONE) {
+      localStorage.setItem('lastSelectedCard', this.activeCard.toString());
+      this.applyColumnsForCard(this.activeCard); // ajuste les colonnes (FOUND_CUSTOMERS, etc.)
     } else {
       localStorage.removeItem('lastSelectedCard');
     }
-  });
-}
 
-/** Met à jour les colonnes selon le contexte et la carte (ex. FOUND_CUSTOMERS) */
-private applyColumnsForCard(card: FilterCardType): void {
-  let cfg: { displayedColumns: string[]; columnConfig: Record<string, ColumnDefinition> };
+    // 3) Hydrater la table avec les tickets déjà résolus
+    this.hydrateFromResponse(data.tickets, true);
 
-  switch (this.currentContext) {
-    case TicketContext.TEAM:
-    case TicketContext.TERMINATED_TEAM:
-      cfg = this.tableConfigFactory.getColumnsForTeamPage();
-      break;
-
-    case TicketContext.REGIONAL_FUND:
-      cfg = (card === FilterCardType.FOUND_CUSTOMERS)
-        ? this.tableConfigFactory.getColumnsForFoundCustomers()
-        : this.tableConfigFactory.getColumnsForRegionalFundPage();
-      break;
-
-    default:
-      cfg = this.tableConfigFactory.getBaseColumns();
+    // 4) Fin de boot : les changements d’URL pourront déclencher onCardClicked
+    this.booting = false;
   }
 
-  this.displayedColumns = cfg.displayedColumns;
-  this.columnConfig = cfg.columnConfig;
-  this.cdr.markForCheck?.();
+  protected initialization(context: TicketContext): void {
+    this.currentContext = context;
+
+    this.route.queryParamMap.subscribe((params) => {
+      if (this.booting) return; // NEW: ignorer le 1er passage
+
+      const cardType = params.get('card') as FilterCardType;
+      this.applyColumnsForCard(this.activeCard);
+
+      if (cardType && this.activeCard !== cardType) {
+        this.onCardClicked(cardType); // déclenchera alors le WS
+      } else if (!cardType) {
+        this.activeCard = FilterCardType.NONE;
+      }
+
+      if (cardType && cardType !== FilterCardType.NONE) {
+        localStorage.setItem('lastSelectedCard', cardType.toString());
+      } else {
+        localStorage.removeItem('lastSelectedCard');
+      }
+    });
+  }
 }
