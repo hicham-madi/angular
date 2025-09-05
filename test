@@ -1,56 +1,19 @@
-// tickets-page.base.ts
-private applyColumnsForCard(card: FilterCardType): void {
-  const cfg =
-    card === FilterCardType.FOUND_CUSTOMERS
-      ? this.tableConfigFactory.getColumnsForFoundCustomers()
-      : this.tableConfigFactory.getColumnsForRegionalFundPage(); // ou tes colonnes “normales”
+const paramsForCounters = { ...baseParams, cardType: FilterCardType.NONE };
+const paramsForSelected = { ...baseParams, cardType: selectedCard };
 
-  this.displayedColumns = cfg.displayedColumns;
-  this.columnConfig    = cfg.columnConfig;
-  this.cdr.markForCheck();
-}
-
-protected onCardClicked(type: FilterCardType): void {
-  this.cardClickedOnce = true;
-  const nextCard = this.activeCard === type ? FilterCardType.NONE : type;
-
-  this.router.navigate([], {
-    relativeTo: this.route,
-    queryParams: { card: nextCard === FilterCardType.NONE ? null : nextCard },
-    queryParamsHandling: 'merge',
-  });
-
-  if (nextCard !== FilterCardType.NONE) {
-    localStorage.setItem('lastSelectedCard', nextCard.toString());
-  } else {
-    localStorage.removeItem('lastSelectedCard');
-  }
-
-  this.activeCard = nextCard;
-  this.resetPagination();
-
-  // 👉 applique les colonnes selon la carte
-  this.applyColumnsForCard(nextCard);
-
-  const opts = {
-    sortKey: 'lastActivityTimestamp',
-    isAsc: false,
-    searchTerm: this.searchTerm?.trim() ?? '',
-    statusFilter: this.selectedStatus ?? '',
-    agencyFilter: this.selectedAgency ?? '',
-    collaboratorFilter: this.selectedCollaborator ?? '',
-    campaignFilter: this.selectedCampaign ?? '',
-    searchTypeFilter: this.selectedSearchType ?? '',
-  };
-
-  this.isLoading = true;
-  this.loadTicketsByCard(nextCard, this.currentContext, 0, opts).subscribe({
-    next: (response) => this.hydrateFromResponse(response, false),
-    error: (err) => { console.error('Erreur chargement par carte :', err); this.isLoading = false; },
-    complete: () => (this.isLoading = false),
-  });
-}
-
-// quand tu détermines la carte active au chargement :
-this.activeCard = restoredCard; // par ex.
-this.applyColumnsForCard(this.activeCard);
+return forkJoin({
+  env: this.mbotService.getEnvConfig(),
+  counters: this.mbotService.getTicketListV2(paramsForCounters), // => stats pour toutes les cartes
+  tickets: selectedCard !== FilterCardType.NONE
+    ? this.mbotService.getTicketListV2(paramsForSelected)
+    : of(createEmptyMbotList()),
+}).pipe(
+  map(({ env, counters, tickets }) => ({
+    context,
+    initialTab,
+    config: { displayedColumns, columnConfig },
+    tickets,                 // liste filtrée si carte sélectionnée
+    stats: counters?.stats,  // compteurs alimentés pour TOUTES les cartes
+    env,
+  }))
+);
