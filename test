@@ -1,19 +1,22 @@
-const paramsForCounters = { ...baseParams, cardType: FilterCardType.NONE };
-const paramsForSelected = { ...baseParams, cardType: selectedCard };
+if (context !== TicketContext.REGIONAL_FUND) {
+  const paramsForCounters = { ...params, cardType: FilterCardType.NONE };
+  const paramsForSelected = { ...params, cardType };
 
-return forkJoin({
-  env: this.mbotService.getEnvConfig(),
-  counters: this.mbotService.getTicketListV2(paramsForCounters), // => stats pour toutes les cartes
-  tickets: selectedCard !== FilterCardType.NONE
-    ? this.mbotService.getTicketListV2(paramsForSelected)
-    : of(createEmptyMbotList()),
-}).pipe(
-  map(({ env, counters, tickets }) => ({
-    context,
-    initialTab,
-    config: { displayedColumns, columnConfig },
-    tickets,                 // liste filtrée si carte sélectionnée
-    stats: counters?.stats,  // compteurs alimentés pour TOUTES les cartes
-    env,
-  }))
-);
+  return forkJoin({
+    env: this.mbotService.getEnvConfig(),
+    counters: this.mbotService.getTicketListV2(paramsForCounters),   // <- pour alimenter toutes les cartes
+    tickets: cardType !== FilterCardType.NONE
+      ? this.mbotService.getTicketListV2(paramsForSelected)          // <- liste de la carte cliquée
+      : of(createEmptyMbotList()),
+  }).pipe(
+    map(({ env, counters, tickets }) => ({
+      context,
+      initialTab,
+      config: { displayedColumns, columnConfig },
+      tickets,
+      stats: counters?.stats,  // <- compteurs des autres cartes
+      env,
+      cardType,                // <- requis par le type TicketListPrefetch
+    }))
+  );
+}
